@@ -1,0 +1,137 @@
+// Storage utility for managing data persistence and audit logging
+
+const STORAGE_KEY = 'training_matrix_data';
+const AUDIT_KEY = 'training_matrix_audit';
+
+// Initialize default data structure
+export const getDefaultData = () => ({
+  productionAreas: [],
+  engineers: [],
+  users: [
+    { id: 'admin', username: 'admin', password: 'admin123', role: 'admin', engineerId: null }
+  ],
+  assessments: {},
+  certifications: [],
+  snapshots: [],
+  version: '1.0.0'
+});
+
+// Load data from storage
+export const loadData = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return { ...getDefaultData(), ...data };
+    }
+    return getDefaultData();
+  } catch (error) {
+    console.error('Error loading data:', error);
+    return getDefaultData();
+  }
+};
+
+// Save data to storage
+export const saveData = (data) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    console.error('Error saving data:', error);
+    return false;
+  }
+};
+
+// Audit trail functions
+export const logAction = (user, action, details) => {
+  try {
+    const logs = getAuditLogs();
+    const newLog = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      user: user,
+      action: action,
+      details: details
+    };
+    logs.unshift(newLog);
+    
+    // Keep only last 1000 logs
+    if (logs.length > 1000) {
+      logs.splice(1000);
+    }
+    
+    localStorage.setItem(AUDIT_KEY, JSON.stringify(logs));
+    return true;
+  } catch (error) {
+    console.error('Error logging action:', error);
+    return false;
+  }
+};
+
+export const getAuditLogs = () => {
+  try {
+    const stored = localStorage.getItem(AUDIT_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error getting audit logs:', error);
+    return [];
+  }
+};
+
+// Snapshot functions for progress history
+export const createSnapshot = (data, description) => {
+  const snapshot = {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    description: description,
+    data: {
+      productionAreas: data.productionAreas,
+      engineers: data.engineers,
+      assessments: data.assessments
+    }
+  };
+  
+  const snapshots = data.snapshots || [];
+  snapshots.unshift(snapshot);
+  
+  // Keep only last 50 snapshots
+  if (snapshots.length > 50) {
+    snapshots.splice(50);
+  }
+  
+  return snapshots;
+};
+
+// Export data as JSON for backup
+export const exportBackup = () => {
+  const data = loadData();
+  const backup = {
+    ...data,
+    exportDate: new Date().toISOString(),
+    version: '1.0.0'
+  };
+  return JSON.stringify(backup, null, 2);
+};
+
+// Import data from JSON backup
+export const importBackup = (jsonString) => {
+  try {
+    const data = JSON.parse(jsonString);
+    saveData(data);
+    return { success: true, message: 'Backup imported successfully' };
+  } catch (error) {
+    return { success: false, message: 'Invalid backup file: ' + error.message };
+  }
+};
+
+// Clear all data
+export const clearAllData = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(AUDIT_KEY);
+    return true;
+  } catch (error) {
+    console.error('Error clearing data:', error);
+    return false;
+  }
+};
