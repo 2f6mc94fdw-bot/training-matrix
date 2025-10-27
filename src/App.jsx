@@ -334,6 +334,54 @@ function LoginPage({ onLogin }) {
   );
 }
 function QuickAdminView({ structure, loadSampleData, addEngineer, updateEngineer, deleteEngineer }) {
+  const [users, setUsers] = useState([]);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'engineer', engineerId: '' });
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    const result = await storage.get('training-matrix-users');
+    if (result && result.value) {
+      setUsers(JSON.parse(result.value));
+    }
+  };
+
+  const saveUsers = async (newUsers) => {
+    await storage.set('training-matrix-users', JSON.stringify(newUsers));
+    setUsers(newUsers);
+  };
+
+  const handleCreateUser = () => {
+    if (!newUser.username || !newUser.password) {
+      alert('Username and password required');
+      return;
+    }
+    if (users.find(u => u.username === newUser.username)) {
+      alert('Username already exists');
+      return;
+    }
+    if (newUser.role === 'engineer' && !newUser.engineerId) {
+      alert('Please select an engineer');
+      return;
+    }
+    saveUsers([...users, newUser]);
+    setNewUser({ username: '', password: '', role: 'engineer', engineerId: '' });
+    setShowUserForm(false);
+  };
+
+  const handleDeleteUser = (username) => {
+    if (username === 'admin') {
+      alert('Cannot delete admin account');
+      return;
+    }
+    if (confirm(`Delete user "${username}"?`)) {
+      saveUsers(users.filter(u => u.username !== username));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
@@ -344,6 +392,98 @@ function QuickAdminView({ structure, loadSampleData, addEngineer, updateEngineer
         </button>
       </div>
 
+      {/* USER ACCOUNTS SECTION */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between mb-4">
+          <h2 className="text-xl font-bold">👥 User Accounts</h2>
+          <button 
+            onClick={() => setShowUserForm(!showUserForm)} 
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            + Create User
+          </button>
+        </div>
+
+        {showUserForm && (
+          <div className="mb-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+            <h3 className="font-semibold mb-3">New User Account</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <input
+                type="text"
+                value={newUser.username}
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                placeholder="Username"
+                className="px-3 py-2 border rounded"
+              />
+              <input
+                type="text"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Password"
+                className="px-3 py-2 border rounded"
+              />
+              <select
+                value={newUser.role}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                className="px-3 py-2 border rounded"
+              >
+                <option value="engineer">Engineer</option>
+                <option value="admin">Admin</option>
+              </select>
+              {newUser.role === 'engineer' && (
+                <select
+                  value={newUser.engineerId}
+                  onChange={(e) => setNewUser({ ...newUser, engineerId: e.target.value })}
+                  className="px-3 py-2 border rounded"
+                >
+                  <option value="">Select Engineer Profile</option>
+                  {structure.engineers.map(eng => (
+                    <option key={eng.id} value={eng.id}>{eng.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleCreateUser} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                Create
+              </button>
+              <button onClick={() => setShowUserForm(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {users.map(user => {
+            const engineer = user.engineerId ? structure.engineers.find(e => e.id === user.engineerId) : null;
+            return (
+              <div key={user.username} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <div className="flex-1">
+                  <div className="font-medium">{user.username}</div>
+                  <div className="text-sm text-gray-500">
+                    {user.role === 'admin' ? (
+                      <span className="text-red-600 font-semibold">Administrator</span>
+                    ) : (
+                      <span>Engineer {engineer ? `- ${engineer.name}` : '(unlinked)'}</span>
+                    )}
+                  </div>
+                </div>
+                {user.username !== 'admin' && (
+                  <button 
+                    onClick={() => handleDeleteUser(user.username)} 
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ENGINEERS SECTION */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between mb-4">
           <h2 className="text-xl font-bold">Engineers ({structure.engineers.length})</h2>
