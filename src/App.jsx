@@ -1,1029 +1,1360 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Save, X, Users, Settings, Download, Upload, Database, BarChart3, TrendingUp, AlertTriangle, Search, Filter, Copy, MessageSquare, CheckSquare, Calendar, Award, Clock, History } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import * as XLSX from 'xlsx';
-import Papa from 'papaparse';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle } from 'lucide-react';
 
-// Storage wrapper for localStorage
-const storage = {
-  get: async (key) => {
-    const value = localStorage.getItem(key);
-    return value ? { key, value } : null;
-  },
-  set: async (key, value) => {
-    localStorage.setItem(key, value);
-    return { key, value };
-  },
-  delete: async (key) => {
-    localStorage.removeItem(key);
-    return { key, deleted: true };
-  }
-};
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-export default function TrainingMatrixBuilder() {
+function App() {
+  // State management
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [activeTab, setActiveTab] = useState('admin');
-  const [structure, setStructure] = useState({
+  const [data, setData] = useState({
     productionAreas: [],
-    basicEngineering: {
-      categories: [
-        { id: 'mechanical', name: 'Mechanical', competencies: [] },
-        { id: 'electrical', name: 'Electrical', competencies: [] },
-        { id: 'software', name: 'Software', competencies: [] }
-      ]
-    },
     engineers: [],
+    users: [{ username: 'admin', password: 'admin123', role: 'admin', engineerId: null }],
+    assessments: {},
     certifications: [],
-    trainingPlans: [],
     auditLog: [],
     snapshots: []
   });
-  
-  const [loading, setLoading] = useState(true);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState([]);
 
+  // UI state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterShift, setFilterShift] = useState('all');
+  const [filterArea, setFilterArea] = useState('all');
+  const [editingItem, setEditingItem] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedEngineers, setSelectedEngineers] = useState([]);
+  const [showModal, setShowModal] = useState(null);
+
+  // Load data from localStorage
   useEffect(() => {
-    loadData();
+    const savedData = localStorage.getItem('trainingMatrixData');
+    if (savedData) {
+      setData(JSON.parse(savedData));
+    } else {
+      loadSampleData();
+    }
   }, []);
 
-  const loadData = async () => {
-    try {
-      const result = await storage.get('training-matrix-structure');
-      if (result && result.value) {
-        const loadedStructure = JSON.parse(result.value);
-        setStructure({
-          ...loadedStructure,
-          certifications: loadedStructure.certifications || [],
-          trainingPlans: loadedStructure.trainingPlans || [],
-          auditLog: loadedStructure.auditLog || [],
-          snapshots: loadedStructure.snapshots || []
-        });
-      }
-      
-      const usersResult = await storage.get('training-matrix-users');
-      if (usersResult && usersResult.value) {
-        setUsers(JSON.parse(usersResult.value));
-      } else {
-        const defaultUsers = [
-          { username: 'admin', password: 'admin123', role: 'admin' }
-        ];
-        await storage.set('training-matrix-users', JSON.stringify(defaultUsers));
-        setUsers(defaultUsers);
-      }
-    } catch (error) {
-      console.log('No existing data');
-      const defaultUsers = [
-        { username: 'admin', password: 'admin123', role: 'admin' }
-      ];
-      setUsers(defaultUsers);
-    } finally {
-      setLoading(false);
-    }
+  // Save data to localStorage
+  const saveData = (newData) => {
+    setData(newData);
+    localStorage.setItem('trainingMatrixData', JSON.stringify(newData));
+    logAuditAction('Data Updated', 'System data was modified');
   };
 
-  const saveData = async (newStructure) => {
-    try {
-      await storage.set('training-matrix-structure', JSON.stringify(newStructure));
-      setStructure(newStructure);
-    } catch (error) {
-      console.error('Error saving data:', error);
-    }
+  // Audit logging
+  const logAuditAction = (action, details) => {
+    const newLog = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      user: currentUser?.username || 'System',
+      action,
+      details
+    };
+    const updatedData = {
+      ...data,
+      auditLog: [newLog, ...data.auditLog].slice(0, 100) // Keep last 100 logs
+    };
+    setData(updatedData);
+    localStorage.setItem('trainingMatrixData', JSON.stringify(updatedData));
   };
 
-  const saveUsers = async (newUsers) => {
-    try {
-      await storage.set('training-matrix-users', JSON.stringify(newUsers));
-      setUsers(newUsers);
-    } catch (error) {
-      console.error('Error saving users:', error);
-    }
+  // Load sample data
+  const loadSampleData = () => {
+    const sampleData = {
+      productionAreas: [
+        {
+          id: 1,
+          name: 'Line 7',
+          machines: [
+            {
+              id: 1,
+              name: 'Line 7 Filling',
+              importance: 10,
+              competencies: [
+                { id: 1, name: 'Machine Operation', maxScore: 3 },
+                { id: 2, name: 'Troubleshooting', maxScore: 3 },
+                { id: 3, name: 'Maintenance', maxScore: 3 }
+              ]
+            },
+            {
+              id: 2,
+              name: 'Line 7 Packing',
+              importance: 8,
+              competencies: [
+                { id: 4, name: 'Packing Skills', maxScore: 3 },
+                { id: 5, name: 'Quality Control', maxScore: 3 }
+              ]
+            }
+          ]
+        },
+        {
+          id: 2,
+          name: 'Bottlepack',
+          machines: [
+            {
+              id: 3,
+              name: 'Bottlepack Filling',
+              importance: 9,
+              competencies: [
+                { id: 6, name: 'Bottle Handling', maxScore: 3 },
+                { id: 7, name: 'Safety Procedures', maxScore: 3 }
+              ]
+            }
+          ]
+        }
+      ],
+      engineers: [
+        { id: 1, name: 'John Smith', shift: 'A Shift' },
+        { id: 2, name: 'Sarah Johnson', shift: 'B Shift' },
+        { id: 3, name: 'Mike Wilson', shift: 'Day Shift' },
+        { id: 4, name: 'Emily Brown', shift: 'A Shift' },
+        { id: 5, name: 'David Lee', shift: 'C Shift' }
+      ],
+      users: [
+        { username: 'admin', password: 'admin123', role: 'admin', engineerId: null },
+        { username: 'john', password: 'john123', role: 'engineer', engineerId: 1 }
+      ],
+      assessments: {},
+      certifications: [
+        { id: 1, name: 'Forklift License', validityDays: 365 },
+        { id: 2, name: 'Safety Training', validityDays: 180 },
+        { id: 3, name: 'First Aid', validityDays: 730 }
+      ],
+      auditLog: [],
+      snapshots: []
+    };
+    saveData(sampleData);
   };
 
-  const handleLogin = (username, password) => {
-    const user = users.find(u => u.username === username && u.password === password);
+  // Login handling
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const user = data.users.find(
+      u => u.username === loginForm.username && u.password === loginForm.password
+    );
     if (user) {
+      setIsLoggedIn(true);
       setCurrentUser(user);
-      if (user.role === 'engineer') {
-        setActiveTab('assessment');
-      }
-      return true;
+      logAuditAction('Login', `User ${user.username} logged in`);
+    } else {
+      alert('Invalid credentials');
     }
-    return false;
   };
 
   const handleLogout = () => {
+    logAuditAction('Logout', `User ${currentUser.username} logged out`);
+    setIsLoggedIn(false);
     setCurrentUser(null);
-    setActiveTab('admin');
+    setLoginForm({ username: '', password: '' });
   };
 
-  const loadSampleData = async () => {
+  // Production Area Management
+  const addProductionArea = () => {
+    const name = prompt('Enter production area name:');
+    if (name) {
+      const newArea = {
+        id: Date.now(),
+        name,
+        machines: []
+      };
+      saveData({
+        ...data,
+        productionAreas: [...data.productionAreas, newArea]
+      });
+      logAuditAction('Added Production Area', name);
+    }
+  };
+
+  const deleteProductionArea = (areaId) => {
     setConfirmDelete({
-      message: 'Load sample data? Any existing data will be replaced.',
-      action: async () => {
-        const sampleStructure = {
-          productionAreas: [
-            {
-              id: 'line7',
-              name: 'Line 7',
-              machines: [
-                {
-                  id: 'line7-vision',
-                  name: 'Vision System',
-                  importance: 1.5,
-                  competencies: [
-                    { id: 'comp-1', name: 'Setup & Configuration', maxScore: 3 },
-                    { id: 'comp-2', name: 'Operation', maxScore: 3 },
-                    { id: 'comp-3', name: 'Troubleshooting', maxScore: 3 }
-                  ]
-                }
-              ]
-            }
-          ],
-          basicEngineering: {
-            categories: [
-              {
-                id: 'mechanical',
-                name: 'Mechanical',
-                competencies: [
-                  { id: 'mech-1', name: 'Welding', maxScore: 3 }
-                ]
-              }
-            ]
-          },
-          engineers: [
-            { id: 'eng-1', name: 'Cameron Buys', shift: 'A Shift', scores: {}, notes: '' },
-            { id: 'eng-2', name: 'Ben Barnham', shift: 'A Shift', scores: {}, notes: '' }
-          ],
-          certifications: [],
-          trainingPlans: [],
-          auditLog: [{
-            id: `log-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            action: 'Loaded Sample Data',
-            details: 'Sample data loaded'
-          }],
-          snapshots: []
-        };
-        await saveData(sampleStructure);
-        setConfirmDelete(null);
-      }
-    });
-  };
-
-  const addEngineer = () => {
-    saveData({
-      ...structure,
-      engineers: [...structure.engineers, {
-        id: `eng-${Date.now()}`,
-        name: 'New Engineer',
-        shift: 'A Shift',
-        scores: {},
-        notes: ''
-      }]
-    });
-  };
-
-  const updateEngineer = (engId, updates) => {
-    saveData({
-      ...structure,
-      engineers: structure.engineers.map(eng =>
-        eng.id === engId ? { ...eng, ...updates } : eng
-      )
-    });
-  };
-
-  const deleteEngineer = (engId) => {
-    setConfirmDelete({
-      message: 'Delete this engineer?',
-      action: () => {
+      message: 'Are you sure you want to delete this production area and all its machines?',
+      onConfirm: () => {
+        const area = data.productionAreas.find(a => a.id === areaId);
         saveData({
-          ...structure,
-          engineers: structure.engineers.filter(eng => eng.id !== engId)
+          ...data,
+          productionAreas: data.productionAreas.filter(a => a.id !== areaId)
         });
+        logAuditAction('Deleted Production Area', area.name);
         setConfirmDelete(null);
       }
     });
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  // Machine Management
+  const addMachine = (areaId) => {
+    const name = prompt('Enter machine name:');
+    const importance = prompt('Enter importance (1-10):', '5');
+    if (name && importance) {
+      const updatedAreas = data.productionAreas.map(area => {
+        if (area.id === areaId) {
+          return {
+            ...area,
+            machines: [...area.machines, {
+              id: Date.now(),
+              name,
+              importance: parseInt(importance),
+              competencies: []
+            }]
+          };
+        }
+        return area;
+      });
+      saveData({ ...data, productionAreas: updatedAreas });
+      logAuditAction('Added Machine', `${name} to area ${areaId}`);
+    }
+  };
+
+  const deleteMachine = (areaId, machineId) => {
+    setConfirmDelete({
+      message: 'Are you sure you want to delete this machine and all its competencies?',
+      onConfirm: () => {
+        const updatedAreas = data.productionAreas.map(area => {
+          if (area.id === areaId) {
+            return {
+              ...area,
+              machines: area.machines.filter(m => m.id !== machineId)
+            };
+          }
+          return area;
+        });
+        saveData({ ...data, productionAreas: updatedAreas });
+        logAuditAction('Deleted Machine', `Machine ${machineId}`);
+        setConfirmDelete(null);
+      }
+    });
+  };
+
+  // Competency Management
+  const addCompetency = (areaId, machineId) => {
+    const name = prompt('Enter competency name:');
+    if (name) {
+      const updatedAreas = data.productionAreas.map(area => {
+        if (area.id === areaId) {
+          return {
+            ...area,
+            machines: area.machines.map(machine => {
+              if (machine.id === machineId) {
+                return {
+                  ...machine,
+                  competencies: [...machine.competencies, {
+                    id: Date.now(),
+                    name,
+                    maxScore: 3
+                  }]
+                };
+              }
+              return machine;
+            })
+          };
+        }
+        return area;
+      });
+      saveData({ ...data, productionAreas: updatedAreas });
+      logAuditAction('Added Competency', name);
+    }
+  };
+
+  const deleteCompetency = (areaId, machineId, competencyId) => {
+    setConfirmDelete({
+      message: 'Are you sure you want to delete this competency?',
+      onConfirm: () => {
+        const updatedAreas = data.productionAreas.map(area => {
+          if (area.id === areaId) {
+            return {
+              ...area,
+              machines: area.machines.map(machine => {
+                if (machine.id === machineId) {
+                  return {
+                    ...machine,
+                    competencies: machine.competencies.filter(c => c.id !== competencyId)
+                  };
+                }
+                return machine;
+              })
+            };
+          }
+          return area;
+        });
+        saveData({ ...data, productionAreas: updatedAreas });
+        setConfirmDelete(null);
+        logAuditAction('Deleted Competency', `Competency ${competencyId}`);
+      }
+    });
+  };
+
+  // Engineer Management
+  const addEngineer = () => {
+    const name = prompt('Enter engineer name:');
+    const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
+    if (name && shift) {
+      const newEngineer = {
+        id: Date.now(),
+        name,
+        shift
+      };
+      saveData({
+        ...data,
+        engineers: [...data.engineers, newEngineer]
+      });
+      logAuditAction('Added Engineer', name);
+    }
+  };
+
+  const deleteEngineer = (engineerId) => {
+    setConfirmDelete({
+      message: 'Are you sure you want to delete this engineer?',
+      onConfirm: () => {
+        const engineer = data.engineers.find(e => e.id === engineerId);
+        saveData({
+          ...data,
+          engineers: data.engineers.filter(e => e.id !== engineerId)
+        });
+        logAuditAction('Deleted Engineer', engineer.name);
+        setConfirmDelete(null);
+      }
+    });
+  };
+
+  // Assessment Management
+  const updateAssessment = (engineerId, areaId, machineId, competencyId, score) => {
+    const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
+    const updatedAssessments = {
+      ...data.assessments,
+      [key]: {
+        score,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: currentUser.username
+      }
+    };
+    saveData({ ...data, assessments: updatedAssessments });
+  };
+
+  const getAssessmentScore = (engineerId, areaId, machineId, competencyId) => {
+    const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
+    return data.assessments[key]?.score || 0;
+  };
+
+  // Bulk Operations
+  const bulkUpdateScores = (competencyId, score) => {
+    if (selectedEngineers.length === 0) {
+      alert('Please select engineers first');
+      return;
+    }
+    
+    const updatedAssessments = { ...data.assessments };
+    selectedEngineers.forEach(engineerId => {
+      data.productionAreas.forEach(area => {
+        area.machines.forEach(machine => {
+          const comp = machine.competencies.find(c => c.id === competencyId);
+          if (comp) {
+            const key = `${engineerId}-${area.id}-${machine.id}-${competencyId}`;
+            updatedAssessments[key] = {
+              score,
+              lastUpdated: new Date().toISOString(),
+              updatedBy: currentUser.username
+            };
+          }
+        });
+      });
+    });
+    
+    saveData({ ...data, assessments: updatedAssessments });
+    logAuditAction('Bulk Update', `Updated scores for ${selectedEngineers.length} engineers`);
+    setBulkSelectMode(false);
+    setSelectedEngineers([]);
+  };
+
+  // Calculate scores
+  const calculateScores = (engineerId) => {
+    let totalRaw = 0;
+    let totalWeighted = 0;
+    let totalPossibleRaw = 0;
+    let totalPossibleWeighted = 0;
+
+    data.productionAreas.forEach(area => {
+      area.machines.forEach(machine => {
+        machine.competencies.forEach(comp => {
+          const score = getAssessmentScore(engineerId, area.id, machine.id, comp.id);
+          totalRaw += score;
+          totalWeighted += score * machine.importance;
+          totalPossibleRaw += comp.maxScore;
+          totalPossibleWeighted += comp.maxScore * machine.importance;
+        });
+      });
+    });
+
+    return {
+      raw: totalRaw,
+      weighted: totalWeighted,
+      rawPercent: totalPossibleRaw > 0 ? (totalRaw / totalPossibleRaw * 100) : 0,
+      weightedPercent: totalPossibleWeighted > 0 ? (totalWeighted / totalPossibleWeighted * 100) : 0
+    };
+  };
+
+  // Skills Gap Analysis
+  const calculateSkillsGap = () => {
+    const gaps = [];
+    
+    data.productionAreas.forEach(area => {
+      area.machines.forEach(machine => {
+        machine.competencies.forEach(comp => {
+          let totalScore = 0;
+          let engineerCount = 0;
+          
+          data.engineers.forEach(engineer => {
+            const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+            totalScore += score;
+            engineerCount++;
+          });
+          
+          const avgScore = engineerCount > 0 ? totalScore / engineerCount : 0;
+          const gap = comp.maxScore - avgScore;
+          
+          if (gap > 0.5) {
+            gaps.push({
+              area: area.name,
+              machine: machine.name,
+              competency: comp.name,
+              currentAvg: avgScore.toFixed(2),
+              target: comp.maxScore,
+              gap: gap.toFixed(2),
+              priority: gap > 2 ? 'High' : gap > 1 ? 'Medium' : 'Low'
+            });
+          }
+        });
+      });
+    });
+    
+    return gaps.sort((a, b) => parseFloat(b.gap) - parseFloat(a.gap));
+  };
+
+  // Generate Training Plan
+  const generateTrainingPlan = (engineerId) => {
+    const engineer = data.engineers.find(e => e.id === engineerId);
+    if (!engineer) return [];
+    
+    const weakAreas = [];
+    
+    data.productionAreas.forEach(area => {
+      area.machines.forEach(machine => {
+        machine.competencies.forEach(comp => {
+          const score = getAssessmentScore(engineerId, area.id, machine.id, comp.id);
+          if (score < 2) {
+            weakAreas.push({
+              area: area.name,
+              machine: machine.name,
+              competency: comp.name,
+              currentScore: score,
+              targetScore: comp.maxScore,
+              priority: score === 0 ? 'Critical' : score === 1 ? 'High' : 'Medium'
+            });
+          }
+        });
+      });
+    });
+    
+    return weakAreas.sort((a, b) => a.currentScore - b.currentScore);
+  };
+
+  // Create Snapshot
+  const createSnapshot = () => {
+    const snapshot = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(data.assessments)),
+      createdBy: currentUser.username
+    };
+    
+    saveData({
+      ...data,
+      snapshots: [snapshot, ...data.snapshots].slice(0, 10) // Keep last 10 snapshots
+    });
+    logAuditAction('Created Snapshot', `Snapshot at ${new Date().toLocaleString()}`);
+  };
+
+  // Export to Excel (full featured)
+  const exportToExcel = () => {
+    const exportData = {
+      engineers: data.engineers,
+      areas: data.productionAreas,
+      assessments: data.assessments,
+      scores: data.engineers.map(eng => ({
+        name: eng.name,
+        shift: eng.shift,
+        ...calculateScores(eng.id)
+      }))
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `training-matrix-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    logAuditAction('Exported Data', 'Full data export');
+  };
+
+  // Import from JSON
+  const importFromJSON = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+          if (confirm('This will replace all current data. Continue?')) {
+            saveData(importedData);
+            logAuditAction('Imported Data', `Imported from ${file.name}`);
+            alert('Data imported successfully!');
+          }
+        } catch (error) {
+          alert('Error importing file. Please check the format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Filter engineers
+  const getFilteredEngineers = () => {
+    return data.engineers.filter(engineer => {
+      const matchesSearch = engineer.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesShift = filterShift === 'all' || engineer.shift === filterShift;
+      return matchesSearch && matchesShift;
+    });
+  };
+
+  // Render Login Screen
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+          <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Training Matrix System</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <input
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Login
+            </button>
+          </form>
+          <p className="mt-4 text-sm text-gray-600 text-center">
+            Default: admin / admin123
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
+  // Main Application
   return (
-    <div className="w-full h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white shadow">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Training Matrix - Full System</h1>
-            <p className="text-sm text-gray-600">{currentUser.username} ({currentUser.role}) - All 4 Phases</p>
-          </div>
-          <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-4 overflow-x-auto">
-            {currentUser.role === 'admin' && (
-              <>
-                <TabButton active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} icon={<Settings className="w-4 h-4" />} label="Admin" />
-                <TabButton active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<Database className="w-4 h-4" />} label="Data (Phase 1)" />
-                <TabButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<BarChart3 className="w-4 h-4" />} label="Reports (Phase 2)" />
-                <TabButton active={activeTab === 'advanced'} onClick={() => setActiveTab('advanced')} icon={<Award className="w-4 h-4" />} label="Advanced (Phase 4)" />
-              </>
-            )}
-            <TabButton active={activeTab === 'assessment'} onClick={() => setActiveTab('assessment')} icon={<Users className="w-4 h-4" />} label="Assessment (Phase 3)" />
+          <h1 className="text-2xl font-bold text-gray-800">Training Matrix System</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">
+              {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          {activeTab === 'admin' && <QuickAdminView structure={structure} loadSampleData={loadSampleData} addEngineer={addEngineer} updateEngineer={updateEngineer} deleteEngineer={deleteEngineer} />}
-          {activeTab === 'data' && <DataPhase structure={structure} saveData={saveData} />}
-          {activeTab === 'reports' && <ReportsPhase structure={structure} />}
-          {activeTab === 'advanced' && <AdvancedPhase structure={structure} saveData={saveData} />}
-          {activeTab === 'assessment' && <AssessmentPhase structure={structure} updateEngineer={updateEngineer} currentUser={currentUser} />}
-        </div>
-      </div>
-
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-4">Confirm</h3>
-            <p className="mb-6">{confirmDelete.message}</p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-              <button onClick={confirmDelete.action} className="px-4 py-2 bg-red-600 text-white rounded">Confirm</button>
+      {/* Tabs */}
+      {currentUser.role === 'admin' && (
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex gap-2 overflow-x-auto">
+              {['admin', 'data', 'reports', 'advanced', 'assessment'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-3 font-medium capitalize whitespace-nowrap ${
+                    activeTab === tab
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  {tab === 'admin' && '⚙️ '}
+                  {tab === 'data' && '💾 '}
+                  {tab === 'reports' && '📊 '}
+                  {tab === 'advanced' && '🚀 '}
+                  {tab === 'assessment' && '✍️ '}
+                  {tab}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function TabButton({ active, onClick, icon, label }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`py-4 px-3 border-b-2 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${
-        active ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = () => {
-    if (!onLogin(username, password)) {
-      setError('Invalid credentials');
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-2">Training Matrix</h1>
-        <p className="text-gray-600 mb-6">Complete Phase 1-4 System</p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-              className="w-full px-4 py-3 border rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-              className="w-full px-4 py-3 border rounded"
-            />
-          </div>
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>}
-          <button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
-            Sign In
-          </button>
-        </div>
-        <div className="mt-6 p-4 bg-blue-50 rounded">
-          <p className="text-sm"><strong>Login:</strong> admin / admin123</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-function QuickAdminView({ structure, loadSampleData, addEngineer, updateEngineer, deleteEngineer }) {
-  const [users, setUsers] = useState([]);
-  const [showUserForm, setShowUserForm] = useState(false);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'engineer', engineerId: '' });
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    const result = await storage.get('training-matrix-users');
-    if (result && result.value) {
-      setUsers(JSON.parse(result.value));
-    }
-  };
-
-  const saveUsers = async (newUsers) => {
-    await storage.set('training-matrix-users', JSON.stringify(newUsers));
-    setUsers(newUsers);
-  };
-
-  const handleCreateUser = () => {
-    if (!newUser.username || !newUser.password) {
-      alert('Username and password required');
-      return;
-    }
-    if (users.find(u => u.username === newUser.username)) {
-      alert('Username already exists');
-      return;
-    }
-    if (newUser.role === 'engineer' && !newUser.engineerId) {
-      alert('Please select an engineer');
-      return;
-    }
-    saveUsers([...users, newUser]);
-    setNewUser({ username: '', password: '', role: 'engineer', engineerId: '' });
-    setShowUserForm(false);
-  };
-
-  const handleDeleteUser = (username) => {
-    if (username === 'admin') {
-      alert('Cannot delete admin account');
-      return;
-    }
-    if (confirm(`Delete user "${username}"?`)) {
-      saveUsers(users.filter(u => u.username !== username));
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-2">🚀 Quick Start</h2>
-        <p className="mb-4">Load sample data to see all features in action</p>
-        <button onClick={loadSampleData} className="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700">
-          Load Sample Data
-        </button>
-      </div>
-
-      {/* USER ACCOUNTS SECTION */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-bold">👥 User Accounts</h2>
-          <button 
-            onClick={() => setShowUserForm(!showUserForm)} 
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-          >
-            + Create User
-          </button>
-        </div>
-
-        {showUserForm && (
-          <div className="mb-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-            <h3 className="font-semibold mb-3">New User Account</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <input
-                type="text"
-                value={newUser.username}
-                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                placeholder="Username"
-                className="px-3 py-2 border rounded"
-              />
-              <input
-                type="text"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Password"
-                className="px-3 py-2 border rounded"
-              />
-              <select
-                value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                className="px-3 py-2 border rounded"
+      {/* Confirmation Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">{confirmDelete.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                <option value="engineer">Engineer</option>
-                <option value="admin">Admin</option>
-              </select>
-              {newUser.role === 'engineer' && (
-                <select
-                  value={newUser.engineerId}
-                  onChange={(e) => setNewUser({ ...newUser, engineerId: e.target.value })}
-                  className="px-3 py-2 border rounded"
-                >
-                  <option value="">Select Engineer Profile</option>
-                  {structure.engineers.map(eng => (
-                    <option key={eng.id} value={eng.id}>{eng.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleCreateUser} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-                Create
-              </button>
-              <button onClick={() => setShowUserForm(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
                 Cancel
               </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {users.map(user => {
-            const engineer = user.engineerId ? structure.engineers.find(e => e.id === user.engineerId) : null;
-            return (
-              <div key={user.username} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
-                <div className="flex-1">
-                  <div className="font-medium">{user.username}</div>
-                  <div className="text-sm text-gray-500">
-                    {user.role === 'admin' ? (
-                      <span className="text-red-600 font-semibold">Administrator</span>
-                    ) : (
-                      <span>Engineer {engineer ? `- ${engineer.name}` : '(unlinked)'}</span>
-                    )}
-                  </div>
-                </div>
-                {user.username !== 'admin' && (
-                  <button 
-                    onClick={() => handleDeleteUser(user.username)} 
-                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ENGINEERS SECTION */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-bold">Engineers ({structure.engineers.length})</h2>
-          <button onClick={addEngineer} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            + Add Engineer
-          </button>
-        </div>
-        <div className="space-y-2">
-          {structure.engineers.map(eng => (
-            <div key={eng.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <div>
-                <div className="font-medium">{eng.name}</div>
-                <div className="text-sm text-gray-500">{eng.shift}</div>
-              </div>
-              <button onClick={() => deleteEngineer(eng.id)} className="px-3 py-1 bg-red-600 text-white rounded text-sm">
+              <button
+                onClick={confirmDelete.onConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
                 Delete
               </button>
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-bold mb-2">📚 Explore All Features</h3>
-        <ul className="space-y-1 text-sm">
-          <li>✅ <strong>Data Tab:</strong> Export to Excel, Import, Backup/Restore</li>
-          <li>✅ <strong>Reports Tab:</strong> Dashboard, Gap Analysis, Heatmap</li>
-          <li>✅ <strong>Advanced Tab:</strong> Training Plans, Certifications, Audit Trail</li>
-          <li>✅ <strong>Assessment Tab:</strong> Rate skills with Search & Filters</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function DataPhase({ structure, saveData }) {
-  const [showBackupData, setShowBackupData] = useState(false);
-  const [copySuccess, setCopySuccess] = useState('');
-  const backupData = JSON.stringify(structure, null, 2);
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(backupData).then(() => {
-      setCopySuccess('✅ Copied! Paste into Notepad and save as .json');
-      setTimeout(() => setCopySuccess(''), 3000);
-    }).catch(() => {
-      setCopySuccess('❌ Copy failed - use the text box below');
-      setShowBackupData(true);
-    });
-  };
-
-  const handleRestore = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        await saveData(data);
-        alert('✅ Backup restored successfully!');
-      } catch (error) {
-        alert('❌ Error: Invalid backup file');
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const engineersData = structure.engineers.map(e => ({ Name: e.name, Shift: e.shift }));
-    const ws = XLSX.utils.json_to_sheet(engineersData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Engineers');
-    XLSX.writeFile(wb, `training-matrix-${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Database className="w-6 h-6" />
-          Phase 1: Data Management
-        </h2>
-
-        <div className="mb-6">
-          <h3 className="font-bold mb-3">📥 Backup Your Data</h3>
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <button 
-              onClick={copyToClipboard} 
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Copy className="w-5 h-5" />
-              Copy Backup to Clipboard
-            </button>
-            <button 
-              onClick={() => setShowBackupData(!showBackupData)} 
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <Download className="w-5 h-5" />
-              Show Backup Data
-            </button>
-          </div>
-
-          {copySuccess && (
-            <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded mb-3">
-              {copySuccess}
-            </div>
-          )}
-
-          {showBackupData && (
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Copy this text and save it as a .json file:</p>
-              <textarea
-                value={backupData}
-                readOnly
-                className="w-full h-64 p-3 border rounded font-mono text-xs"
-                onClick={(e) => e.target.select()}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="mb-6">
-          <h3 className="font-bold mb-3">📤 Restore Backup</h3>
-          <label className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer">
-            <Upload className="w-5 h-5" />
-            Upload Backup File
-            <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
-          </label>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="font-bold mb-3">📊 Export to Excel</h3>
-          <button onClick={exportToExcel} className="flex items-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700">
-            <Download className="w-5 h-5" />
-            Export Engineers to Excel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ReportsPhase({ structure }) {
-  const totalEngineers = structure.engineers.length;
-  const totalAreas = structure.productionAreas.length;
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <BarChart3 className="w-6 h-6" />
-          Phase 2: Reports & Analytics
-        </h2>
-
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg text-white">
-            <div className="text-sm opacity-90 mb-2">Total Engineers</div>
-            <div className="text-4xl font-bold">{totalEngineers}</div>
-          </div>
-          <div className="p-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg text-white">
-            <div className="text-sm opacity-90 mb-2">Production Areas</div>
-            <div className="text-4xl font-bold">{totalAreas}</div>
-          </div>
-          <div className="p-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg text-white">
-            <div className="text-sm opacity-90 mb-2">Certifications</div>
-            <div className="text-4xl font-bold">{structure.certifications?.length || 0}</div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="font-bold mb-4">Engineer Progress</h3>
-          <div className="space-y-3">
-            {structure.engineers.map(eng => {
-              let totalScore = 0;
-              let maxScore = 0;
-              
-              structure.productionAreas.forEach(area => {
-                area.machines?.forEach(machine => {
-                  machine.competencies?.forEach(comp => {
-                    const scoreKey = `${machine.id}-${comp.id}`;
-                    totalScore += eng.scores?.[scoreKey] || 0;
-                    maxScore += comp.maxScore;
-                  });
-                });
-              });
-
-              const completion = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-
-              return (
-                <div key={eng.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-                  <div className="flex-1">
-                    <div className="font-medium">{eng.name}</div>
-                    <div className="text-sm text-gray-500">{eng.shift}</div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${completion}%` }} />
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600">{completion}%</div>
-                    <div className="text-xs text-gray-500">{totalScore}/{maxScore}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AdvancedPhase({ structure, saveData }) {
-  const [activeSection, setActiveSection] = useState('training-plans');
-
-  const createSnapshot = () => {
-    const snapshot = {
-      id: `snapshot-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      data: { engineers: structure.engineers.map(e => ({ id: e.id, name: e.name, scores: {...e.scores} })) }
-    };
-    saveData({
-      ...structure,
-      snapshots: [...(structure.snapshots || []), snapshot],
-      auditLog: [...(structure.auditLog || []), {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        action: 'Created Snapshot',
-        details: 'Progress snapshot created'
-      }]
-    });
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Award className="w-6 h-6" />
-          Phase 4: Advanced Features
-        </h2>
-
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <button onClick={() => setActiveSection('training-plans')} className={`px-4 py-2 rounded ${activeSection === 'training-plans' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
-            Training Plans
-          </button>
-          <button onClick={() => setActiveSection('certifications')} className={`px-4 py-2 rounded ${activeSection === 'certifications' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
-            Certifications
-          </button>
-          <button onClick={() => setActiveSection('audit')} className={`px-4 py-2 rounded ${activeSection === 'audit' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
-            Audit Trail
-          </button>
-          <button onClick={() => setActiveSection('history')} className={`px-4 py-2 rounded ${activeSection === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
-            Progress History
-          </button>
-        </div>
-
-        {activeSection === 'training-plans' && (
-          <div className="p-4 bg-blue-50 rounded">
-            <h3 className="font-bold mb-2">Training Plans</h3>
-            <p className="text-sm mb-4">Auto-generate training plans based on skill gaps</p>
-            <p className="text-sm">📋 {structure.trainingPlans?.length || 0} plans created</p>
-          </div>
-        )}
-
-        {activeSection === 'certifications' && (
-          <div className="p-4 bg-green-50 rounded">
-            <h3 className="font-bold mb-2">Certifications</h3>
-            <p className="text-sm mb-4">Track certifications and expiry dates</p>
-            {structure.certifications?.length > 0 ? (
-              structure.certifications.map(cert => (
-                <div key={cert.id} className="p-3 bg-white rounded mb-2">
-                  <div className="font-medium">{cert.name}</div>
-                  <div className="text-sm text-gray-600">{cert.engineerName} - Expires: {cert.expiryDate}</div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">No certifications yet</p>
-            )}
-          </div>
-        )}
-
-        {activeSection === 'audit' && (
-          <div className="p-4 bg-yellow-50 rounded">
-            <h3 className="font-bold mb-2">Audit Trail</h3>
-            <p className="text-sm mb-4">Complete history of all changes</p>
-            <div className="space-y-2">
-              {(structure.auditLog || []).slice(-5).reverse().map(log => (
-                <div key={log.id} className="p-2 bg-white rounded text-sm">
-                  <div className="font-medium">{log.action}</div>
-                  <div className="text-gray-600 text-xs">{new Date(log.timestamp).toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'history' && (
-          <div className="p-4 bg-purple-50 rounded">
-            <h3 className="font-bold mb-2">Progress History</h3>
-            <button onClick={createSnapshot} className="px-4 py-2 bg-purple-600 text-white rounded mb-4">
-              📸 Create Snapshot
-            </button>
-            <p className="text-sm">Snapshots: {structure.snapshots?.length || 0}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-function AssessmentPhase({ structure, updateEngineer, currentUser }) {
-  const [selectedEngId, setSelectedEngId] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCompletion, setFilterCompletion] = useState('all');
-  
-  const engineer = structure.engineers.find(e => e.id === selectedEngId);
-  const isEngineerView = currentUser.role === 'engineer';
-
-  const setScore = (machineId, compId, score) => {
-    if (!engineer) return;
-    updateEngineer(engineer.id, {
-      scores: { ...engineer.scores, [`${machineId}-${compId}`]: parseInt(score) }
-    });
-  };
-
-  const getScore = (machineId, compId) => {
-    return engineer?.scores?.[`${machineId}-${compId}`] || 0;
-  };
-
-  const calculateCompletion = (machine) => {
-    if (!engineer || !machine.competencies) return 0;
-    let totalScore = 0;
-    let maxScore = 0;
-    machine.competencies.forEach(comp => {
-      totalScore += getScore(machine.id, comp.id);
-      maxScore += comp.maxScore;
-    });
-    return maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-  };
-
-  const filterMachines = (machines) => {
-    if (!machines) return [];
-    return machines.filter(machine => {
-      const matchesSearch = machine.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const completion = calculateCompletion(machine);
-      
-      let matchesCompletion = true;
-      if (filterCompletion === 'complete') matchesCompletion = completion === 100;
-      if (filterCompletion === 'partial') matchesCompletion = completion > 0 && completion < 100;
-      if (filterCompletion === 'none') matchesCompletion = completion === 0;
-      
-      return matchesSearch && matchesCompletion;
-    });
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Users className="w-6 h-6" />
-          Phase 3: Assessment (with Search & Filters)
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              {isEngineerView ? 'Your Profile' : 'Select Engineer'}
-            </label>
-            {isEngineerView ? (
-              <div className="px-3 py-2 border rounded bg-gray-100 font-medium">
-                {engineer?.name} ({engineer?.shift})
-              </div>
-            ) : (
-              <select 
-                value={selectedEngId} 
-                onChange={(e) => setSelectedEngId(e.target.value)} 
-                className="w-full px-3 py-2 border rounded"
-              >
-                <option value="">Choose engineer...</option>
-                {structure.engineers.map(eng => (
-                  <option key={eng.id} value={eng.id}>{eng.name} ({eng.shift})</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {selectedEngId && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Filter by Completion</label>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={filterCompletion}
-                  onChange={(e) => setFilterCompletion(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded"
+      {/* Content */}
+      <div className="max-w-7xl mx-auto p-4">
+        {/* Admin Tab */}
+        {activeTab === 'admin' && currentUser.role === 'admin' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Engineers</h2>
+                <button
+                  onClick={addEngineer}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  <option value="all">All Completion Levels</option>
-                  <option value="complete">Fully Complete (100%)</option>
-                  <option value="partial">Partially Complete</option>
-                  <option value="none">Not Started (0%)</option>
+                  <Plus size={20} /> Add Engineer
+                </button>
+              </div>
+              
+              <div className="mb-4 flex gap-3">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search engineers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <select
+                  value={filterShift}
+                  onChange={(e) => setFilterShift(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="all">All Shifts</option>
+                  <option value="A Shift">A Shift</option>
+                  <option value="B Shift">B Shift</option>
+                  <option value="C Shift">C Shift</option>
+                  <option value="D Shift">D Shift</option>
+                  <option value="Day Shift">Day Shift</option>
                 </select>
               </div>
-            </div>
-          )}
-        </div>
 
-        {selectedEngId && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Search Machines</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search machines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded"
-              />
+              <div className="space-y-2">
+                {getFilteredEngineers().map(engineer => (
+                  <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div>
+                      <p className="font-medium">{engineer.name}</p>
+                      <p className="text-sm text-gray-600">{engineer.shift}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteEngineer(engineer.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Production Areas</h2>
+                <button
+                  onClick={addProductionArea}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus size={20} /> Add Area
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {data.productionAreas.map(area => (
+                  <div key={area.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-lg font-semibold">{area.name}</h3>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => addMachine(area.id)}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                        >
+                          + Machine
+                        </button>
+                        <button
+                          onClick={() => deleteProductionArea(area.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 ml-4">
+                      {area.machines.map(machine => (
+                        <div key={machine.id} className="border-l-2 border-gray-300 pl-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <div>
+                              <p className="font-medium">{machine.name}</p>
+                              <p className="text-sm text-gray-600">Importance: {machine.importance}/10</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => addCompetency(area.id, machine.id)}
+                                className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                              >
+                                + Competency
+                              </button>
+                              <button
+                                onClick={() => deleteMachine(area.id, machine.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 ml-4">
+                            {machine.competencies.map(comp => (
+                              <div key={comp.id} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                                <span className="text-sm">{comp.name} (max: {comp.maxScore})</span>
+                                <button
+                                  onClick={() => deleteCompetency(area.id, machine.id, comp.id)}
+                                  className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {!engineer ? (
-          <div className="text-center py-12 text-gray-500">
-            Select an engineer to begin assessment
+        {/* Data Management Tab */}
+        {activeTab === 'data' && currentUser.role === 'admin' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Data Management</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={exportToExcel}
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+                >
+                  <Download size={24} />
+                  <span className="font-medium">Export Full Data (JSON)</span>
+                </button>
+
+                <label className="flex items-center justify-center gap-2 p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 cursor-pointer">
+                  <Upload size={24} />
+                  <span className="font-medium">Import Data (JSON)</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importFromJSON}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  onClick={() => {
+                    const backup = JSON.stringify(data, null, 2);
+                    const blob = new Blob([backup], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `backup-${Date.now()}.json`;
+                    link.click();
+                  }}
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
+                >
+                  <Save size={24} />
+                  <span className="font-medium">Create Backup</span>
+                </button>
+
+                <button
+                  onClick={loadSampleData}
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
+                >
+                  <FileDown size={24} />
+                  <span className="font-medium">Load Sample Data</span>
+                </button>
+              </div>
+
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Always create backups before importing data. Imports will replace all current data.
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-6 mt-6">
-            <div className="p-4 bg-blue-50 rounded">
-              <div className="font-bold text-lg">{engineer.name}</div>
-              <div className="text-sm text-gray-600">{engineer.shift}</div>
-              {engineer.notes && (
-                <div className="mt-2 text-sm">
-                  <strong>Notes:</strong> {engineer.notes}
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 'reports' && currentUser.role === 'admin' && (
+          <div className="space-y-6">
+            {/* Overall Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Engineers</p>
+                    <p className="text-2xl font-bold text-blue-600">{data.engineers.length}</p>
+                  </div>
+                  <Users size={32} className="text-blue-600" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Production Areas</p>
+                    <p className="text-2xl font-bold text-green-600">{data.productionAreas.length}</p>
+                  </div>
+                  <TrendingUp size={32} className="text-green-600" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Machines</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {data.productionAreas.reduce((sum, area) => sum + area.machines.length, 0)}
+                    </p>
+                  </div>
+                  <Award size={32} className="text-purple-600" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Avg Completion</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {data.engineers.length > 0
+                        ? (data.engineers.reduce((sum, eng) => sum + calculateScores(eng.id).rawPercent, 0) / data.engineers.length).toFixed(1)
+                        : 0}%
+                    </p>
+                  </div>
+                  <AlertCircle size={32} className="text-orange-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Gap Analysis */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Skills Gap Analysis</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4">Area</th>
+                      <th className="text-left py-3 px-4">Machine</th>
+                      <th className="text-left py-3 px-4">Competency</th>
+                      <th className="text-center py-3 px-4">Current Avg</th>
+                      <th className="text-center py-3 px-4">Target</th>
+                      <th className="text-center py-3 px-4">Gap</th>
+                      <th className="text-center py-3 px-4">Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calculateSkillsGap().map((gap, index) => (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4">{gap.area}</td>
+                        <td className="py-3 px-4">{gap.machine}</td>
+                        <td className="py-3 px-4">{gap.competency}</td>
+                        <td className="text-center py-3 px-4">{gap.currentAvg}</td>
+                        <td className="text-center py-3 px-4">{gap.target}</td>
+                        <td className="text-center py-3 px-4 font-bold">{gap.gap}</td>
+                        <td className="text-center py-3 px-4">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            gap.priority === 'High' ? 'bg-red-100 text-red-800' :
+                            gap.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {gap.priority}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Engineer Progress Chart */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Engineer Progress Overview</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={data.engineers.map(eng => ({
+                  name: eng.name,
+                  completion: calculateScores(eng.id).rawPercent
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="completion" fill="#3B82F6" name="Completion %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Competency Heatmap */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Competency Heatmap</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 bg-gray-100">Engineer</th>
+                      {data.productionAreas.flatMap(area =>
+                        area.machines.flatMap(machine =>
+                          machine.competencies.map(comp => (
+                            <th key={`${area.id}-${machine.id}-${comp.id}`} className="border p-2 bg-gray-100 writing-mode-vertical">
+                              {comp.name}
+                            </th>
+                          ))
+                        )
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.engineers.map(engineer => (
+                      <tr key={engineer.id}>
+                        <td className="border p-2 font-medium">{engineer.name}</td>
+                        {data.productionAreas.flatMap(area =>
+                          area.machines.flatMap(machine =>
+                            machine.competencies.map(comp => {
+                              const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                              const percentage = (score / comp.maxScore) * 100;
+                              return (
+                                <td
+                                  key={`${engineer.id}-${area.id}-${machine.id}-${comp.id}`}
+                                  className="border p-2 text-center"
+                                  style={{
+                                    backgroundColor: 
+                                      percentage >= 80 ? '#86efac' :
+                                      percentage >= 60 ? '#fde047' :
+                                      percentage >= 40 ? '#fdba74' :
+                                      percentage > 0 ? '#fca5a5' :
+                                      '#f3f4f6'
+                                  }}
+                                >
+                                  {score}
+                                </td>
+                              );
+                            })
+                          )
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-300"></div>
+                  <span>80-100%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-300"></div>
+                  <span>60-79%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-orange-300"></div>
+                  <span>40-59%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-300"></div>
+                  <span>1-39%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-100"></div>
+                  <span>0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Advanced Tab */}
+        {activeTab === 'advanced' && currentUser.role === 'admin' && (
+          <div className="space-y-6">
+            {/* Training Plans */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Training Plans</h2>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const plan = generateTrainingPlan(parseInt(e.target.value));
+                    setShowModal({ type: 'trainingPlan', data: plan, engineerId: e.target.value });
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
+              >
+                <option value="">Select engineer to generate training plan...</option>
+                {data.engineers.map(eng => (
+                  <option key={eng.id} value={eng.id}>{eng.name}</option>
+                ))}
+              </select>
+
+              {showModal?.type === 'trainingPlan' && (
+                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-bold text-lg">
+                      Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
+                    </h3>
+                    <button onClick={() => setShowModal(null)} className="text-gray-500 hover:text-gray-700">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2">Area</th>
+                        <th className="text-left py-2">Machine</th>
+                        <th className="text-left py-2">Competency</th>
+                        <th className="text-center py-2">Current</th>
+                        <th className="text-center py-2">Target</th>
+                        <th className="text-center py-2">Priority</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {showModal.data.map((item, index) => (
+                        <tr key={index} className="border-b">
+                          <td className="py-2">{item.area}</td>
+                          <td className="py-2">{item.machine}</td>
+                          <td className="py-2">{item.competency}</td>
+                          <td className="text-center py-2">{item.currentScore}</td>
+                          <td className="text-center py-2">{item.targetScore}</td>
+                          <td className="text-center py-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                              item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {item.priority}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
 
-            {structure.productionAreas.map(area => {
-              const filteredMachines = filterMachines(area.machines || []);
-              if (filteredMachines.length === 0) return null;
-
-              return (
-                <div key={area.id} className="border rounded-lg p-4">
-                  <h3 className="font-bold mb-3 text-lg text-blue-600">{area.name}</h3>
-                  {filteredMachines.map(machine => {
-                    const completion = calculateCompletion(machine);
-                    
-                    return (
-                      <div key={machine.id} className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex-1">
-                            <div className="font-medium text-lg">{machine.name}</div>
-                            <div className="text-sm text-gray-500">Weight: {machine.importance}x</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">{completion}%</div>
-                          </div>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                          <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${completion}%` }} />
-                        </div>
-
-                        {machine.competencies?.map(comp => {
-                          const score = getScore(machine.id, comp.id);
-                          return (
-                            <div key={comp.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 p-3 bg-white rounded border">
-                              <div className="flex-1 mb-2 sm:mb-0">
-                                <span className="font-medium">{comp.name}</span>
-                                <span className="text-sm text-gray-500 ml-2">(Max: {comp.maxScore})</span>
-                              </div>
-                              <div className="flex gap-2">
-                                {[0, 1, 2, 3].slice(0, comp.maxScore + 1).map(val => (
-                                  <button
-                                    key={val}
-                                    onClick={() => setScore(machine.id, comp.id, val)}
-                                    disabled={isEngineerView}
-                                    className={`w-12 h-12 rounded-md font-semibold transition-all ${
-                                      score === val 
-                                        ? 'bg-blue-600 text-white scale-110 shadow-lg' 
-                                        : isEngineerView
-                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                        : 'bg-white border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                                    }`}
-                                  >
-                                    {val}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
-            {structure.basicEngineering && (
-              <div className="border rounded-lg p-4 bg-green-50">
-                <h3 className="font-bold mb-3 text-lg text-green-600">Basic Engineering Knowledge</h3>
-                {structure.basicEngineering.categories.map(category => (
-                  <div key={category.id} className="mb-4 p-4 bg-white rounded-lg">
-                    <h4 className="font-medium mb-3">{category.name}</h4>
-                    {category.competencies?.map(comp => {
-                      const score = getScore(`basic-${category.id}`, comp.id);
-                      return (
-                        <div key={comp.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 p-3 bg-gray-50 rounded border">
-                          <div className="flex-1 mb-2 sm:mb-0">
-                            <span className="font-medium">{comp.name}</span>
-                            <span className="text-sm text-gray-500 ml-2">(Max: {comp.maxScore})</span>
-                          </div>
-                          <div className="flex gap-2">
-                            {[0, 1, 2, 3].slice(0, comp.maxScore + 1).map(val => (
-                              <button
-                                key={val}
-                                onClick={() => setScore(`basic-${category.id}`, comp.id, val)}
-                                disabled={isEngineerView}
-                                className={`w-12 h-12 rounded-md font-semibold transition-all ${
-                                  score === val 
-                                    ? 'bg-green-600 text-white scale-110 shadow-lg' 
-                                    : isEngineerView
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                    : 'bg-white border-2 border-gray-300 hover:border-green-400 hover:bg-green-50'
-                                }`}
-                              >
-                                {val}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+            {/* Certifications */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Certifications</h2>
+                <button
+                  onClick={() => {
+                    const name = prompt('Enter certification name:');
+                    const days = prompt('Enter validity period (days):', '365');
+                    if (name && days) {
+                      saveData({
+                        ...data,
+                        certifications: [...data.certifications, {
+                          id: Date.now(),
+                          name,
+                          validityDays: parseInt(days)
+                        }]
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus size={20} /> Add Certification
+                </button>
+              </div>
+              <div className="space-y-2">
+                {data.certifications.map(cert => (
+                  <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                    <div>
+                      <p className="font-medium">{cert.name}</p>
+                      <p className="text-sm text-gray-600">Valid for {cert.validityDays} days</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setConfirmDelete({
+                          message: 'Delete this certification?',
+                          onConfirm: () => {
+                            saveData({
+                              ...data,
+                              certifications: data.certifications.filter(c => c.id !== cert.id)
+                            });
+                            setConfirmDelete(null);
+                          }
+                        });
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+
+            {/* Audit Trail */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Audit Trail</h2>
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="text-left py-2 px-4">Timestamp</th>
+                      <th className="text-left py-2 px-4">User</th>
+                      <th className="text-left py-2 px-4">Action</th>
+                      <th className="text-left py-2 px-4">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.auditLog.map(log => (
+                      <tr key={log.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4">{new Date(log.timestamp).toLocaleString()}</td>
+                        <td className="py-2 px-4">{log.user}</td>
+                        <td className="py-2 px-4 font-medium">{log.action}</td>
+                        <td className="py-2 px-4 text-gray-600">{log.details}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Progress Snapshots */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Progress History</h2>
+                <button
+                  onClick={createSnapshot}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Save size={20} /> Create Snapshot
+                </button>
+              </div>
+              <div className="space-y-2">
+                {data.snapshots.map(snapshot => (
+                  <div key={snapshot.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Snapshot from {new Date(snapshot.timestamp).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600">Created by {snapshot.createdBy}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([JSON.stringify(snapshot.data, null, 2)], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `snapshot-${snapshot.timestamp}.json`;
+                          link.click();
+                        }}
+                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assessment Tab */}
+        {activeTab === 'assessment' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4">Engineer Assessments</h2>
+              
+              {/* Filters */}
+              <div className="mb-4 flex gap-3">
+                <select
+                  value={filterArea}
+                  onChange={(e) => setFilterArea(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="all">All Areas</option>
+                  {data.productionAreas.map(area => (
+                    <option key={area.id} value={area.id}>{area.name}</option>
+                  ))}
+                </select>
+
+                {currentUser.role === 'admin' && (
+                  <button
+                    onClick={() => setBulkSelectMode(!bulkSelectMode)}
+                    className={`px-4 py-2 rounded-lg ${
+                      bulkSelectMode
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {bulkSelectMode ? 'Exit Bulk Mode' : 'Bulk Update Mode'}
+                  </button>
+                )}
+              </div>
+
+              {/* Engineer Selection */}
+              <div className="space-y-4">
+                {getFilteredEngineers().map(engineer => {
+                  const scores = calculateScores(engineer.id);
+                  const isEngineerView = currentUser.role === 'engineer' && currentUser.engineerId !== engineer.id;
+
+                  if (isEngineerView) return null;
+
+                  return (
+                    <div key={engineer.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          {bulkSelectMode && currentUser.role === 'admin' && (
+                            <input
+                              type="checkbox"
+                              checked={selectedEngineers.includes(engineer.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEngineers([...selectedEngineers, engineer.id]);
+                                } else {
+                                  setSelectedEngineers(selectedEngineers.filter(id => id !== engineer.id));
+                                }
+                              }}
+                              className="w-5 h-5"
+                            />
+                          )}
+                          <div>
+                            <h3 className="text-lg font-semibold">{engineer.name}</h3>
+                            <p className="text-sm text-gray-600">{engineer.shift}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Raw Score: {scores.raw.toFixed(0)}</p>
+                          <p className="text-sm text-gray-600">Weighted: {scores.weighted.toFixed(0)}</p>
+                          <div className="mt-1">
+                            <div className="w-32 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{ width: `${scores.rawPercent}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">{scores.rawPercent.toFixed(1)}% Complete</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Competency Assessments */}
+                      {data.productionAreas
+                        .filter(area => filterArea === 'all' || area.id === parseInt(filterArea))
+                        .map(area => (
+                          <div key={area.id} className="mt-4">
+                            <h4 className="font-medium text-blue-600 mb-2">{area.name}</h4>
+                            {area.machines.map(machine => (
+                              <div key={machine.id} className="ml-4 mb-3">
+                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                  {machine.name} (Importance: {machine.importance})
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {machine.competencies.map(comp => {
+                                    const currentScore = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                                    return (
+                                      <div key={comp.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                        <span className="text-sm">{comp.name}</span>
+                                        <div className="flex gap-1">
+                                          {[0, 1, 2, 3].map(value => (
+                                            <button
+                                              key={value}
+                                              onClick={() => {
+                                                if (currentUser.role === 'admin') {
+                                                  updateAssessment(engineer.id, area.id, machine.id, comp.id, value);
+                                                }
+                                              }}
+                                              disabled={currentUser.role !== 'admin'}
+                                              className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                                                currentScore === value
+                                                  ? 'bg-blue-600 text-white'
+                                                  : currentUser.role !== 'admin'
+                                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                  : 'bg-white border-2 border-gray-300 hover:border-blue-400'
+                                              }`}
+                                            >
+                                              {value}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+export default App;
