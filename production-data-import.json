@@ -1,0 +1,815 @@
+{
+  "productionAreas": [
+    {
+      "id": "area_1",
+      "name": "Viaflo Fill",
+      "machines": [
+        {
+          "id": "machine_1_1",
+          "name": "Filling Machine",
+          "importance": 10,
+          "competencies": [
+            {
+              "id": "comp_1_1_1",
+              "name": "Proficient in carrying out PM's and understanding the operation of the machines",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_2",
+              "name": "Able to perform manual movements",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_3",
+              "name": "Able to diagnose and carry out major repairs (leadscrews, fife units)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_4",
+              "name": "Horizontal press remove/refit",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_5",
+              "name": "Horizontal press rebuild",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_6",
+              "name": "Vertical press remove/refit",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_1_7",
+              "name": "Proficient in setting up the machine when required (weld improvements)",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_1_2",
+          "name": "Vuormar",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_1_2_1",
+              "name": "Proficient in carrying out PM's and understanding the operation of the machines",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_2_2",
+              "name": "Be able to fault find to a high standard",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_2_3",
+              "name": "Vacuum box rebuild (rack and pinion etc)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_2_4",
+              "name": "Proficient in setting up the machine when required (Vertical seal, horizontal seal and cut)",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_1_3",
+          "name": "Printer",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_1_3_1",
+              "name": "Proficient in carrying out PM's and understanding the operation of the machines",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_1_3_2",
+              "name": "Be able to fault find to a high standard and interpret the HMI",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "area_2",
+      "name": "L7 Packing",
+      "machines": [
+        {
+          "id": "machine_2_1",
+          "name": "Bliss 6",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_2_1_1",
+              "name": "Able to make adjustments to the set up of the machine eg. timing, encoder start/stop positions to produce a good box",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_1_2",
+              "name": "Able to adjust the glue pattern on the Nordsson Unit",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_2",
+          "name": "Unloader",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_2_2_1",
+              "name": "Navigate throughout menus to identify manual operations and adjust parameters on hmi",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_2_2",
+              "name": "Able to calibrate the safety controllers in the event of a collision (SC alarm)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_2_3",
+              "name": "Able to manually move the robot using the pendant",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_3",
+          "name": "TMS",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_2_3_1",
+              "name": "Navigate throughout menus to identify manual operations on both loading, unloading, and shuttle systems",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_3_2",
+              "name": "Proficient in manual movements on HMI and how to interact between conveyor systems",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_3_3",
+              "name": "Able to perform reset sequences in the event of a fault or manual intervention",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_3_4",
+              "name": "Identify faults and perform fault finding within the controls systems on the HMI",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_4",
+          "name": "Casepacker",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_2_4_1",
+              "name": "Able to make adjustments to pick and place positions of the bags",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_4_2",
+              "name": "Able to size change between 1 litre and 3 litre programme if required",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_4_3",
+              "name": "Able to adjust conveyor speeds if required",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_5",
+          "name": "Leaflet Inserter",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_2_5_1",
+              "name": "Able to set up leaflet inserter to run correctly if required",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_5_2",
+              "name": "Able to strip and refurbish the main components of the leaflet inserter",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_6",
+          "name": "VideoJet labeller",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_2_6_1",
+              "name": "Able to move label/print position as required",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_6_2",
+              "name": "Able to change the IP address in the event of swapping a whole labeller or main PCB",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_6_3",
+              "name": "Able to change barcode length as required",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_7",
+          "name": "Palletiser 4",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_2_7_1",
+              "name": "Able to move the Fanuc robot",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_7_2",
+              "name": "Able to move the Fanuc robot to different positions in the programme such as Home, Pick approach, Pre pick",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_7_3",
+              "name": "Able to perform manual movements safely using the HMI or tablet",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_7_4",
+              "name": "Able to update the truck tracker on the HMI",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_8",
+          "name": "Loader",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_2_8_1",
+              "name": "Able to calibrate the safety controllers in the event of a collision (SC alarm)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_8_2",
+              "name": "Navigate throughout menus to identify manual operations and adjust parameters on hmi",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_8_3",
+              "name": "Able to manually move the robot using the pendant",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_2_9",
+          "name": "Flex Picker",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_2_9_1",
+              "name": "Able to adjust parameters to adjust the pick and placement positions",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_2_9_2",
+              "name": "Able to make adjustments to programme to remedy problems such as bags not being picked",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "area_3",
+      "name": "LINE 1",
+      "machines": [
+        {
+          "id": "machine_3_1",
+          "name": "Bliss 5/7",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_3_1_1",
+              "name": "Able to perform Bliss 5/7 PM's",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_1_2",
+              "name": "Able to make adjustments to the set up of the machine (compression chamber, timing, encoder start/stop positions etc.)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_1_3",
+              "name": "Able to adjust the glue pattern on the Nordsson Unit",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_3_2",
+          "name": "Leaflet Inserter",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_3_2_1",
+              "name": "Able to perform PMs on the leaflet inserter",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_2_2",
+              "name": "Able to strip and refurbish the main components of the leaflet inserter",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_2_3",
+              "name": "Able to adjust cognex parameters during production to improve performance",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_2_4",
+              "name": "Able to locate and identify fault codes on the HMI",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_3_3",
+          "name": "Serialisation Labeller",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_3_3_1",
+              "name": "Able to perform all PMs on the serialisation labeller",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_3_4",
+          "name": "Box Labeller",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_3_4_1",
+              "name": "Able to perform all PMs on the box labeller",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_3_5",
+          "name": "Little David",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_3_5_1",
+              "name": "Able to perform all PMs on the Little David",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_5_2",
+              "name": "Proficient in fault finding/troubleshooting, interpretation of HMI",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_3_6",
+          "name": "Palletiser 4/Fanuc Robot",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_3_6_1",
+              "name": "Able to perform all PMs on the Palletiser 4 and Fanuc",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_6_2",
+              "name": "Able to operate manually and safely, including pendant operations",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_6_3",
+              "name": "Able to carry out a total reset of palletiser",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_3_6_4",
+              "name": "Able to change positions within the programme, understanding each stage and their purpose (pre pick, pre cas, homing etc.)",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "area_4",
+      "name": "LINE 6",
+      "machines": [
+        {
+          "id": "machine_4_1",
+          "name": "Multivac",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_4_1_1",
+              "name": "Basic understanding of machine operation",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_1_2",
+              "name": "HMI able to alter and adjust machine parameters such as temperatures/vacuum pressures",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_1_3",
+              "name": "Able to perform all Multivac PMs when required",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_4_2",
+          "name": "Emplex",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_4_2_1",
+              "name": "Able to refurbish emplex modules",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_2_2",
+              "name": "Able to perform all Emplex PMs",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_4_3",
+          "name": "Filling Station",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_4_3_1",
+              "name": "Understand the operation and components of the filling stations",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_3_2",
+              "name": "Able to replace the filling nozzle diaphragms/nozzles when required. Understand when is appropriate to do so",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_4_4",
+          "name": "Multiup",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_4_4_1",
+              "name": "Understand machine operation",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_4_2",
+              "name": "Trox cylinder principles. Understand",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_4_3",
+              "name": "HMI understand and able to operate manually/ alter parameters",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_4_5",
+          "name": "Single up",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_4_5_1",
+              "name": "Understand basic machine operation",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_5_2",
+              "name": "Able to perform all single up printer PMs",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_4_6",
+          "name": "Huckleback Vac pumps",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_4_6_1",
+              "name": "Able to service the pump e.g. oil replenish/drain",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_4_6_2",
+              "name": "Understand operation of the pump",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "area_5",
+      "name": "VIAFLO PACKING",
+      "machines": [
+        {
+          "id": "machine_5_1",
+          "name": "Bliss 4/2",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_5_1_1",
+              "name": "Able to perform Bliss 4/2 PMs",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_1_2",
+              "name": "Able to make adjustments to the set up of the machine (compression chamber, timing etc.)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_1_3",
+              "name": "Able to adjust the glue pattern on the Nordsson Unit",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_2",
+          "name": "Unloader",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_5_2_1",
+              "name": "Able to perform Unloader PMs",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_2_2",
+              "name": "Able to identify each step in the robot programme (e.g. pre vas, pre sacche etc.)",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_2_3",
+              "name": "Able to modify and adjust robot position to improve robot performance",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_2_4",
+              "name": "Carry out major repairs and set up of robot (Harness / motor replacement and subsequent calibration)",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_3",
+          "name": "Casepacker",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_5_3_1",
+              "name": "Able to perform casepacker PMs",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_3_2",
+              "name": "Able to adjust programme parameters such as ICS speed, box position",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_3_3",
+              "name": "Able to adjust pick/place positions in the programme to improve casepacker performance",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_3_4",
+              "name": "Able to strip and refurbish the lower section of the casepacker including ICS/box chains and conveyors",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_3_5",
+              "name": "Able to strip and refurbish the upper section of the casepacker including the main upper gearboxes",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_3_6",
+              "name": "Able to replace and home the main motors as per the HMI",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_4",
+          "name": "Leaflet Inserter",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_5_4_1",
+              "name": "Able to perform PMs on the leaflet inserters",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_4_2",
+              "name": "Able to strip and refurbish the main components of the leaflet inserter",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_4_3",
+              "name": "Able to adjust Cognex parameters during production to improve performance",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_5",
+          "name": "Taper",
+          "importance": 5,
+          "competencies": [
+            {
+              "id": "comp_5_5_1",
+              "name": "Able to perform PMs on the little david and lantech taper",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_6",
+          "name": "VideoJet Labeller",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_5_6_1",
+              "name": "Able to perform PMs on the videoJet labeller",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_6_2",
+              "name": "Able to strip and replace all main components of the labeller competently",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_5_7",
+          "name": "Palletiser 2",
+          "importance": 8,
+          "competencies": [
+            {
+              "id": "comp_5_7_1",
+              "name": "Able to perform PMs on Palletiser 2",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_7_2",
+              "name": "Able to carry out a total reset of the palletiser",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_5_7_3",
+              "name": "Able to safely remove the layer table chains to carry out maintenance",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "area_6",
+      "name": "Viaflo Racking",
+      "machines": [
+        {
+          "id": "machine_6_1",
+          "name": "ABB",
+          "importance": 9,
+          "competencies": [
+            {
+              "id": "comp_6_1_1",
+              "name": "Proficient in performing the loader PM's",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_1_2",
+              "name": "Able to identify each step in the robot programme (e.g. pre vas, pre sacche etc.), and manipulate the robot using the pendant",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_1_3",
+              "name": "Able to modify and adjust robot position to improve robot positions",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_1_4",
+              "name": "Carry out major repairs and set up of robot (Harness / motor replacement and subsequent calibration)",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_6_2",
+          "name": "Bag Turner",
+          "importance": 7,
+          "competencies": [
+            {
+              "id": "comp_6_2_1",
+              "name": "Proficient in performing the bag turner PM's",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_2_2",
+              "name": "Understand the role of each sensor and how to set up to run correctly",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_2_3",
+              "name": "Be able to make changes to the program on the HMI to optimise performance",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_6_3",
+          "name": "Shingle conveyor",
+          "importance": 6,
+          "competencies": [
+            {
+              "id": "comp_6_3_1",
+              "name": "Understand knock on effects of shingle placement throughout the packing process, and be able to make adjustments to suit",
+              "maxScore": 3
+            },
+            {
+              "id": "comp_6_3_2",
+              "name": "Replace belts and set tracking",
+              "maxScore": 3
+            }
+          ]
+        },
+        {
+          "id": "machine_6_4",
+          "name": "Vac pump",
+          "importance": 5,
+          "competencies": [
+            {
+              "id": "comp_6_4_1",
+              "name": "Able to identify the location of the vac pump for each loader",
+              "maxScore": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "engineers": [],
+  "users": [
+    {
+      "id": "admin",
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin",
+      "engineerId": null
+    }
+  ],
+  "assessments": {},
+  "certifications": [
+    {
+      "id": 1,
+      "name": "Forklift License",
+      "validityDays": 365
+    },
+    {
+      "id": 2,
+      "name": "Safety Training",
+      "validityDays": 180
+    },
+    {
+      "id": 3,
+      "name": "First Aid",
+      "validityDays": 730
+    }
+  ],
+  "snapshots": [],
+  "version": "1.0.0"
+}
