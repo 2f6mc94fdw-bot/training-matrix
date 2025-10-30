@@ -609,6 +609,76 @@ function App() {
                 ))}
               </div>
             </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">User Accounts</h2>
+                <button
+                  onClick={() => {
+                    const username = prompt('Enter username:');
+                    if (!username) return;
+
+                    const password = prompt('Enter password:');
+                    if (!password) return;
+
+                    const role = prompt('Enter role (admin or engineer):');
+                    if (role !== 'admin' && role !== 'engineer') {
+                      alert('Role must be "admin" or "engineer"');
+                      return;
+                    }
+
+                    let engineerId = null;
+                    if (role === 'engineer') {
+                      const engineerName = prompt('Link to which engineer? Enter engineer name:');
+                      const engineer = data.engineers.find(e => e.name.toLowerCase() === engineerName.toLowerCase());
+                      if (!engineer) {
+                        alert('Engineer not found. Please add the engineer first, then create their user account.');
+                        return;
+                      }
+                      engineerId = engineer.id;
+                    }
+
+                    dataHook.addUser({ username, password, role, engineerId });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus size={20} /> Add User
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {data.users.map(user => (
+                  <div key={user.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div>
+                      <p className="font-medium">{user.username}</p>
+                      <p className="text-sm text-gray-600">
+                        Role: {user.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}
+                        {user.engineerId && ` (${data.engineers.find(e => e.id === user.engineerId)?.name || 'Unknown'})`}
+                      </p>
+                    </div>
+                    {user.username !== 'admin' && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete user "${user.username}"?`)) {
+                            dataHook.deleteUser(user.id);
+                          }
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Tip:</strong> Engineer users can only see and update their own scores.
+                  Admin users can see and manage everything.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
