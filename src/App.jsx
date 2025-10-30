@@ -280,19 +280,26 @@ function App() {
           if (result.success) {
             if (confirm('This will replace all current data. Continue?')) {
               const importedData = JSON.parse(jsonString);
-              dataHook.replaceData(importedData);
-              alert('Data imported successfully!');
-              window.location.reload(); // Reload to refresh all state
+              // Save directly to localStorage first
+              localStorage.setItem('training_matrix_data', JSON.stringify(importedData));
+              alert('Data imported successfully! Page will reload.');
+              // Small delay to ensure localStorage write completes
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
             }
           } else {
             alert(result.message);
           }
         } catch (error) {
           alert('Error importing file. Please check the format.');
+          console.error('Import error:', error);
         }
       };
       reader.readAsText(file);
     }
+    // Reset input so same file can be imported again
+    e.target.value = '';
   };
 
   // Import from Excel
@@ -313,13 +320,22 @@ function App() {
             ...data,
             productionAreas: imported.productionAreas,
             engineers: imported.engineers,
-            assessments: imported.assessments
+            assessments: imported.assessments,
+            users: data.users, // Preserve users
+            certifications: data.certifications || [], // Preserve certifications
+            snapshots: data.snapshots || []
           };
-          dataHook.replaceData(newData);
-          alert('Excel data imported successfully!');
+          // Save directly to localStorage
+          localStorage.setItem('training_matrix_data', JSON.stringify(newData));
+          alert('Excel data imported successfully! Page will reload.');
+          // Small delay to ensure localStorage write completes
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
         }
       } catch (error) {
         alert('Error importing Excel file: ' + error.message);
+        console.error('Excel import error:', error);
       }
     }
     e.target.value = ''; // Reset input
