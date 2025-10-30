@@ -1074,6 +1074,75 @@ function App() {
                 )}
               </div>
 
+              {/* Bulk Update Panel */}
+              {bulkSelectMode && selectedEngineers.length > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-blue-900">
+                      Bulk Update - {selectedEngineers.length} Engineer{selectedEngineers.length !== 1 ? 's' : ''} Selected
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setSelectedEngineers([]);
+                        setBulkSelectMode(false);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Competency to Update:
+                      </label>
+                      <select
+                        value={showModal?.bulkCompetency || ''}
+                        onChange={(e) => setShowModal({ ...showModal, bulkCompetency: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">-- Choose a competency --</option>
+                        {data.productionAreas.map(area =>
+                          area.machines.map(machine =>
+                            machine.competencies.map(comp => (
+                              <option key={`${area.id}-${machine.id}-${comp.id}`} value={comp.id}>
+                                {area.name} → {machine.name} → {comp.name}
+                              </option>
+                            ))
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    {showModal?.bulkCompetency && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Score:
+                        </label>
+                        <div className="flex gap-2">
+                          {[0, 1, 2, 3].map(score => (
+                            <button
+                              key={score}
+                              onClick={() => {
+                                if (confirm(`Set score to ${score} for ${selectedEngineers.length} engineer(s)?`)) {
+                                  bulkUpdateScores(showModal.bulkCompetency, score);
+                                  setShowModal(null);
+                                  alert(`Successfully updated ${selectedEngineers.length} engineer(s)!`);
+                                }
+                              }}
+                              className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 font-bold text-lg transition-colors"
+                            >
+                              {score}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Engineer Selection */}
               <div className="space-y-4">
                 {getFilteredEngineers().map(engineer => {
