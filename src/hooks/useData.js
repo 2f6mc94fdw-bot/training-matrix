@@ -230,10 +230,14 @@ export const useData = (currentUser) => {
       ...data,
       assessments: {
         ...data.assessments,
-        [key]: score
+        [key]: {
+          score,
+          lastUpdated: new Date().toISOString(),
+          updatedBy: currentUser?.username || 'System'
+        }
       }
     };
-    
+
     updateData(newData, `Updated assessment for engineer`);
   };
   
@@ -241,14 +245,18 @@ export const useData = (currentUser) => {
     const newAssessments = { ...data.assessments };
     updates.forEach(({ engineerId, areaId, machineId, compId, score }) => {
       const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
-      newAssessments[key] = score;
+      newAssessments[key] = {
+        score,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: currentUser?.username || 'System'
+      };
     });
-    
+
     const newData = {
       ...data,
       assessments: newAssessments
     };
-    
+
     updateData(newData, `Bulk updated ${updates.length} assessments`);
   };
   
@@ -282,19 +290,16 @@ export const useData = (currentUser) => {
   
   const addCertification = (cert) => {
     const newCert = {
-      id: `cert_${Date.now()}`,
+      id: Date.now(),
       name: cert.name,
-      engineerId: cert.engineerId,
-      issueDate: cert.issueDate,
-      expiryDate: cert.expiryDate,
-      status: cert.status || 'active'
+      validityDays: cert.validityDays || 365
     };
-    
+
     const newData = {
       ...data,
       certifications: [...(data.certifications || []), newCert]
     };
-    
+
     updateData(newData, `Added certification: ${cert.name}`);
     return newCert;
   };

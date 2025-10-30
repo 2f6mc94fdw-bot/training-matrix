@@ -1,26 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
+import { useData } from './hooks/useData';
+import { exportToExcel, exportEngineerReport } from './utils/excelExport';
+import { importFromExcel, validateImportedData } from './utils/excelImport';
+import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 function App() {
-  // State management
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  // Authentication
+  const { currentUser, isAuthenticated, login, logout } = useAuth();
+
+  // Data management
+  const dataHook = useData(currentUser);
+  const { data, loading } = dataHook;
+
+  // UI State
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [activeTab, setActiveTab] = useState('admin');
-  const [data, setData] = useState({
-    productionAreas: [],
-    engineers: [],
-    users: [{ username: 'admin', password: 'admin123', role: 'admin', engineerId: null }],
-    assessments: {},
-    certifications: [],
-    auditLog: [],
-    snapshots: []
-  });
-
-  // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
@@ -30,127 +29,17 @@ function App() {
   const [selectedEngineers, setSelectedEngineers] = useState([]);
   const [showModal, setShowModal] = useState(null);
 
-  // Load data from localStorage
-  useEffect(() => {
-    const savedData = localStorage.getItem('trainingMatrixData');
-    if (savedData) {
-      setData(JSON.parse(savedData));
-    } else {
-      loadSampleData();
-    }
-  }, []);
-
-  // Save data to localStorage
-  const saveData = (newData) => {
-    setData(newData);
-    localStorage.setItem('trainingMatrixData', JSON.stringify(newData));
-    logAuditAction('Data Updated', 'System data was modified');
-  };
-
-  // Audit logging
-  const logAuditAction = (action, details) => {
-    const newLog = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      user: currentUser?.username || 'System',
-      action,
-      details
-    };
-    const updatedData = {
-      ...data,
-      auditLog: [newLog, ...data.auditLog].slice(0, 100) // Keep last 100 logs
-    };
-    setData(updatedData);
-    localStorage.setItem('trainingMatrixData', JSON.stringify(updatedData));
-  };
-
-  // Load sample data
-  const loadSampleData = () => {
-    const sampleData = {
-      productionAreas: [
-        {
-          id: 1,
-          name: 'Line 7',
-          machines: [
-            {
-              id: 1,
-              name: 'Line 7 Filling',
-              importance: 10,
-              competencies: [
-                { id: 1, name: 'Machine Operation', maxScore: 3 },
-                { id: 2, name: 'Troubleshooting', maxScore: 3 },
-                { id: 3, name: 'Maintenance', maxScore: 3 }
-              ]
-            },
-            {
-              id: 2,
-              name: 'Line 7 Packing',
-              importance: 8,
-              competencies: [
-                { id: 4, name: 'Packing Skills', maxScore: 3 },
-                { id: 5, name: 'Quality Control', maxScore: 3 }
-              ]
-            }
-          ]
-        },
-        {
-          id: 2,
-          name: 'Bottlepack',
-          machines: [
-            {
-              id: 3,
-              name: 'Bottlepack Filling',
-              importance: 9,
-              competencies: [
-                { id: 6, name: 'Bottle Handling', maxScore: 3 },
-                { id: 7, name: 'Safety Procedures', maxScore: 3 }
-              ]
-            }
-          ]
-        }
-      ],
-      engineers: [
-        { id: 1, name: 'John Smith', shift: 'A Shift' },
-        { id: 2, name: 'Sarah Johnson', shift: 'B Shift' },
-        { id: 3, name: 'Mike Wilson', shift: 'Day Shift' },
-        { id: 4, name: 'Emily Brown', shift: 'A Shift' },
-        { id: 5, name: 'David Lee', shift: 'C Shift' }
-      ],
-      users: [
-        { username: 'admin', password: 'admin123', role: 'admin', engineerId: null },
-        { username: 'john', password: 'john123', role: 'engineer', engineerId: 1 }
-      ],
-      assessments: {},
-      certifications: [
-        { id: 1, name: 'Forklift License', validityDays: 365 },
-        { id: 2, name: 'Safety Training', validityDays: 180 },
-        { id: 3, name: 'First Aid', validityDays: 730 }
-      ],
-      auditLog: [],
-      snapshots: []
-    };
-    saveData(sampleData);
-  };
-
   // Login handling
   const handleLogin = (e) => {
     e.preventDefault();
-    const user = data.users.find(
-      u => u.username === loginForm.username && u.password === loginForm.password
-    );
-    if (user) {
-      setIsLoggedIn(true);
-      setCurrentUser(user);
-      logAuditAction('Login', `User ${user.username} logged in`);
-    } else {
-      alert('Invalid credentials');
+    const result = login(loginForm.username, loginForm.password);
+    if (!result.success) {
+      alert(result.message || 'Invalid credentials');
     }
   };
 
   const handleLogout = () => {
-    logAuditAction('Logout', `User ${currentUser.username} logged out`);
-    setIsLoggedIn(false);
-    setCurrentUser(null);
+    logout();
     setLoginForm({ username: '', password: '' });
   };
 
@@ -158,16 +47,7 @@ function App() {
   const addProductionArea = () => {
     const name = prompt('Enter production area name:');
     if (name) {
-      const newArea = {
-        id: Date.now(),
-        name,
-        machines: []
-      };
-      saveData({
-        ...data,
-        productionAreas: [...data.productionAreas, newArea]
-      });
-      logAuditAction('Added Production Area', name);
+      dataHook.addProductionArea({ name });
     }
   };
 
@@ -175,12 +55,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this production area and all its machines?',
       onConfirm: () => {
-        const area = data.productionAreas.find(a => a.id === areaId);
-        saveData({
-          ...data,
-          productionAreas: data.productionAreas.filter(a => a.id !== areaId)
-        });
-        logAuditAction('Deleted Production Area', area.name);
+        dataHook.deleteProductionArea(areaId);
         setConfirmDelete(null);
       }
     });
@@ -191,22 +66,7 @@ function App() {
     const name = prompt('Enter machine name:');
     const importance = prompt('Enter importance (1-10):', '5');
     if (name && importance) {
-      const updatedAreas = data.productionAreas.map(area => {
-        if (area.id === areaId) {
-          return {
-            ...area,
-            machines: [...area.machines, {
-              id: Date.now(),
-              name,
-              importance: parseInt(importance),
-              competencies: []
-            }]
-          };
-        }
-        return area;
-      });
-      saveData({ ...data, productionAreas: updatedAreas });
-      logAuditAction('Added Machine', `${name} to area ${areaId}`);
+      dataHook.addMachine(areaId, { name, importance: parseInt(importance) });
     }
   };
 
@@ -214,17 +74,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this machine and all its competencies?',
       onConfirm: () => {
-        const updatedAreas = data.productionAreas.map(area => {
-          if (area.id === areaId) {
-            return {
-              ...area,
-              machines: area.machines.filter(m => m.id !== machineId)
-            };
-          }
-          return area;
-        });
-        saveData({ ...data, productionAreas: updatedAreas });
-        logAuditAction('Deleted Machine', `Machine ${machineId}`);
+        dataHook.deleteMachine(areaId, machineId);
         setConfirmDelete(null);
       }
     });
@@ -234,29 +84,7 @@ function App() {
   const addCompetency = (areaId, machineId) => {
     const name = prompt('Enter competency name:');
     if (name) {
-      const updatedAreas = data.productionAreas.map(area => {
-        if (area.id === areaId) {
-          return {
-            ...area,
-            machines: area.machines.map(machine => {
-              if (machine.id === machineId) {
-                return {
-                  ...machine,
-                  competencies: [...machine.competencies, {
-                    id: Date.now(),
-                    name,
-                    maxScore: 3
-                  }]
-                };
-              }
-              return machine;
-            })
-          };
-        }
-        return area;
-      });
-      saveData({ ...data, productionAreas: updatedAreas });
-      logAuditAction('Added Competency', name);
+      dataHook.addCompetency(areaId, machineId, { name, maxScore: 3 });
     }
   };
 
@@ -264,26 +92,8 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this competency?',
       onConfirm: () => {
-        const updatedAreas = data.productionAreas.map(area => {
-          if (area.id === areaId) {
-            return {
-              ...area,
-              machines: area.machines.map(machine => {
-                if (machine.id === machineId) {
-                  return {
-                    ...machine,
-                    competencies: machine.competencies.filter(c => c.id !== competencyId)
-                  };
-                }
-                return machine;
-              })
-            };
-          }
-          return area;
-        });
-        saveData({ ...data, productionAreas: updatedAreas });
+        dataHook.deleteCompetency(areaId, machineId, competencyId);
         setConfirmDelete(null);
-        logAuditAction('Deleted Competency', `Competency ${competencyId}`);
       }
     });
   };
@@ -293,16 +103,7 @@ function App() {
     const name = prompt('Enter engineer name:');
     const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
     if (name && shift) {
-      const newEngineer = {
-        id: Date.now(),
-        name,
-        shift
-      };
-      saveData({
-        ...data,
-        engineers: [...data.engineers, newEngineer]
-      });
-      logAuditAction('Added Engineer', name);
+      dataHook.addEngineer({ name, shift });
     }
   };
 
@@ -310,12 +111,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this engineer?',
       onConfirm: () => {
-        const engineer = data.engineers.find(e => e.id === engineerId);
-        saveData({
-          ...data,
-          engineers: data.engineers.filter(e => e.id !== engineerId)
-        });
-        logAuditAction('Deleted Engineer', engineer.name);
+        dataHook.deleteEngineer(engineerId);
         setConfirmDelete(null);
       }
     });
@@ -323,21 +119,16 @@ function App() {
 
   // Assessment Management
   const updateAssessment = (engineerId, areaId, machineId, competencyId, score) => {
-    const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
-    const updatedAssessments = {
-      ...data.assessments,
-      [key]: {
-        score,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: currentUser.username
-      }
-    };
-    saveData({ ...data, assessments: updatedAssessments });
+    dataHook.updateAssessment(engineerId, areaId, machineId, competencyId, score);
   };
 
   const getAssessmentScore = (engineerId, areaId, machineId, competencyId) => {
     const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
-    return data.assessments[key]?.score || 0;
+    const assessment = data?.assessments?.[key];
+    if (typeof assessment === 'object' && assessment !== null) {
+      return assessment.score || 0;
+    }
+    return assessment || 0;
   };
 
   // Bulk Operations
@@ -346,26 +137,20 @@ function App() {
       alert('Please select engineers first');
       return;
     }
-    
-    const updatedAssessments = { ...data.assessments };
+
+    const updates = [];
     selectedEngineers.forEach(engineerId => {
       data.productionAreas.forEach(area => {
         area.machines.forEach(machine => {
           const comp = machine.competencies.find(c => c.id === competencyId);
           if (comp) {
-            const key = `${engineerId}-${area.id}-${machine.id}-${competencyId}`;
-            updatedAssessments[key] = {
-              score,
-              lastUpdated: new Date().toISOString(),
-              updatedBy: currentUser.username
-            };
+            updates.push({ engineerId, areaId: area.id, machineId: machine.id, compId: competencyId, score });
           }
         });
       });
     });
-    
-    saveData({ ...data, assessments: updatedAssessments });
-    logAuditAction('Bulk Update', `Updated scores for ${selectedEngineers.length} engineers`);
+
+    dataHook.bulkUpdateAssessments(updates);
     setBulkSelectMode(false);
     setSelectedEngineers([]);
   };
@@ -464,55 +249,43 @@ function App() {
 
   // Create Snapshot
   const createSnapshot = () => {
-    const snapshot = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      data: JSON.parse(JSON.stringify(data.assessments)),
-      createdBy: currentUser.username
-    };
-    
-    saveData({
-      ...data,
-      snapshots: [snapshot, ...data.snapshots].slice(0, 10) // Keep last 10 snapshots
-    });
-    logAuditAction('Created Snapshot', `Snapshot at ${new Date().toLocaleString()}`);
+    dataHook.takeSnapshot(`Snapshot at ${new Date().toLocaleString()}`);
   };
 
-  // Export to Excel (full featured)
-  const exportToExcel = () => {
-    const exportData = {
-      engineers: data.engineers,
-      areas: data.productionAreas,
-      assessments: data.assessments,
-      scores: data.engineers.map(eng => ({
-        name: eng.name,
-        shift: eng.shift,
-        ...calculateScores(eng.id)
-      }))
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
+  // Export to Excel
+  const handleExportToExcel = () => {
+    exportToExcel(data);
+  };
+
+  // Export to JSON
+  const handleExportToJSON = () => {
+    const dataStr = exportBackup();
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `training-matrix-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
-    logAuditAction('Exported Data', 'Full data export');
   };
 
   // Import from JSON
-  const importFromJSON = (e) => {
+  const handleImportJSON = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const importedData = JSON.parse(event.target.result);
-          if (confirm('This will replace all current data. Continue?')) {
-            saveData(importedData);
-            logAuditAction('Imported Data', `Imported from ${file.name}`);
-            alert('Data imported successfully!');
+          const jsonString = event.target.result;
+          const result = importBackup(jsonString);
+          if (result.success) {
+            if (confirm('This will replace all current data. Continue?')) {
+              const importedData = JSON.parse(jsonString);
+              dataHook.replaceData(importedData);
+              alert('Data imported successfully!');
+              window.location.reload(); // Reload to refresh all state
+            }
+          } else {
+            alert(result.message);
           }
         } catch (error) {
           alert('Error importing file. Please check the format.');
@@ -522,8 +295,39 @@ function App() {
     }
   };
 
+  // Import from Excel
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const imported = await importFromExcel(file);
+        const validation = validateImportedData(imported);
+
+        if (!validation.isValid) {
+          alert('Import failed:\n' + validation.errors.join('\n'));
+          return;
+        }
+
+        if (confirm('This will replace all current data. Continue?')) {
+          const newData = {
+            ...data,
+            productionAreas: imported.productionAreas,
+            engineers: imported.engineers,
+            assessments: imported.assessments
+          };
+          dataHook.replaceData(newData);
+          alert('Excel data imported successfully!');
+        }
+      } catch (error) {
+        alert('Error importing Excel file: ' + error.message);
+      }
+    }
+    e.target.value = ''; // Reset input
+  };
+
   // Filter engineers
   const getFilteredEngineers = () => {
+    if (!data || !data.engineers) return [];
     return data.engineers.filter(engineer => {
       const matchesSearch = engineer.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesShift = filterShift === 'all' || engineer.shift === filterShift;
@@ -531,8 +335,17 @@ function App() {
     });
   };
 
+  // Loading state
+  if (loading || !data) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
   // Render Login Screen
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
@@ -788,49 +601,52 @@ function App() {
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Data Management</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  onClick={exportToExcel}
+                  onClick={handleExportToExcel}
                   className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
                 >
                   <Download size={24} />
-                  <span className="font-medium">Export Full Data (JSON)</span>
+                  <span className="font-medium">Export to Excel</span>
                 </button>
 
                 <label className="flex items-center justify-center gap-2 p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 cursor-pointer">
                   <Upload size={24} />
-                  <span className="font-medium">Import Data (JSON)</span>
+                  <span className="font-medium">Import from Excel</span>
                   <input
                     type="file"
-                    accept=".json"
-                    onChange={importFromJSON}
+                    accept=".xlsx,.xls"
+                    onChange={handleImportExcel}
                     className="hidden"
                   />
                 </label>
 
                 <button
-                  onClick={() => {
-                    const backup = JSON.stringify(data, null, 2);
-                    const blob = new Blob([backup], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `backup-${Date.now()}.json`;
-                    link.click();
-                  }}
+                  onClick={handleExportToJSON}
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50"
+                >
+                  <Download size={24} />
+                  <span className="font-medium">Export to JSON</span>
+                </button>
+
+                <label className="flex items-center justify-center gap-2 p-4 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 cursor-pointer">
+                  <Upload size={24} />
+                  <span className="font-medium">Import from JSON</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportJSON}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  onClick={handleExportToJSON}
                   className="flex items-center justify-center gap-2 p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
                 >
                   <Save size={24} />
                   <span className="font-medium">Create Backup</span>
-                </button>
-
-                <button
-                  onClick={loadSampleData}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
-                >
-                  <FileDown size={24} />
-                  <span className="font-medium">Load Sample Data</span>
                 </button>
               </div>
 
@@ -1108,14 +924,7 @@ function App() {
                     const name = prompt('Enter certification name:');
                     const days = prompt('Enter validity period (days):', '365');
                     if (name && days) {
-                      saveData({
-                        ...data,
-                        certifications: [...data.certifications, {
-                          id: Date.now(),
-                          name,
-                          validityDays: parseInt(days)
-                        }]
-                      });
+                      dataHook.addCertification({ name, validityDays: parseInt(days) });
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1124,7 +933,7 @@ function App() {
                 </button>
               </div>
               <div className="space-y-2">
-                {data.certifications.map(cert => (
+                {(data.certifications || []).map(cert => (
                   <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
                     <div>
                       <p className="font-medium">{cert.name}</p>
@@ -1135,10 +944,7 @@ function App() {
                         setConfirmDelete({
                           message: 'Delete this certification?',
                           onConfirm: () => {
-                            saveData({
-                              ...data,
-                              certifications: data.certifications.filter(c => c.id !== cert.id)
-                            });
+                            dataHook.deleteCertification(cert.id);
                             setConfirmDelete(null);
                           }
                         });
@@ -1166,7 +972,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.auditLog.map(log => (
+                    {getAuditLogs().map(log => (
                       <tr key={log.id} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-4">{new Date(log.timestamp).toLocaleString()}</td>
                         <td className="py-2 px-4">{log.user}</td>

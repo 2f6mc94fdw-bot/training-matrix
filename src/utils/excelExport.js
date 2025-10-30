@@ -206,7 +206,12 @@ const getMachineScore = (engineerId, areaId, machineId, data) => {
 
 const getCompetencyScore = (engineerId, areaId, machineId, compId, data) => {
   const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
-  return data.assessments[key] || 0;
+  const assessment = data.assessments[key];
+  // Handle both old format (number) and new format (object with score)
+  if (typeof assessment === 'object' && assessment !== null) {
+    return assessment.score || 0;
+  }
+  return assessment || 0;
 };
 
 const getCompetencyAverageScore = (areaId, machineId, compId, data) => {
