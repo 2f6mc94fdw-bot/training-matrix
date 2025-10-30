@@ -965,38 +965,63 @@ function App() {
                       <X size={20} />
                     </button>
                   </div>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Area</th>
-                        <th className="text-left py-2">Machine</th>
-                        <th className="text-left py-2">Competency</th>
-                        <th className="text-center py-2">Current</th>
-                        <th className="text-center py-2">Target</th>
-                        <th className="text-center py-2">Priority</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {showModal.data.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.area}</td>
-                          <td className="py-2">{item.machine}</td>
-                          <td className="py-2">{item.competency}</td>
-                          <td className="text-center py-2">{item.currentScore}</td>
-                          <td className="text-center py-2">{item.targetScore}</td>
-                          <td className="text-center py-2">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
-                              item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {item.priority}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                  {showModal.data.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-green-600 font-bold text-lg mb-2">🎉 Excellent!</p>
+                      <p className="text-gray-600">
+                        This engineer has scored 2 or higher on all competencies.
+                        <br />
+                        No training is currently needed.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-3 p-3 bg-white rounded border border-blue-300">
+                        <p className="text-sm font-medium text-blue-900">
+                          📋 Found {showModal.data.length} competenc{showModal.data.length === 1 ? 'y' : 'ies'} needing training
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Showing competencies scored below 2 (0=Not trained, 1=Basic, 2=Competent, 3=Expert)
+                        </p>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full">
+                          <thead className="bg-blue-100 sticky top-0">
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2">Area</th>
+                              <th className="text-left py-2 px-2">Machine</th>
+                              <th className="text-left py-2 px-2">Competency</th>
+                              <th className="text-center py-2 px-2">Current</th>
+                              <th className="text-center py-2 px-2">Target</th>
+                              <th className="text-center py-2 px-2">Priority</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {showModal.data.map((item, index) => (
+                              <tr key={index} className="border-b hover:bg-white">
+                                <td className="py-2 px-2 text-sm">{item.area}</td>
+                                <td className="py-2 px-2 text-sm">{item.machine}</td>
+                                <td className="py-2 px-2 text-sm">{item.competency}</td>
+                                <td className="text-center py-2 px-2 font-bold">{item.currentScore}</td>
+                                <td className="text-center py-2 px-2">{item.targetScore}</td>
+                                <td className="text-center py-2 px-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
