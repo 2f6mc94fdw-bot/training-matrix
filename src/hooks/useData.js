@@ -385,7 +385,101 @@ export const useData = (currentUser) => {
     setData(newData);
     saveData(newData);
   };
-  
+
+  // Core Skills Management
+  const updateCoreSkillAssessment = (engineerId, categoryId, skillId, score) => {
+    const key = `${engineerId}-${categoryId}-${skillId}`;
+    const existingAssessment = data.coreSkills?.assessments?.[key];
+    const timestamp = new Date().toISOString();
+
+    // Create history entry if score changed
+    const history = existingAssessment?.history || [];
+    if (existingAssessment && existingAssessment.score !== score) {
+      history.push({
+        oldScore: existingAssessment.score,
+        newScore: score,
+        timestamp,
+        updatedBy: currentUser?.username || 'System'
+      });
+    }
+
+    const newData = {
+      ...data,
+      coreSkills: {
+        ...data.coreSkills,
+        assessments: {
+          ...(data.coreSkills?.assessments || {}),
+          [key]: {
+            score,
+            lastUpdated: timestamp,
+            updatedBy: currentUser?.username || 'System',
+            history
+          }
+        }
+      }
+    };
+
+    updateData(newData, `Updated core skill assessment`);
+  };
+
+  const addCoreSkillCategory = (name) => {
+    const newCategory = {
+      id: `cat_${Date.now()}`,
+      name,
+      skills: []
+    };
+
+    const newData = {
+      ...data,
+      coreSkills: {
+        ...data.coreSkills,
+        categories: [...(data.coreSkills?.categories || []), newCategory]
+      }
+    };
+
+    updateData(newData, `Added core skill category: ${name}`);
+    return newCategory;
+  };
+
+  const addCoreSkill = (categoryId, skillName) => {
+    const newSkill = {
+      id: `skill_${Date.now()}`,
+      name: skillName,
+      maxScore: 3
+    };
+
+    const newData = {
+      ...data,
+      coreSkills: {
+        ...data.coreSkills,
+        categories: data.coreSkills.categories.map(cat =>
+          cat.id === categoryId
+            ? { ...cat, skills: [...cat.skills, newSkill] }
+            : cat
+        )
+      }
+    };
+
+    updateData(newData, `Added core skill: ${skillName}`);
+    return newSkill;
+  };
+
+  const deleteCoreSkill = (categoryId, skillId) => {
+    const newData = {
+      ...data,
+      coreSkills: {
+        ...data.coreSkills,
+        categories: data.coreSkills.categories.map(cat =>
+          cat.id === categoryId
+            ? { ...cat, skills: cat.skills.filter(s => s.id !== skillId) }
+            : cat
+        )
+      }
+    };
+
+    updateData(newData, `Deleted core skill`);
+  };
+
   return {
     data,
     loading,
@@ -410,6 +504,10 @@ export const useData = (currentUser) => {
     updateCertification,
     deleteCertification,
     takeSnapshot,
-    replaceData
+    replaceData,
+    updateCoreSkillAssessment,
+    addCoreSkillCategory,
+    addCoreSkill,
+    deleteCoreSkill
   };
 };

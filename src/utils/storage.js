@@ -13,6 +13,61 @@ export const getDefaultData = () => ({
   assessments: {},
   certifications: [],
   snapshots: [],
+  coreSkills: {
+    categories: [
+      {
+        id: 'mechanical',
+        name: 'Mechanical Skills',
+        skills: [
+          { id: 'troubleshooting', name: 'Troubleshooting', maxScore: 3 },
+          { id: 'preventive-maintenance', name: 'Preventive Maintenance', maxScore: 3 },
+          { id: 'repair', name: 'Equipment Repair', maxScore: 3 },
+          { id: 'installation', name: 'Installation', maxScore: 3 }
+        ]
+      },
+      {
+        id: 'electrical',
+        name: 'Electrical Skills',
+        skills: [
+          { id: 'wiring', name: 'Wiring & Circuits', maxScore: 3 },
+          { id: 'circuit-diagnosis', name: 'Circuit Diagnosis', maxScore: 3 },
+          { id: 'plc', name: 'PLC Programming', maxScore: 3 },
+          { id: 'motor-control', name: 'Motor Control Systems', maxScore: 3 }
+        ]
+      },
+      {
+        id: 'software',
+        name: 'Software Skills',
+        skills: [
+          { id: 'programming', name: 'Basic Programming', maxScore: 3 },
+          { id: 'hmi', name: 'HMI Operation', maxScore: 3 },
+          { id: 'data-analysis', name: 'Data Analysis', maxScore: 3 },
+          { id: 'scada', name: 'SCADA Systems', maxScore: 3 }
+        ]
+      },
+      {
+        id: 'safety',
+        name: 'Safety Skills',
+        skills: [
+          { id: 'lockout-tagout', name: 'Lockout/Tagout', maxScore: 3 },
+          { id: 'confined-spaces', name: 'Confined Spaces', maxScore: 3 },
+          { id: 'hazard-identification', name: 'Hazard Identification', maxScore: 3 },
+          { id: 'emergency-response', name: 'Emergency Response', maxScore: 3 }
+        ]
+      },
+      {
+        id: 'leadership',
+        name: 'Leadership & Soft Skills',
+        skills: [
+          { id: 'communication', name: 'Communication', maxScore: 3 },
+          { id: 'teamwork', name: 'Teamwork & Collaboration', maxScore: 3 },
+          { id: 'problem-solving', name: 'Problem Solving', maxScore: 3 },
+          { id: 'training-others', name: 'Training Others', maxScore: 3 }
+        ]
+      }
+    ],
+    assessments: {}
+  },
   version: '1.0.0'
 });
 
