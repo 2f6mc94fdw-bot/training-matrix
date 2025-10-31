@@ -143,7 +143,11 @@ const parseWorkbook = (workbook) => {
             const scorePerComp = Math.floor(score / machine.competencies.length);
             machine.competencies.forEach(comp => {
               const key = `${engineer.id}-${area.id}-${machine.id}-${comp.id}`;
-              imported.assessments[key] = Math.min(scorePerComp, comp.maxScore);
+              imported.assessments[key] = {
+                score: Math.min(scorePerComp, comp.maxScore),
+                lastUpdated: new Date().toISOString(),
+                updatedBy: 'Import'
+              };
             });
           }
         }

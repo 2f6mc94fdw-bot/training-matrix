@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key, Moon, Sun } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
+import { useData } from './hooks/useData';
+import { exportToExcel, exportEngineerReport } from './utils/excelExport';
+import { importFromExcel, validateImportedData } from './utils/excelImport';
+import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
+import Dashboard from './components/Dashboard';
+import { useTheme } from './contexts/ThemeContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 function App() {
-  // State management
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [activeTab, setActiveTab] = useState('admin');
-  const [data, setData] = useState({
-    productionAreas: [],
-    engineers: [],
-    users: [{ username: 'admin', password: 'admin123', role: 'admin', engineerId: null }],
-    assessments: {},
-    certifications: [],
-    auditLog: [],
-    snapshots: []
-  });
+  // Authentication
+  const { currentUser, isAuthenticated, login, logout } = useAuth();
 
-  // UI state
+  // Theme
+  const { theme, toggleTheme } = useTheme();
+
+  // Data management
+  const dataHook = useData(currentUser);
+  const { data, loading } = dataHook;
+
+  // UI State
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [adminSubTab, setAdminSubTab] = useState('engineers');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
@@ -30,127 +35,17 @@ function App() {
   const [selectedEngineers, setSelectedEngineers] = useState([]);
   const [showModal, setShowModal] = useState(null);
 
-  // Load data from localStorage
-  useEffect(() => {
-    const savedData = localStorage.getItem('trainingMatrixData');
-    if (savedData) {
-      setData(JSON.parse(savedData));
-    } else {
-      loadSampleData();
-    }
-  }, []);
-
-  // Save data to localStorage
-  const saveData = (newData) => {
-    setData(newData);
-    localStorage.setItem('trainingMatrixData', JSON.stringify(newData));
-    logAuditAction('Data Updated', 'System data was modified');
-  };
-
-  // Audit logging
-  const logAuditAction = (action, details) => {
-    const newLog = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      user: currentUser?.username || 'System',
-      action,
-      details
-    };
-    const updatedData = {
-      ...data,
-      auditLog: [newLog, ...data.auditLog].slice(0, 100) // Keep last 100 logs
-    };
-    setData(updatedData);
-    localStorage.setItem('trainingMatrixData', JSON.stringify(updatedData));
-  };
-
-  // Load sample data
-  const loadSampleData = () => {
-    const sampleData = {
-      productionAreas: [
-        {
-          id: 1,
-          name: 'Line 7',
-          machines: [
-            {
-              id: 1,
-              name: 'Line 7 Filling',
-              importance: 10,
-              competencies: [
-                { id: 1, name: 'Machine Operation', maxScore: 3 },
-                { id: 2, name: 'Troubleshooting', maxScore: 3 },
-                { id: 3, name: 'Maintenance', maxScore: 3 }
-              ]
-            },
-            {
-              id: 2,
-              name: 'Line 7 Packing',
-              importance: 8,
-              competencies: [
-                { id: 4, name: 'Packing Skills', maxScore: 3 },
-                { id: 5, name: 'Quality Control', maxScore: 3 }
-              ]
-            }
-          ]
-        },
-        {
-          id: 2,
-          name: 'Bottlepack',
-          machines: [
-            {
-              id: 3,
-              name: 'Bottlepack Filling',
-              importance: 9,
-              competencies: [
-                { id: 6, name: 'Bottle Handling', maxScore: 3 },
-                { id: 7, name: 'Safety Procedures', maxScore: 3 }
-              ]
-            }
-          ]
-        }
-      ],
-      engineers: [
-        { id: 1, name: 'John Smith', shift: 'A Shift' },
-        { id: 2, name: 'Sarah Johnson', shift: 'B Shift' },
-        { id: 3, name: 'Mike Wilson', shift: 'Day Shift' },
-        { id: 4, name: 'Emily Brown', shift: 'A Shift' },
-        { id: 5, name: 'David Lee', shift: 'C Shift' }
-      ],
-      users: [
-        { username: 'admin', password: 'admin123', role: 'admin', engineerId: null },
-        { username: 'john', password: 'john123', role: 'engineer', engineerId: 1 }
-      ],
-      assessments: {},
-      certifications: [
-        { id: 1, name: 'Forklift License', validityDays: 365 },
-        { id: 2, name: 'Safety Training', validityDays: 180 },
-        { id: 3, name: 'First Aid', validityDays: 730 }
-      ],
-      auditLog: [],
-      snapshots: []
-    };
-    saveData(sampleData);
-  };
-
   // Login handling
   const handleLogin = (e) => {
     e.preventDefault();
-    const user = data.users.find(
-      u => u.username === loginForm.username && u.password === loginForm.password
-    );
-    if (user) {
-      setIsLoggedIn(true);
-      setCurrentUser(user);
-      logAuditAction('Login', `User ${user.username} logged in`);
-    } else {
-      alert('Invalid credentials');
+    const result = login(loginForm.username, loginForm.password);
+    if (!result.success) {
+      alert(result.message || 'Invalid credentials');
     }
   };
 
   const handleLogout = () => {
-    logAuditAction('Logout', `User ${currentUser.username} logged out`);
-    setIsLoggedIn(false);
-    setCurrentUser(null);
+    logout();
     setLoginForm({ username: '', password: '' });
   };
 
@@ -158,16 +53,7 @@ function App() {
   const addProductionArea = () => {
     const name = prompt('Enter production area name:');
     if (name) {
-      const newArea = {
-        id: Date.now(),
-        name,
-        machines: []
-      };
-      saveData({
-        ...data,
-        productionAreas: [...data.productionAreas, newArea]
-      });
-      logAuditAction('Added Production Area', name);
+      dataHook.addProductionArea({ name });
     }
   };
 
@@ -175,12 +61,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this production area and all its machines?',
       onConfirm: () => {
-        const area = data.productionAreas.find(a => a.id === areaId);
-        saveData({
-          ...data,
-          productionAreas: data.productionAreas.filter(a => a.id !== areaId)
-        });
-        logAuditAction('Deleted Production Area', area.name);
+        dataHook.deleteProductionArea(areaId);
         setConfirmDelete(null);
       }
     });
@@ -191,22 +72,7 @@ function App() {
     const name = prompt('Enter machine name:');
     const importance = prompt('Enter importance (1-10):', '5');
     if (name && importance) {
-      const updatedAreas = data.productionAreas.map(area => {
-        if (area.id === areaId) {
-          return {
-            ...area,
-            machines: [...area.machines, {
-              id: Date.now(),
-              name,
-              importance: parseInt(importance),
-              competencies: []
-            }]
-          };
-        }
-        return area;
-      });
-      saveData({ ...data, productionAreas: updatedAreas });
-      logAuditAction('Added Machine', `${name} to area ${areaId}`);
+      dataHook.addMachine(areaId, { name, importance: parseInt(importance) });
     }
   };
 
@@ -214,17 +80,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this machine and all its competencies?',
       onConfirm: () => {
-        const updatedAreas = data.productionAreas.map(area => {
-          if (area.id === areaId) {
-            return {
-              ...area,
-              machines: area.machines.filter(m => m.id !== machineId)
-            };
-          }
-          return area;
-        });
-        saveData({ ...data, productionAreas: updatedAreas });
-        logAuditAction('Deleted Machine', `Machine ${machineId}`);
+        dataHook.deleteMachine(areaId, machineId);
         setConfirmDelete(null);
       }
     });
@@ -234,29 +90,7 @@ function App() {
   const addCompetency = (areaId, machineId) => {
     const name = prompt('Enter competency name:');
     if (name) {
-      const updatedAreas = data.productionAreas.map(area => {
-        if (area.id === areaId) {
-          return {
-            ...area,
-            machines: area.machines.map(machine => {
-              if (machine.id === machineId) {
-                return {
-                  ...machine,
-                  competencies: [...machine.competencies, {
-                    id: Date.now(),
-                    name,
-                    maxScore: 3
-                  }]
-                };
-              }
-              return machine;
-            })
-          };
-        }
-        return area;
-      });
-      saveData({ ...data, productionAreas: updatedAreas });
-      logAuditAction('Added Competency', name);
+      dataHook.addCompetency(areaId, machineId, { name, maxScore: 3 });
     }
   };
 
@@ -264,26 +98,8 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this competency?',
       onConfirm: () => {
-        const updatedAreas = data.productionAreas.map(area => {
-          if (area.id === areaId) {
-            return {
-              ...area,
-              machines: area.machines.map(machine => {
-                if (machine.id === machineId) {
-                  return {
-                    ...machine,
-                    competencies: machine.competencies.filter(c => c.id !== competencyId)
-                  };
-                }
-                return machine;
-              })
-            };
-          }
-          return area;
-        });
-        saveData({ ...data, productionAreas: updatedAreas });
+        dataHook.deleteCompetency(areaId, machineId, competencyId);
         setConfirmDelete(null);
-        logAuditAction('Deleted Competency', `Competency ${competencyId}`);
       }
     });
   };
@@ -293,16 +109,26 @@ function App() {
     const name = prompt('Enter engineer name:');
     const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
     if (name && shift) {
-      const newEngineer = {
-        id: Date.now(),
-        name,
-        shift
-      };
-      saveData({
-        ...data,
-        engineers: [...data.engineers, newEngineer]
-      });
-      logAuditAction('Added Engineer', name);
+      // Create the engineer
+      const newEngineer = dataHook.addEngineer({ name, shift });
+
+      // Auto-create user account for the engineer
+      // Generate username from name (lowercase, no spaces)
+      const username = name.toLowerCase().replace(/\s+/g, '.');
+
+      // Check if username already exists
+      const existingUser = data.users.find(u => u.username === username);
+      if (!existingUser) {
+        dataHook.addUser({
+          username: username,
+          password: 'password',
+          role: 'engineer',
+          engineerId: newEngineer.id
+        });
+        alert(`Engineer added!\n\nLogin credentials:\nUsername: ${username}\nPassword: password\n\nThe engineer should change their password after first login.`);
+      } else {
+        alert(`Engineer added! Note: A user account with username "${username}" already exists.`);
+      }
     }
   };
 
@@ -310,12 +136,7 @@ function App() {
     setConfirmDelete({
       message: 'Are you sure you want to delete this engineer?',
       onConfirm: () => {
-        const engineer = data.engineers.find(e => e.id === engineerId);
-        saveData({
-          ...data,
-          engineers: data.engineers.filter(e => e.id !== engineerId)
-        });
-        logAuditAction('Deleted Engineer', engineer.name);
+        dataHook.deleteEngineer(engineerId);
         setConfirmDelete(null);
       }
     });
@@ -323,21 +144,16 @@ function App() {
 
   // Assessment Management
   const updateAssessment = (engineerId, areaId, machineId, competencyId, score) => {
-    const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
-    const updatedAssessments = {
-      ...data.assessments,
-      [key]: {
-        score,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: currentUser.username
-      }
-    };
-    saveData({ ...data, assessments: updatedAssessments });
+    dataHook.updateAssessment(engineerId, areaId, machineId, competencyId, score);
   };
 
   const getAssessmentScore = (engineerId, areaId, machineId, competencyId) => {
     const key = `${engineerId}-${areaId}-${machineId}-${competencyId}`;
-    return data.assessments[key]?.score || 0;
+    const assessment = data?.assessments?.[key];
+    if (typeof assessment === 'object' && assessment !== null) {
+      return assessment.score || 0;
+    }
+    return assessment || 0;
   };
 
   // Bulk Operations
@@ -346,26 +162,20 @@ function App() {
       alert('Please select engineers first');
       return;
     }
-    
-    const updatedAssessments = { ...data.assessments };
+
+    const updates = [];
     selectedEngineers.forEach(engineerId => {
       data.productionAreas.forEach(area => {
         area.machines.forEach(machine => {
           const comp = machine.competencies.find(c => c.id === competencyId);
           if (comp) {
-            const key = `${engineerId}-${area.id}-${machine.id}-${competencyId}`;
-            updatedAssessments[key] = {
-              score,
-              lastUpdated: new Date().toISOString(),
-              updatedBy: currentUser.username
-            };
+            updates.push({ engineerId, areaId: area.id, machineId: machine.id, compId: competencyId, score });
           }
         });
       });
     });
-    
-    saveData({ ...data, assessments: updatedAssessments });
-    logAuditAction('Bulk Update', `Updated scores for ${selectedEngineers.length} engineers`);
+
+    dataHook.bulkUpdateAssessments(updates);
     setBulkSelectMode(false);
     setSelectedEngineers([]);
   };
@@ -464,66 +274,101 @@ function App() {
 
   // Create Snapshot
   const createSnapshot = () => {
-    const snapshot = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      data: JSON.parse(JSON.stringify(data.assessments)),
-      createdBy: currentUser.username
-    };
-    
-    saveData({
-      ...data,
-      snapshots: [snapshot, ...data.snapshots].slice(0, 10) // Keep last 10 snapshots
-    });
-    logAuditAction('Created Snapshot', `Snapshot at ${new Date().toLocaleString()}`);
+    dataHook.takeSnapshot(`Snapshot at ${new Date().toLocaleString()}`);
   };
 
-  // Export to Excel (full featured)
-  const exportToExcel = () => {
-    const exportData = {
-      engineers: data.engineers,
-      areas: data.productionAreas,
-      assessments: data.assessments,
-      scores: data.engineers.map(eng => ({
-        name: eng.name,
-        shift: eng.shift,
-        ...calculateScores(eng.id)
-      }))
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
+  // Export to Excel
+  const handleExportToExcel = () => {
+    exportToExcel(data);
+  };
+
+  // Export to JSON
+  const handleExportToJSON = () => {
+    const dataStr = exportBackup();
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `training-matrix-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
-    logAuditAction('Exported Data', 'Full data export');
   };
 
   // Import from JSON
-  const importFromJSON = (e) => {
+  const handleImportJSON = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const importedData = JSON.parse(event.target.result);
-          if (confirm('This will replace all current data. Continue?')) {
-            saveData(importedData);
-            logAuditAction('Imported Data', `Imported from ${file.name}`);
-            alert('Data imported successfully!');
+          const jsonString = event.target.result;
+          const result = importBackup(jsonString);
+          if (result.success) {
+            if (confirm('This will replace all current data. Continue?')) {
+              const importedData = JSON.parse(jsonString);
+              // Save directly to localStorage first
+              localStorage.setItem('training_matrix_data', JSON.stringify(importedData));
+              alert('Data imported successfully! Page will reload.');
+              // Small delay to ensure localStorage write completes
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
+            }
+          } else {
+            alert(result.message);
           }
         } catch (error) {
           alert('Error importing file. Please check the format.');
+          console.error('Import error:', error);
         }
       };
       reader.readAsText(file);
     }
+    // Reset input so same file can be imported again
+    e.target.value = '';
+  };
+
+  // Import from Excel
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const imported = await importFromExcel(file);
+        const validation = validateImportedData(imported);
+
+        if (!validation.isValid) {
+          alert('Import failed:\n' + validation.errors.join('\n'));
+          return;
+        }
+
+        if (confirm('This will replace all current data. Continue?')) {
+          const newData = {
+            ...data,
+            productionAreas: imported.productionAreas,
+            engineers: imported.engineers,
+            assessments: imported.assessments,
+            users: data.users, // Preserve users
+            certifications: data.certifications || [], // Preserve certifications
+            snapshots: data.snapshots || []
+          };
+          // Save directly to localStorage
+          localStorage.setItem('training_matrix_data', JSON.stringify(newData));
+          alert('Excel data imported successfully! Page will reload.');
+          // Small delay to ensure localStorage write completes
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+      } catch (error) {
+        alert('Error importing Excel file: ' + error.message);
+        console.error('Excel import error:', error);
+      }
+    }
+    e.target.value = ''; // Reset input
   };
 
   // Filter engineers
   const getFilteredEngineers = () => {
+    if (!data || !data.engineers) return [];
     return data.engineers.filter(engineer => {
       const matchesSearch = engineer.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesShift = filterShift === 'all' || engineer.shift === filterShift;
@@ -531,43 +376,62 @@ function App() {
     });
   };
 
-  // Render Login Screen
-  if (!isLoggedIn) {
+  // Loading state
+  if (loading || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Training Matrix System</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Render Login Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🎯</div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Training Matrix
+            </h1>
+            <p className="text-gray-600">Competency Management System</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
               <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter your username"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <input
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter your password"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
-              Login
+              Sign In
             </button>
           </form>
-          <p className="mt-4 text-sm text-gray-600 text-center">
-            Default: admin / admin123
-          </p>
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-gray-700 text-center">
+              <span className="font-semibold">Default Login:</span> admin / admin123
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -575,18 +439,34 @@ function App() {
 
   // Main Application
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Training Matrix System</h1>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Training Matrix System</h1>
+            <p className="text-blue-100 text-sm mt-1">Competency Management & Analytics</p>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
-            </span>
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
+              <span className="text-sm text-white font-medium">
+                {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
+              </span>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg hover:bg-opacity-30 transition-all duration-200"
+              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {theme === 'light' ? (
+                <Moon className="text-white" size={20} />
+              ) : (
+                <Sun className="text-yellow-300" size={20} />
+              )}
+            </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="px-5 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
               Logout
             </button>
@@ -596,19 +476,20 @@ function App() {
 
       {/* Tabs */}
       {currentUser.role === 'admin' && (
-        <div className="bg-white border-b">
+        <div className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex gap-2 overflow-x-auto">
-              {['admin', 'data', 'reports', 'advanced', 'assessment'].map(tab => (
+            <div className="flex gap-1 overflow-x-auto">
+              {['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 font-medium capitalize whitespace-nowrap ${
+                  className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab
-                      ? 'border-b-2 border-blue-600 text-blue-600'
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg'
                   }`}
                 >
+                  {tab === 'dashboard' && '📈 '}
                   {tab === 'admin' && '⚙️ '}
                   {tab === 'data' && '💾 '}
                   {tab === 'reports' && '📊 '}
@@ -648,12 +529,40 @@ function App() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-4">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && currentUser.role === 'admin' && (
+          <Dashboard data={data} />
+        )}
+
         {/* Admin Tab */}
         {activeTab === 'admin' && currentUser.role === 'admin' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Engineers</h2>
+            {/* Admin Sub-Tabs */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
+              <div className="flex gap-2">
+                {['engineers', 'production', 'users'].map(subTab => (
+                  <button
+                    key={subTab}
+                    onClick={() => setAdminSubTab(subTab)}
+                    className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
+                      adminSubTab === subTab
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                    }`}
+                  >
+                    {subTab === 'engineers' && '👷 Engineers'}
+                    {subTab === 'production' && '🏭 Production Areas'}
+                    {subTab === 'users' && '👤 User Accounts'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Engineers Sub-Tab */}
+            {adminSubTab === 'engineers' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold dark:text-white">Engineers</h2>
                 <button
                   onClick={addEngineer}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -669,13 +578,13 @@ function App() {
                     placeholder="Search engineers..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
                 <select
                   value={filterShift}
                   onChange={(e) => setFilterShift(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="all">All Shifts</option>
                   <option value="A Shift">A Shift</option>
@@ -688,10 +597,10 @@ function App() {
 
               <div className="space-y-2">
                 {getFilteredEngineers().map(engineer => (
-                  <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800">
                     <div>
-                      <p className="font-medium">{engineer.name}</p>
-                      <p className="text-sm text-gray-600">{engineer.shift}</p>
+                      <p className="font-medium dark:text-white">{engineer.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{engineer.shift}</p>
                     </div>
                     <button
                       onClick={() => deleteEngineer(engineer.id)}
@@ -703,10 +612,13 @@ function App() {
                 ))}
               </div>
             </div>
+            )}
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Production Areas</h2>
+            {/* Production Areas Sub-Tab */}
+            {adminSubTab === 'production' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold dark:text-white">Production Areas</h2>
                 <button
                   onClick={addProductionArea}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -780,6 +692,96 @@ function App() {
                 ))}
               </div>
             </div>
+            )}
+
+            {/* User Accounts Sub-Tab */}
+            {adminSubTab === 'users' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold dark:text-white">User Accounts</h2>
+                <button
+                  onClick={() => {
+                    const username = prompt('Enter username:');
+                    if (!username) return;
+
+                    const password = prompt('Enter password:');
+                    if (!password) return;
+
+                    const role = prompt('Enter role (admin or engineer):');
+                    if (role !== 'admin' && role !== 'engineer') {
+                      alert('Role must be "admin" or "engineer"');
+                      return;
+                    }
+
+                    let engineerId = null;
+                    if (role === 'engineer') {
+                      const engineerName = prompt('Link to which engineer? Enter engineer name:');
+                      const engineer = data.engineers.find(e => e.name.toLowerCase() === engineerName.toLowerCase());
+                      if (!engineer) {
+                        alert('Engineer not found. Please add the engineer first, then create their user account.');
+                        return;
+                      }
+                      engineerId = engineer.id;
+                    }
+
+                    dataHook.addUser({ username, password, role, engineerId });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus size={20} /> Add User
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {data.users.map(user => (
+                  <div key={user.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div>
+                      <p className="font-medium">{user.username}</p>
+                      <p className="text-sm text-gray-600">
+                        Role: {user.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}
+                        {user.engineerId && ` (${data.engineers.find(e => e.id === user.engineerId)?.name || 'Unknown'})`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const newPassword = prompt(`Reset password for "${user.username}".\n\nEnter new password:`);
+                          if (newPassword) {
+                            dataHook.resetPassword(user.id, newPassword);
+                            alert(`Password reset successfully for "${user.username}"!`);
+                          }
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Reset Password"
+                      >
+                        <Key size={20} />
+                      </button>
+                      {user.username !== 'admin' && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete user "${user.username}"?`)) {
+                              dataHook.deleteUser(user.id);
+                            }
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Delete User"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Tip:</strong> Engineer users can only see and update their own scores.
+                  Admin users can see and manage everything.
+                </p>
+              </div>
+            </div>
+            )}
           </div>
         )}
 
@@ -788,49 +790,52 @@ function App() {
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Data Management</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  onClick={exportToExcel}
+                  onClick={handleExportToExcel}
                   className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
                 >
                   <Download size={24} />
-                  <span className="font-medium">Export Full Data (JSON)</span>
+                  <span className="font-medium">Export to Excel</span>
                 </button>
 
                 <label className="flex items-center justify-center gap-2 p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 cursor-pointer">
                   <Upload size={24} />
-                  <span className="font-medium">Import Data (JSON)</span>
+                  <span className="font-medium">Import from Excel</span>
                   <input
                     type="file"
-                    accept=".json"
-                    onChange={importFromJSON}
+                    accept=".xlsx,.xls"
+                    onChange={handleImportExcel}
                     className="hidden"
                   />
                 </label>
 
                 <button
-                  onClick={() => {
-                    const backup = JSON.stringify(data, null, 2);
-                    const blob = new Blob([backup], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `backup-${Date.now()}.json`;
-                    link.click();
-                  }}
+                  onClick={handleExportToJSON}
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50"
+                >
+                  <Download size={24} />
+                  <span className="font-medium">Export to JSON</span>
+                </button>
+
+                <label className="flex items-center justify-center gap-2 p-4 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 cursor-pointer">
+                  <Upload size={24} />
+                  <span className="font-medium">Import from JSON</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportJSON}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  onClick={handleExportToJSON}
                   className="flex items-center justify-center gap-2 p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
                 >
                   <Save size={24} />
                   <span className="font-medium">Create Backup</span>
-                </button>
-
-                <button
-                  onClick={loadSampleData}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
-                >
-                  <FileDown size={24} />
-                  <span className="font-medium">Load Sample Data</span>
                 </button>
               </div>
 
@@ -1042,9 +1047,13 @@ function App() {
                 onChange={(e) => {
                   if (e.target.value) {
                     const plan = generateTrainingPlan(parseInt(e.target.value));
+                    console.log('Training plan generated:', plan); // Debug log
                     setShowModal({ type: 'trainingPlan', data: plan, engineerId: e.target.value });
+                  } else {
+                    setShowModal(null);
                   }
                 }}
+                value={showModal?.type === 'trainingPlan' ? showModal.engineerId : ''}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
               >
                 <option value="">Select engineer to generate training plan...</option>
@@ -1054,7 +1063,7 @@ function App() {
               </select>
 
               {showModal?.type === 'trainingPlan' && (
-                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="mt-4 border-2 border-blue-400 rounded-lg p-6 bg-blue-50 animate-fadeIn">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg">
                       Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
@@ -1063,38 +1072,65 @@ function App() {
                       <X size={20} />
                     </button>
                   </div>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Area</th>
-                        <th className="text-left py-2">Machine</th>
-                        <th className="text-left py-2">Competency</th>
-                        <th className="text-center py-2">Current</th>
-                        <th className="text-center py-2">Target</th>
-                        <th className="text-center py-2">Priority</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {showModal.data.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.area}</td>
-                          <td className="py-2">{item.machine}</td>
-                          <td className="py-2">{item.competency}</td>
-                          <td className="text-center py-2">{item.currentScore}</td>
-                          <td className="text-center py-2">{item.targetScore}</td>
-                          <td className="text-center py-2">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
-                              item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {item.priority}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                  {showModal.data.length === 0 ? (
+                    <div className="text-center py-12 bg-green-50 border-2 border-green-300 rounded-lg">
+                      <div className="text-6xl mb-4">🎉</div>
+                      <p className="text-green-700 font-bold text-2xl mb-3">Excellent Work!</p>
+                      <p className="text-gray-700 text-lg">
+                        <strong>{data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
+                      </p>
+                      <p className="text-green-600 font-medium mt-2">
+                        ✓ No training currently needed
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-3 p-3 bg-white rounded border border-blue-300">
+                        <p className="text-sm font-medium text-blue-900">
+                          📋 Found {showModal.data.length} competenc{showModal.data.length === 1 ? 'y' : 'ies'} needing training
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Showing competencies scored below 2 (0=Not trained, 1=Basic, 2=Competent, 3=Expert)
+                        </p>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full">
+                          <thead className="bg-blue-100 sticky top-0">
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2">Area</th>
+                              <th className="text-left py-2 px-2">Machine</th>
+                              <th className="text-left py-2 px-2">Competency</th>
+                              <th className="text-center py-2 px-2">Current</th>
+                              <th className="text-center py-2 px-2">Target</th>
+                              <th className="text-center py-2 px-2">Priority</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {showModal.data.map((item, index) => (
+                              <tr key={index} className="border-b hover:bg-white">
+                                <td className="py-2 px-2 text-sm">{item.area}</td>
+                                <td className="py-2 px-2 text-sm">{item.machine}</td>
+                                <td className="py-2 px-2 text-sm">{item.competency}</td>
+                                <td className="text-center py-2 px-2 font-bold">{item.currentScore}</td>
+                                <td className="text-center py-2 px-2">{item.targetScore}</td>
+                                <td className="text-center py-2 px-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1108,14 +1144,7 @@ function App() {
                     const name = prompt('Enter certification name:');
                     const days = prompt('Enter validity period (days):', '365');
                     if (name && days) {
-                      saveData({
-                        ...data,
-                        certifications: [...data.certifications, {
-                          id: Date.now(),
-                          name,
-                          validityDays: parseInt(days)
-                        }]
-                      });
+                      dataHook.addCertification({ name, validityDays: parseInt(days) });
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1124,7 +1153,7 @@ function App() {
                 </button>
               </div>
               <div className="space-y-2">
-                {data.certifications.map(cert => (
+                {(data.certifications || []).map(cert => (
                   <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
                     <div>
                       <p className="font-medium">{cert.name}</p>
@@ -1135,10 +1164,7 @@ function App() {
                         setConfirmDelete({
                           message: 'Delete this certification?',
                           onConfirm: () => {
-                            saveData({
-                              ...data,
-                              certifications: data.certifications.filter(c => c.id !== cert.id)
-                            });
+                            dataHook.deleteCertification(cert.id);
                             setConfirmDelete(null);
                           }
                         });
@@ -1166,7 +1192,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.auditLog.map(log => (
+                    {getAuditLogs().map(log => (
                       <tr key={log.id} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-4">{new Date(log.timestamp).toLocaleString()}</td>
                         <td className="py-2 px-4">{log.user}</td>
@@ -1251,6 +1277,75 @@ function App() {
                   </button>
                 )}
               </div>
+
+              {/* Bulk Update Panel */}
+              {bulkSelectMode && selectedEngineers.length > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-blue-900">
+                      Bulk Update - {selectedEngineers.length} Engineer{selectedEngineers.length !== 1 ? 's' : ''} Selected
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setSelectedEngineers([]);
+                        setBulkSelectMode(false);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Competency to Update:
+                      </label>
+                      <select
+                        value={showModal?.bulkCompetency || ''}
+                        onChange={(e) => setShowModal({ ...showModal, bulkCompetency: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">-- Choose a competency --</option>
+                        {data.productionAreas.map(area =>
+                          area.machines.map(machine =>
+                            machine.competencies.map(comp => (
+                              <option key={`${area.id}-${machine.id}-${comp.id}`} value={comp.id}>
+                                {area.name} → {machine.name} → {comp.name}
+                              </option>
+                            ))
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    {showModal?.bulkCompetency && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Score:
+                        </label>
+                        <div className="flex gap-2">
+                          {[0, 1, 2, 3].map(score => (
+                            <button
+                              key={score}
+                              onClick={() => {
+                                if (confirm(`Set score to ${score} for ${selectedEngineers.length} engineer(s)?`)) {
+                                  bulkUpdateScores(showModal.bulkCompetency, score);
+                                  setShowModal(null);
+                                  alert(`Successfully updated ${selectedEngineers.length} engineer(s)!`);
+                                }
+                              }}
+                              className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 font-bold text-lg transition-colors"
+                            >
+                              {score}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Engineer Selection */}
               <div className="space-y-4">
