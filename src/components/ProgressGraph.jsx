@@ -107,14 +107,14 @@ const ProgressGraph = ({ data, engineerId }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 border-2 border-blue-500 rounded-lg shadow-lg max-w-md">
+        <div className="bg-white dark:bg-gray-800 p-4 border-2 border-accent rounded-lg shadow-lg max-w-md">
           <p className="font-bold text-gray-900 dark:text-white mb-2">{data.dateFormatted}</p>
-          <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-2">
+          <p className="text-sm text-accent dark:text-accent-light font-semibold mb-2">
             +{data.improvements} points improvement
           </p>
           <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 max-h-40 overflow-y-auto">
             {data.details.map((detail, idx) => (
-              <div key={idx} className={`py-1 ${detail.change > 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-500'}`}>
+              <div key={idx} className={`py-1 ${detail.change > 0 ? 'text-success dark:text-success' : 'text-gray-500'}`}>
                 {detail.competency}: {detail.oldScore} → {detail.newScore}
                 {detail.change > 0 && ' 📈'}
               </div>
@@ -145,23 +145,23 @@ const ProgressGraph = ({ data, engineerId }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />
+        <TrendingUp className="text-accent dark:text-accent-light" size={24} />
         <h3 className="text-xl font-bold text-gray-900 dark:text-white">Progress Over Time</h3>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-green-700 dark:text-green-200">+{stats.totalImprovements}</div>
-          <div className="text-sm text-green-600 dark:text-green-300 font-medium">Total Improvements</div>
+        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-success shadow-md">
+          <div className="text-3xl font-bold text-success">+{stats.totalImprovements}</div>
+          <div className="text-sm text-gray-600 font-medium">Total Improvements</div>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-blue-700 dark:text-blue-200">{stats.totalChanges}</div>
-          <div className="text-sm text-blue-600 dark:text-blue-300 font-medium">Total Updates</div>
+        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-info shadow-md">
+          <div className="text-3xl font-bold text-info">{stats.totalChanges}</div>
+          <div className="text-sm text-gray-600 font-medium">Total Updates</div>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-purple-700 dark:text-purple-200">{stats.daysActive}</div>
-          <div className="text-sm text-purple-600 dark:text-purple-300 font-medium">Active Days</div>
+        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-accent shadow-md">
+          <div className="text-3xl font-bold text-accent">{stats.daysActive}</div>
+          <div className="text-sm text-gray-600 font-medium">Active Days</div>
         </div>
       </div>
 
@@ -187,10 +187,10 @@ const ProgressGraph = ({ data, engineerId }) => {
           <Line
             type="monotone"
             dataKey="cumulativeImprovements"
-            stroke="#2563eb"
+            stroke="#ff6b6b"
             strokeWidth={3}
             name="Cumulative Score Improvements"
-            dot={{ fill: '#2563eb', r: 5 }}
+            dot={{ fill: '#ff6b6b', r: 5 }}
             activeDot={{ r: 8 }}
           />
         </LineChart>
@@ -209,7 +209,7 @@ const ProgressGraph = ({ data, engineerId }) => {
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                <span className="text-lg font-bold text-success dark:text-success">
                   +{day.improvements}
                 </span>
                 <p className="text-xs text-gray-500 dark:text-gray-400">points</p>

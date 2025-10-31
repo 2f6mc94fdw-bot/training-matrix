@@ -47,10 +47,10 @@ const Dashboard = ({ data }) => {
 
   // Pie chart data
   const pieData = [
-    { name: 'Not Trained (0)', value: scoreDistribution.notTrained, color: '#ef4444' },
-    { name: 'Basic (1)', value: scoreDistribution.basic, color: '#f59e0b' },
-    { name: 'Competent (2)', value: scoreDistribution.competent, color: '#eab308' },
-    { name: 'Expert (3)', value: scoreDistribution.expert, color: '#22c55e' }
+    { name: 'Not Trained (0)', value: scoreDistribution.notTrained, color: '#ff6b6b' },
+    { name: 'Basic (1)', value: scoreDistribution.basic, color: '#fbbf24' },
+    { name: 'Competent (2)', value: scoreDistribution.competent, color: '#60a5fa' },
+    { name: 'Expert (3)', value: scoreDistribution.expert, color: '#4ade80' }
   ];
 
   // Engineer performance data
@@ -84,36 +84,36 @@ const Dashboard = ({ data }) => {
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-navy">
           <div className="flex items-center justify-between mb-2">
-            <Users size={32} className="opacity-80" />
+            <Users size={32} className="text-primary-navy" />
           </div>
-          <p className="text-3xl font-bold mb-1">{totalEngineers}</p>
-          <p className="text-blue-100 text-sm">Total Engineers</p>
+          <p className="text-3xl font-bold mb-1 text-primary-navy">{totalEngineers}</p>
+          <p className="text-gray-600 text-sm">Total Engineers</p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-accent">
           <div className="flex items-center justify-between mb-2">
-            <Target size={32} className="opacity-80" />
+            <Target size={32} className="text-accent" />
           </div>
-          <p className="text-3xl font-bold mb-1">{totalCompetencies}</p>
-          <p className="text-purple-100 text-sm">Total Competencies</p>
+          <p className="text-3xl font-bold mb-1 text-accent">{totalCompetencies}</p>
+          <p className="text-gray-600 text-sm">Total Competencies</p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-success">
           <div className="flex items-center justify-between mb-2">
-            <TrendingUp size={32} className="opacity-80" />
+            <TrendingUp size={32} className="text-success" />
           </div>
-          <p className="text-3xl font-bold mb-1">{averageScore}</p>
-          <p className="text-green-100 text-sm">Average Skill Level</p>
+          <p className="text-3xl font-bold mb-1 text-success">{averageScore}</p>
+          <p className="text-gray-600 text-sm">Average Skill Level</p>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-info">
           <div className="flex items-center justify-between mb-2">
-            <Award size={32} className="opacity-80" />
+            <Award size={32} className="text-info" />
           </div>
-          <p className="text-3xl font-bold mb-1">{completionRate}%</p>
-          <p className="text-orange-100 text-sm">Completion Rate</p>
+          <p className="text-3xl font-bold mb-1 text-info">{completionRate}%</p>
+          <p className="text-gray-600 text-sm">Completion Rate</p>
         </div>
       </div>
 
@@ -142,32 +142,32 @@ const Dashboard = ({ data }) => {
             </PieChart>
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-              <div className="w-4 h-4 bg-red-500 rounded"></div>
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ff6b6b' }}></div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Not Trained</p>
-                <p className="text-lg font-bold text-gray-900">{scorePercentages.notTrained}%</p>
+                <p className="text-lg font-bold text-accent">{scorePercentages.notTrained}%</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
-              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+            <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#fbbf24' }}></div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Basic</p>
-                <p className="text-lg font-bold text-gray-900">{scorePercentages.basic}%</p>
+                <p className="text-lg font-bold text-warning">{scorePercentages.basic}%</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg">
-              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#60a5fa' }}></div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Competent</p>
-                <p className="text-lg font-bold text-gray-900">{scorePercentages.competent}%</p>
+                <p className="text-lg font-bold text-info">{scorePercentages.competent}%</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-              <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#4ade80' }}></div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Expert</p>
-                <p className="text-lg font-bold text-gray-900">{scorePercentages.expert}%</p>
+                <p className="text-lg font-bold text-success">{scorePercentages.expert}%</p>
               </div>
             </div>
           </div>
@@ -182,7 +182,7 @@ const Dashboard = ({ data }) => {
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
               <YAxis domain={[0, 3]} />
               <Tooltip />
-              <Bar dataKey="avgScore" fill="#3b82f6" name="Average Score" />
+              <Bar dataKey="avgScore" fill="#ff6b6b" name="Average Score" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -193,14 +193,14 @@ const Dashboard = ({ data }) => {
         {/* Top Performers */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Award className="text-green-600" size={24} />
+            <Award className="text-success" size={24} />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Top Performers</h2>
           </div>
           <div className="space-y-3">
             {topPerformers.map((engineer, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 bg-success text-white rounded-full flex items-center justify-center font-bold">
                     {index + 1}
                   </div>
                   <div>
@@ -209,7 +209,7 @@ const Dashboard = ({ data }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">{engineer.avgScore}</p>
+                  <p className="text-2xl font-bold text-success">{engineer.avgScore}</p>
                   <p className="text-xs text-gray-500">avg score</p>
                 </div>
               </div>
@@ -220,14 +220,14 @@ const Dashboard = ({ data }) => {
         {/* Needs Attention */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="text-orange-600" size={24} />
+            <AlertTriangle className="text-warning" size={24} />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Needs Attention</h2>
           </div>
           <div className="space-y-3">
             {needsAttention.map((engineer, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 bg-warning text-white rounded-full flex items-center justify-center font-bold">
                     !
                   </div>
                   <div>
@@ -236,7 +236,7 @@ const Dashboard = ({ data }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-orange-600">{engineer.avgScore}</p>
+                  <p className="text-2xl font-bold text-warning">{engineer.avgScore}</p>
                   <p className="text-xs text-gray-500">avg score</p>
                 </div>
               </div>
@@ -246,20 +246,20 @@ const Dashboard = ({ data }) => {
       </div>
 
       {/* Summary Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-lg p-6 border border-blue-200 dark:border-gray-600">
+      <div className="bg-white dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-lg p-6 border-2 border-gray-200 dark:border-gray-600">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Key Insights</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Assessments</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalAssessments}</p>
+            <p className="text-3xl font-bold text-primary-navy dark:text-white">{totalAssessments}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fully Trained (≥2)</p>
-            <p className="text-3xl font-bold text-green-600">{fullyTrained}</p>
+            <p className="text-3xl font-bold text-success">{fullyTrained}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Need Training (&lt;2)</p>
-            <p className="text-3xl font-bold text-orange-600">{totalAssessments - fullyTrained}</p>
+            <p className="text-3xl font-bold text-warning">{totalAssessments - fullyTrained}</p>
           </div>
         </div>
       </div>

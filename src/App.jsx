@@ -430,7 +430,7 @@ function App() {
               Sign In
             </button>
           </form>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mt-6 p-4 bg-red-50 rounded-lg border border-blue-200">
             <p className="text-sm text-gray-700 text-center">
               <span className="font-semibold">Default Login:</span> admin / admin123
             </p>
@@ -442,13 +442,13 @@ function App() {
 
   // Main Application
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+    <div className="min-h-screen bg-bg dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
+      <div className="bg-primary-navy shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Training Matrix System</h1>
-            <p className="text-blue-100 text-sm mt-1">Competency Management & Analytics</p>
+            <p className="text-gray-200 text-sm mt-1">Competency Management & Analytics</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
@@ -464,12 +464,12 @@ function App() {
               {theme === 'light' ? (
                 <Moon className="text-white" size={20} />
               ) : (
-                <Sun className="text-yellow-300" size={20} />
+                <Sun className="text-warning" size={20} />
               )}
             </button>
             <button
               onClick={handleLogout}
-              className="px-5 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+              className="px-5 py-2 bg-accent text-white rounded-lg hover:bg-accent-light transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
               Logout
             </button>
@@ -488,8 +488,8 @@ function App() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab
-                      ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg'
+                      ? 'bg-accent text-white rounded-t-lg shadow-md'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-accent dark:hover:text-accent-light hover:bg-red-50 dark:hover:bg-gray-700 rounded-t-lg'
                   }`}
                 >
                   {tab === 'dashboard' && '📈 '}
@@ -508,8 +508,8 @@ function App() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab
-                      ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg'
+                      ? 'bg-accent text-white rounded-t-lg shadow-md'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-accent dark:hover:text-accent-light hover:bg-red-50 dark:hover:bg-gray-700 rounded-t-lg'
                   }`}
                 >
                   {tab === 'mydashboard' && '🏠 My Dashboard'}
@@ -565,8 +565,8 @@ function App() {
                     onClick={() => setAdminSubTab(subTab)}
                     className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
                       adminSubTab === subTab
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                        ? 'bg-accent text-white shadow-md'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700 hover:text-accent'
                     }`}
                   >
                     {subTab === 'engineers' && '👷 Engineers'}
@@ -584,7 +584,7 @@ function App() {
                   <h2 className="text-xl font-bold dark:text-white">Engineers</h2>
                 <button
                   onClick={addEngineer}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
                 >
                   <Plus size={20} /> Add Engineer
                 </button>
@@ -640,7 +640,7 @@ function App() {
                   <h2 className="text-xl font-bold dark:text-white">Production Areas</h2>
                 <button
                   onClick={addProductionArea}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
                 >
                   <Plus size={20} /> Add Area
                 </button>
@@ -687,7 +687,7 @@ function App() {
                                       }
                                     }
                                   }}
-                                  className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 rounded"
+                                  className="p-1 text-accent hover:bg-red-50 dark:hover:bg-gray-700 rounded"
                                   title="Edit Importance"
                                 >
                                   <Edit2 size={14} />
@@ -697,7 +697,7 @@ function App() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => addCompetency(area.id, machine.id)}
-                                className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                                className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-blue-600"
                               >
                                 + Competency
                               </button>
@@ -764,7 +764,7 @@ function App() {
 
                     dataHook.addUser({ username, password, role, engineerId });
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
                 >
                   <Plus size={20} /> Add User
                 </button>
@@ -789,7 +789,7 @@ function App() {
                             alert(`Password reset successfully for "${user.username}"!`);
                           }
                         }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        className="p-2 text-accent hover:bg-red-50 rounded"
                         title="Reset Password"
                       >
                         <Key size={20} />
@@ -812,7 +812,7 @@ function App() {
                 ))}
               </div>
 
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mt-4 p-4 bg-red-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
                   <strong>💡 Tip:</strong> Engineer users can only see and update their own scores.
                   Admin users can see and manage everything.
@@ -832,7 +832,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={handleExportToExcel}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-accent rounded-lg hover:bg-red-50"
                 >
                   <Download size={24} />
                   <span className="font-medium">Export to Excel</span>
@@ -899,8 +899,8 @@ function App() {
                       onClick={() => setReportsSubTab(subTab)}
                       className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
                         reportsSubTab === subTab
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                          ? 'bg-accent text-white shadow-md'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700 hover:text-accent'
                       }`}
                     >
                       {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
@@ -943,9 +943,9 @@ function App() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">Total Engineers</p>
-                    <p className="text-2xl font-bold text-blue-600">{data.engineers.length}</p>
+                    <p className="text-2xl font-bold text-accent">{data.engineers.length}</p>
                   </div>
-                  <Users size={32} className="text-blue-600" />
+                  <Users size={32} className="text-accent" />
                 </div>
               </div>
 
@@ -1161,7 +1161,7 @@ function App() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600 dark:text-gray-300">Avg Completion:</span>
-                              <span className="font-bold text-blue-600">{avgCompletion}%</span>
+                              <span className="font-bold text-accent">{avgCompletion}%</span>
                             </div>
                           </div>
                           <div className="mt-4">
@@ -1207,7 +1207,7 @@ function App() {
                         return (
                           <>
                             {/* Engineer Info Card */}
-                            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
+                            <div className="bg-gradient-to-r from-accent to-accent-light rounded-xl p-6 text-white">
                               <h3 className="text-2xl font-bold mb-2">{engineer.name}</h3>
                               <p className="text-blue-100">Shift: {engineer.shift}</p>
                               <div className="mt-4 grid grid-cols-2 gap-4">
@@ -1242,7 +1242,7 @@ function App() {
                                   <div key={area.id} className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                                     <div className="flex justify-between items-center mb-2">
                                       <h4 className="font-bold text-gray-900 dark:text-white">{area.name}</h4>
-                                      <span className="text-lg font-bold text-blue-600">{areaPercent}%</span>
+                                      <span className="text-lg font-bold text-accent">{areaPercent}%</span>
                                     </div>
                                     <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                                       <div
@@ -1291,7 +1291,7 @@ function App() {
               </select>
 
               {showModal?.type === 'trainingPlan' && (
-                <div className="mt-4 border-2 border-blue-400 rounded-lg p-6 bg-blue-50 animate-fadeIn">
+                <div className="mt-4 border-2 border-accent rounded-lg p-6 bg-red-50 animate-fadeIn">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg">
                       Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
@@ -1314,8 +1314,8 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <div className="mb-3 p-3 bg-white rounded border border-blue-300">
-                        <p className="text-sm font-medium text-blue-900">
+                      <div className="mb-3 p-3 bg-white rounded border border-accent">
+                        <p className="text-sm font-medium text-primary-navy">
                           📋 Found {showModal.data.length} competenc{showModal.data.length === 1 ? 'y' : 'ies'} needing training
                         </p>
                         <p className="text-xs text-gray-600 mt-1">
@@ -1325,7 +1325,7 @@ function App() {
 
                       <div className="max-h-96 overflow-y-auto">
                         <table className="w-full">
-                          <thead className="bg-blue-100 sticky top-0">
+                          <thead className="bg-red-100 sticky top-0">
                             <tr className="border-b">
                               <th className="text-left py-2 px-2">Area</th>
                               <th className="text-left py-2 px-2">Machine</th>
@@ -1375,7 +1375,7 @@ function App() {
                       dataHook.addCertification({ name, validityDays: parseInt(days) });
                     }
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
                 >
                   <Plus size={20} /> Add Certification
                 </button>
@@ -1439,7 +1439,7 @@ function App() {
                 <h2 className="text-xl font-bold">Progress History</h2>
                 <button
                   onClick={createSnapshot}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
                 >
                   <Save size={20} /> Create Snapshot
                 </button>
@@ -1461,7 +1461,7 @@ function App() {
                           link.download = `snapshot-${snapshot.timestamp}.json`;
                           link.click();
                         }}
-                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                        className="px-3 py-1 bg-accent text-white rounded hover:bg-accent-light text-sm"
                       >
                         Download
                       </button>
@@ -1489,7 +1489,7 @@ function App() {
               return (
                 <>
                   {/* Welcome Card */}
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg p-8 text-white">
+                  <div className="bg-gradient-to-r from-accent to-accent-light rounded-xl shadow-lg p-8 text-white">
                     <h1 className="text-3xl font-bold mb-2">Welcome, {engineer.name}!</h1>
                     <p className="text-blue-100 text-lg">{engineer.shift}</p>
                     <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1538,21 +1538,21 @@ function App() {
                         const totalComps = area.machines.reduce((sum, m) => sum + m.competencies.length, 0);
 
                         return (
-                          <div key={area.id} className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                          <div key={area.id} className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:border-accent dark:hover:border-blue-500 transition-colors">
                             <div className="flex justify-between items-start mb-3">
                               <div>
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">{area.name}</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{areaMastered} of {totalComps} competencies mastered</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-3xl font-bold text-blue-600">{areaPercent}%</p>
+                                <p className="text-3xl font-bold text-accent">{areaPercent}%</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">completion</p>
                               </div>
                             </div>
                             <div className="relative">
                               <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-4 overflow-hidden">
                                 <div
-                                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                  className="bg-gradient-to-r from-accent to-accent-light h-4 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
                                   style={{ width: `${areaPercent}%` }}
                                 >
                                   {areaPercent > 10 && (
@@ -1601,7 +1601,7 @@ function App() {
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(snapshot.timestamp).toLocaleDateString()}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-2xl font-bold text-blue-600">{snapshotPercent}%</p>
+                                <p className="text-2xl font-bold text-accent">{snapshotPercent}%</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">completion</p>
                               </div>
                             </div>
@@ -1647,8 +1647,8 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 border border-blue-300 dark:border-blue-700 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                      <div className="mb-6 p-4 bg-red-50 dark:bg-blue-900 dark:bg-opacity-20 border border-accent dark:border-blue-700 rounded-lg">
+                        <p className="text-sm font-medium text-primary-navy dark:text-blue-300">
                           📋 {trainingPlan.length} competenc{trainingPlan.length === 1 ? 'y' : 'ies'} needing training
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -1658,7 +1658,7 @@ function App() {
 
                       <div className="max-h-96 overflow-y-auto">
                         <table className="w-full">
-                          <thead className="bg-blue-100 dark:bg-blue-900 sticky top-0">
+                          <thead className="bg-red-100 dark:bg-blue-900 sticky top-0">
                             <tr className="border-b dark:border-gray-700">
                               <th className="text-left py-3 px-4 dark:text-white">Area</th>
                               <th className="text-left py-3 px-4 dark:text-white">Machine</th>
@@ -1708,8 +1708,8 @@ function App() {
         {activeTab === 'assessment' && (
           <div className="space-y-6">
             {currentUser.role === 'engineer' && (
-              <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4">
-                <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-2">📝 Self-Assessment</h3>
+              <div className="bg-red-50 dark:bg-blue-900 dark:bg-opacity-30 border-2 border-accent dark:border-blue-700 rounded-lg p-4">
+                <h3 className="font-bold text-primary-navy dark:text-blue-200 mb-2">📝 Self-Assessment</h3>
                 <p className="text-sm text-blue-800 dark:text-blue-300">
                   You can update your own competency scores by clicking on the score buttons (0-3) below.
                   All changes are automatically tracked, and your progress will be displayed in your dashboard!
@@ -1737,7 +1737,7 @@ function App() {
                     onClick={() => setBulkSelectMode(!bulkSelectMode)}
                     className={`px-4 py-2 rounded-lg ${
                       bulkSelectMode
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-accent text-white'
                         : 'border border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -1748,9 +1748,9 @@ function App() {
 
               {/* Bulk Update Panel */}
               {bulkSelectMode && selectedEngineers.length > 0 && (
-                <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                <div className="mb-4 p-4 bg-red-50 border-2 border-accent rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-blue-900">
+                    <h3 className="font-bold text-primary-navy">
                       Bulk Update - {selectedEngineers.length} Engineer{selectedEngineers.length !== 1 ? 's' : ''} Selected
                     </h3>
                     <button
@@ -1758,7 +1758,7 @@ function App() {
                         setSelectedEngineers([]);
                         setBulkSelectMode(false);
                       }}
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="text-sm text-accent hover:text-blue-800"
                     >
                       Clear Selection
                     </button>
@@ -1803,7 +1803,7 @@ function App() {
                                   alert(`Successfully updated ${selectedEngineers.length} engineer(s)!`);
                                 }
                               }}
-                              className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 font-bold text-lg transition-colors"
+                              className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-red-50 font-bold text-lg transition-colors"
                             >
                               {score}
                             </button>
@@ -1866,7 +1866,7 @@ function App() {
                         .filter(area => filterArea === 'all' || area.id === parseInt(filterArea))
                         .map(area => (
                           <div key={area.id} className="mt-4">
-                            <h4 className="font-medium text-blue-600 mb-2">{area.name}</h4>
+                            <h4 className="font-medium text-accent mb-2">{area.name}</h4>
                             {area.machines.map(machine => (
                               <div key={machine.id} className="ml-4 mb-3">
                                 <p className="text-sm font-medium text-gray-700 mb-2">
@@ -1893,10 +1893,10 @@ function App() {
                                                 disabled={!canEdit}
                                                 className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
                                                   currentScore === value
-                                                    ? 'bg-blue-600 text-white'
+                                                    ? 'bg-accent text-white'
                                                     : !canEdit
                                                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-white border-2 border-gray-300 hover:border-blue-400'
+                                                    : 'bg-white border-2 border-gray-300 hover:border-accent'
                                                 }`}
                                               >
                                                 {value}
