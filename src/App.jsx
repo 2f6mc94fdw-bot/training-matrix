@@ -6,6 +6,7 @@ import { useData } from './hooks/useData';
 import { exportToExcel, exportEngineerReport } from './utils/excelExport';
 import { importFromExcel, validateImportedData } from './utils/excelImport';
 import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
+import Dashboard from './components/Dashboard';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -19,7 +20,8 @@ function App() {
 
   // UI State
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [activeTab, setActiveTab] = useState('admin');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [adminSubTab, setAdminSubTab] = useState('engineers');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
@@ -382,40 +384,50 @@ function App() {
   // Render Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Training Matrix System</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🎯</div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Training Matrix
+            </h1>
+            <p className="text-gray-600">Competency Management System</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
               <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter your username"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <input
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter your password"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
             >
-              Login
+              Sign In
             </button>
           </form>
-          <p className="mt-4 text-sm text-gray-600 text-center">
-            Default: admin / admin123
-          </p>
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-gray-700 text-center">
+              <span className="font-semibold">Default Login:</span> admin / admin123
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -423,18 +435,23 @@ function App() {
 
   // Main Application
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Training Matrix System</h1>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Training Matrix System</h1>
+            <p className="text-blue-100 text-sm mt-1">Competency Management & Analytics</p>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
-            </span>
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
+              <span className="text-sm text-white font-medium">
+                {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
+              </span>
+            </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="px-5 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
               Logout
             </button>
@@ -444,19 +461,20 @@ function App() {
 
       {/* Tabs */}
       {currentUser.role === 'admin' && (
-        <div className="bg-white border-b">
+        <div className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex gap-2 overflow-x-auto">
-              {['admin', 'data', 'reports', 'advanced', 'assessment'].map(tab => (
+            <div className="flex gap-1 overflow-x-auto">
+              {['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 font-medium capitalize whitespace-nowrap ${
+                  className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab
-                      ? 'border-b-2 border-blue-600 text-blue-600'
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-t-lg'
                   }`}
                 >
+                  {tab === 'dashboard' && '📈 '}
                   {tab === 'admin' && '⚙️ '}
                   {tab === 'data' && '💾 '}
                   {tab === 'reports' && '📊 '}
@@ -496,12 +514,40 @@ function App() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-4">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && currentUser.role === 'admin' && (
+          <Dashboard data={data} />
+        )}
+
         {/* Admin Tab */}
         {activeTab === 'admin' && currentUser.role === 'admin' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Engineers</h2>
+            {/* Admin Sub-Tabs */}
+            <div className="bg-white rounded-lg shadow-md p-2">
+              <div className="flex gap-2">
+                {['engineers', 'production', 'users'].map(subTab => (
+                  <button
+                    key={subTab}
+                    onClick={() => setAdminSubTab(subTab)}
+                    className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
+                      adminSubTab === subTab
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
+                  >
+                    {subTab === 'engineers' && '👷 Engineers'}
+                    {subTab === 'production' && '🏭 Production Areas'}
+                    {subTab === 'users' && '👤 User Accounts'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Engineers Sub-Tab */}
+            {adminSubTab === 'engineers' && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Engineers</h2>
                 <button
                   onClick={addEngineer}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -551,10 +597,13 @@ function App() {
                 ))}
               </div>
             </div>
+            )}
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Production Areas</h2>
+            {/* Production Areas Sub-Tab */}
+            {adminSubTab === 'production' && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Production Areas</h2>
                 <button
                   onClick={addProductionArea}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -628,10 +677,13 @@ function App() {
                 ))}
               </div>
             </div>
+            )}
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">User Accounts</h2>
+            {/* User Accounts Sub-Tab */}
+            {adminSubTab === 'users' && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">User Accounts</h2>
                 <button
                   onClick={() => {
                     const username = prompt('Enter username:');
@@ -714,6 +766,7 @@ function App() {
                 </p>
               </div>
             </div>
+            )}
           </div>
         )}
 
