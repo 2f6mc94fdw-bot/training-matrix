@@ -24,7 +24,7 @@ function App() {
 
   // UI State
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(currentUser?.role === 'engineer' ? 'mydashboard' : 'dashboard');
   const [adminSubTab, setAdminSubTab] = useState('engineers');
   const [reportsSubTab, setReportsSubTab] = useState('skillgap');
   const [useWeightedScores, setUseWeightedScores] = useState(false);
@@ -477,11 +477,11 @@ function App() {
       </div>
 
       {/* Tabs */}
-      {currentUser.role === 'admin' && (
-        <div className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex gap-1 overflow-x-auto">
-              {['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
+      <div className="bg-white dark:bg-gray-800 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-1 overflow-x-auto">
+            {currentUser.role === 'admin' ? (
+              ['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -499,11 +499,27 @@ function App() {
                   {tab === 'assessment' && '✍️ '}
                   {tab}
                 </button>
-              ))}
-            </div>
+              ))
+            ) : (
+              ['mydashboard', 'mytraining', 'assessment'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
+                    activeTab === tab
+                      ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg'
+                  }`}
+                >
+                  {tab === 'mydashboard' && '🏠 My Dashboard'}
+                  {tab === 'mytraining' && '📋 My Training Plan'}
+                  {tab === 'assessment' && '✍️ My Scores'}
+                </button>
+              ))
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Confirmation Modal */}
       {confirmDelete && (
@@ -1453,6 +1469,234 @@ function App() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Engineer Dashboard Tab */}
+        {activeTab === 'mydashboard' && currentUser.role === 'engineer' && (
+          <div className="space-y-6">
+            {(() => {
+              const engineer = data.engineers.find(e => e.id === currentUser.engineerId);
+              if (!engineer) {
+                return <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <p className="text-gray-600 dark:text-gray-400">Engineer profile not found. Please contact an administrator.</p>
+                </div>;
+              }
+
+              const scores = calculateScores(engineer.id);
+
+              return (
+                <>
+                  {/* Welcome Card */}
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg p-8 text-white">
+                    <h1 className="text-3xl font-bold mb-2">Welcome, {engineer.name}!</h1>
+                    <p className="text-blue-100 text-lg">{engineer.shift}</p>
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
+                        <p className="text-sm text-blue-100 mb-1">Overall Completion</p>
+                        <p className="text-4xl font-bold">{scores.rawPercent.toFixed(1)}%</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
+                        <p className="text-sm text-blue-100 mb-1">Total Competencies</p>
+                        <p className="text-4xl font-bold">{data.productionAreas.reduce((sum, a) => sum + a.machines.reduce((s, m) => s + m.competencies.length, 0), 0)}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
+                        <p className="text-sm text-blue-100 mb-1">Competencies Mastered</p>
+                        <p className="text-4xl font-bold">
+                          {data.productionAreas.reduce((count, area) => {
+                            return count + area.machines.reduce((mCount, machine) => {
+                              return mCount + machine.competencies.filter(comp =>
+                                getAssessmentScore(engineer.id, area.id, machine.id, comp.id) >= 2
+                              ).length;
+                            }, 0);
+                          }, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance by Production Area */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">My Skills by Production Area</h2>
+                    <div className="space-y-4">
+                      {data.productionAreas.map(area => {
+                        let areaTotal = 0;
+                        let areaMax = 0;
+                        let areaMastered = 0;
+
+                        area.machines.forEach(machine => {
+                          machine.competencies.forEach(comp => {
+                            const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                            areaTotal += score;
+                            areaMax += comp.maxScore;
+                            if (score >= 2) areaMastered++;
+                          });
+                        });
+
+                        const areaPercent = areaMax > 0 ? ((areaTotal / areaMax) * 100).toFixed(1) : 0;
+                        const totalComps = area.machines.reduce((sum, m) => sum + m.competencies.length, 0);
+
+                        return (
+                          <div key={area.id} className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{area.name}</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{areaMastered} of {totalComps} competencies mastered</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-3xl font-bold text-blue-600">{areaPercent}%</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">completion</p>
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-4 overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                  style={{ width: `${areaPercent}%` }}
+                                >
+                                  {areaPercent > 10 && (
+                                    <span className="text-xs font-bold text-white">{areaPercent}%</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recent Updates / Historical Progress */}
+                  {data.snapshots && data.snapshots.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Progress History</h2>
+                      <div className="space-y-3">
+                        {data.snapshots.slice(-5).reverse().map((snapshot, index) => {
+                          // Calculate score at this snapshot
+                          let snapshotTotal = 0;
+                          let snapshotMax = 0;
+
+                          data.productionAreas.forEach(area => {
+                            area.machines.forEach(machine => {
+                              machine.competencies.forEach(comp => {
+                                const key = `${engineer.id}-${area.id}-${machine.id}-${comp.id}`;
+                                const assessment = snapshot.data.assessments[key];
+                                const score = typeof assessment === 'object' ? (assessment?.score || 0) : (assessment || 0);
+                                snapshotTotal += score;
+                                snapshotMax += comp.maxScore;
+                              });
+                            });
+                          });
+
+                          const snapshotPercent = snapshotMax > 0 ? ((snapshotTotal / snapshotMax) * 100).toFixed(1) : 0;
+
+                          return (
+                            <div key={snapshot.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">{snapshot.name}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(snapshot.timestamp).toLocaleDateString()}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-blue-600">{snapshotPercent}%</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">completion</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Engineer Training Plan Tab */}
+        {activeTab === 'mytraining' && currentUser.role === 'engineer' && (
+          <div className="space-y-6">
+            {(() => {
+              const engineer = data.engineers.find(e => e.id === currentUser.engineerId);
+              if (!engineer) {
+                return <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <p className="text-gray-600 dark:text-gray-400">Engineer profile not found.</p>
+                </div>;
+              }
+
+              const trainingPlan = generateTrainingPlan(engineer.id);
+
+              return (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Training Plan</h1>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">Areas where I need training (scored below 2)</p>
+
+                  {trainingPlan.length === 0 ? (
+                    <div className="text-center py-12 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 border-2 border-green-300 dark:border-green-700 rounded-lg">
+                      <div className="text-6xl mb-4">🎉</div>
+                      <p className="text-green-700 dark:text-green-400 font-bold text-2xl mb-3">Excellent Work!</p>
+                      <p className="text-gray-700 dark:text-gray-300 text-lg">
+                        You've scored <strong>2 or higher</strong> on all competencies!
+                      </p>
+                      <p className="text-green-600 dark:text-green-400 font-medium mt-2">
+                        ✓ No training currently needed
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 border border-blue-300 dark:border-blue-700 rounded-lg">
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                          📋 {trainingPlan.length} competenc{trainingPlan.length === 1 ? 'y' : 'ies'} needing training
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Focus on these areas to improve your skills (0=Not trained, 1=Basic, 2=Competent, 3=Expert)
+                        </p>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full">
+                          <thead className="bg-blue-100 dark:bg-blue-900 sticky top-0">
+                            <tr className="border-b dark:border-gray-700">
+                              <th className="text-left py-3 px-4 dark:text-white">Area</th>
+                              <th className="text-left py-3 px-4 dark:text-white">Machine</th>
+                              <th className="text-left py-3 px-4 dark:text-white">Competency</th>
+                              <th className="text-center py-3 px-4 dark:text-white">Current</th>
+                              <th className="text-center py-3 px-4 dark:text-white">Target</th>
+                              <th className="text-center py-3 px-4 dark:text-white">Priority</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {trainingPlan.map((item, index) => (
+                              <tr key={index} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td className="py-3 px-4 text-sm dark:text-gray-300">{item.area}</td>
+                                <td className="py-3 px-4 text-sm dark:text-gray-300">{item.machine}</td>
+                                <td className="py-3 px-4 text-sm dark:text-gray-300">{item.competency}</td>
+                                <td className="text-center py-3 px-4 font-bold dark:text-white">{item.currentScore}</td>
+                                <td className="text-center py-3 px-4 dark:text-gray-300">{item.targetScore}</td>
+                                <td className="text-center py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                    item.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          <strong>💡 Tip:</strong> Work with your manager to create a plan to improve these competencies. Regular practice and training will help you progress from Basic (1) to Competent (2) and eventually Expert (3).
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
