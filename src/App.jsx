@@ -26,6 +26,7 @@ function App() {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [adminSubTab, setAdminSubTab] = useState('engineers');
+  const [reportsSubTab, setReportsSubTab] = useState('skillgap');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
@@ -851,8 +852,34 @@ function App() {
         {/* Reports Tab */}
         {activeTab === 'reports' && currentUser.role === 'admin' && (
           <div className="space-y-6">
-            {/* Overall Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Reports Sub-Tabs */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
+              <div className="flex gap-2 overflow-x-auto">
+                {['skillgap', 'progress', 'heatmap', 'shifts', 'individual'].map(subTab => (
+                  <button
+                    key={subTab}
+                    onClick={() => setReportsSubTab(subTab)}
+                    className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
+                      reportsSubTab === subTab
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                    }`}
+                  >
+                    {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
+                    {subTab === 'progress' && '📈 Engineer Progress'}
+                    {subTab === 'heatmap' && '🗺️ Competency Heatmap'}
+                    {subTab === 'shifts' && '🔄 Shift Comparison'}
+                    {subTab === 'individual' && '👤 Individual Analysis'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Skill Gap Analysis Sub-Tab */}
+            {reportsSubTab === 'skillgap' && (
+              <div className="space-y-6">
+                {/* Overall Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -940,9 +967,12 @@ function App() {
                 </table>
               </div>
             </div>
+              </div>
+            )}
 
-            {/* Engineer Progress Chart */}
-            <div className="bg-white rounded-lg shadow p-6">
+            {/* Engineer Progress Sub-Tab */}
+            {reportsSubTab === 'progress' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Engineer Progress Overview</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={data.engineers.map(eng => ({
@@ -958,9 +988,11 @@ function App() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            )}
 
-            {/* Competency Heatmap */}
-            <div className="bg-white rounded-lg shadow p-6">
+            {/* Competency Heatmap Sub-Tab */}
+            {reportsSubTab === 'heatmap' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Competency Heatmap</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -1034,6 +1066,134 @@ function App() {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* Shift Comparison Sub-Tab */}
+            {reportsSubTab === 'shifts' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold dark:text-white mb-4">Shift Comparison Analysis</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">Compare performance across different shifts</p>
+
+                  {/* Shift Performance Comparison */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {['A Shift', 'B Shift', 'C Shift', 'D Shift', 'Day Shift'].map(shift => {
+                      const shiftEngineers = data.engineers.filter(e => e.shift === shift);
+                      const avgCompletion = shiftEngineers.length > 0
+                        ? (shiftEngineers.reduce((sum, eng) => sum + calculateScores(eng.id).rawPercent, 0) / shiftEngineers.length).toFixed(1)
+                        : 0;
+
+                      return (
+                        <div key={shift} className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg p-6 border-2 border-blue-200 dark:border-gray-500">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{shift}</h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-300">Engineers:</span>
+                              <span className="font-bold dark:text-white">{shiftEngineers.length}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-300">Avg Completion:</span>
+                              <span className="font-bold text-blue-600">{avgCompletion}%</span>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
+                              <div
+                                className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                                style={{ width: `${avgCompletion}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Individual Analysis Sub-Tab */}
+            {reportsSubTab === 'individual' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold dark:text-white mb-4">Individual Engineer Analysis</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">Deep dive into individual engineer performance</p>
+
+                  {/* Engineer Selection */}
+                  <select
+                    onChange={(e) => setShowModal({ type: 'individualAnalysis', engineerId: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select an engineer to analyze...</option>
+                    {data.engineers.map(eng => (
+                      <option key={eng.id} value={eng.id}>{eng.name} ({eng.shift})</option>
+                    ))}
+                  </select>
+
+                  {showModal?.type === 'individualAnalysis' && showModal.engineerId && (
+                    <div className="space-y-6">
+                      {(() => {
+                        const engineer = data.engineers.find(e => e.id === showModal.engineerId);
+                        const scores = calculateScores(engineer.id);
+
+                        return (
+                          <>
+                            {/* Engineer Info Card */}
+                            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
+                              <h3 className="text-2xl font-bold mb-2">{engineer.name}</h3>
+                              <p className="text-blue-100">Shift: {engineer.shift}</p>
+                              <div className="mt-4 grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-sm text-blue-100">Overall Completion</p>
+                                  <p className="text-3xl font-bold">{scores.rawPercent.toFixed(1)}%</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-blue-100">Total Competencies</p>
+                                  <p className="text-3xl font-bold">{scores.total}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Detailed Breakdown by Area */}
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-bold dark:text-white">Performance by Production Area</h3>
+                              {data.productionAreas.map(area => {
+                                let areaTotal = 0;
+                                let areaMax = 0;
+
+                                area.machines.forEach(machine => {
+                                  machine.competencies.forEach(comp => {
+                                    areaTotal += getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                                    areaMax += comp.maxScore;
+                                  });
+                                });
+
+                                const areaPercent = areaMax > 0 ? ((areaTotal / areaMax) * 100).toFixed(1) : 0;
+
+                                return (
+                                  <div key={area.id} className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <h4 className="font-bold text-gray-900 dark:text-white">{area.name}</h4>
+                                      <span className="text-lg font-bold text-blue-600">{areaPercent}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                      <div
+                                        className="bg-blue-600 h-2 rounded-full"
+                                        style={{ width: `${areaPercent}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
