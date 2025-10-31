@@ -27,6 +27,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [adminSubTab, setAdminSubTab] = useState('engineers');
   const [reportsSubTab, setReportsSubTab] = useState('skillgap');
+  const [useWeightedScores, setUseWeightedScores] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShift, setFilterShift] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
@@ -654,8 +655,27 @@ function App() {
                         <div key={machine.id} className="border-l-2 border-gray-300 pl-4">
                           <div className="flex justify-between items-center mb-2">
                             <div>
-                              <p className="font-medium">{machine.name}</p>
-                              <p className="text-sm text-gray-600">Importance: {machine.importance}/10</p>
+                              <p className="font-medium dark:text-white">{machine.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Importance: {machine.importance}/10</p>
+                                <button
+                                  onClick={() => {
+                                    const newImportance = prompt(`Set importance for "${machine.name}" (1-10):`, machine.importance);
+                                    if (newImportance !== null) {
+                                      const importance = parseInt(newImportance);
+                                      if (importance >= 1 && importance <= 10) {
+                                        dataHook.updateMachine(area.id, machine.id, { importance });
+                                      } else {
+                                        alert('Importance must be between 1 and 10');
+                                      }
+                                    }
+                                  }}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 rounded"
+                                  title="Edit Importance"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                              </div>
                             </div>
                             <div className="flex gap-2">
                               <button
@@ -854,24 +874,46 @@ function App() {
           <div className="space-y-6">
             {/* Reports Sub-Tabs */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
-              <div className="flex gap-2 overflow-x-auto">
-                {['skillgap', 'progress', 'heatmap', 'shifts', 'individual'].map(subTab => (
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex gap-2 overflow-x-auto flex-1">
+                  {['skillgap', 'progress', 'heatmap', 'shifts', 'individual'].map(subTab => (
+                    <button
+                      key={subTab}
+                      onClick={() => setReportsSubTab(subTab)}
+                      className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
+                        reportsSubTab === subTab
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                      }`}
+                    >
+                      {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
+                      {subTab === 'progress' && '📈 Engineer Progress'}
+                      {subTab === 'heatmap' && '🗺️ Competency Heatmap'}
+                      {subTab === 'shifts' && '🔄 Shift Comparison'}
+                      {subTab === 'individual' && '👤 Individual Analysis'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Weighted/Unweighted Toggle */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    {useWeightedScores ? '⚖️ Weighted' : '📊 Unweighted'}
+                  </span>
                   <button
-                    key={subTab}
-                    onClick={() => setReportsSubTab(subTab)}
-                    className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
-                      reportsSubTab === subTab
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
+                    onClick={() => setUseWeightedScores(!useWeightedScores)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useWeightedScores ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
+                    title={useWeightedScores ? 'Switch to unweighted scores' : 'Switch to weighted scores (by machine importance)'}
                   >
-                    {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
-                    {subTab === 'progress' && '📈 Engineer Progress'}
-                    {subTab === 'heatmap' && '🗺️ Competency Heatmap'}
-                    {subTab === 'shifts' && '🔄 Shift Comparison'}
-                    {subTab === 'individual' && '👤 Individual Analysis'}
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useWeightedScores ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
                   </button>
-                ))}
+                </div>
               </div>
             </div>
 
@@ -918,7 +960,10 @@ function App() {
                     <p className="text-sm text-gray-600">Avg Completion</p>
                     <p className="text-2xl font-bold text-orange-600">
                       {data.engineers.length > 0
-                        ? (data.engineers.reduce((sum, eng) => sum + calculateScores(eng.id).rawPercent, 0) / data.engineers.length).toFixed(1)
+                        ? (data.engineers.reduce((sum, eng) => {
+                            const scores = calculateScores(eng.id);
+                            return sum + (useWeightedScores ? scores.weightedPercent : scores.rawPercent);
+                          }, 0) / data.engineers.length).toFixed(1)
                         : 0}%
                     </p>
                   </div>
@@ -975,10 +1020,13 @@ function App() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Engineer Progress Overview</h2>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={data.engineers.map(eng => ({
-                  name: eng.name,
-                  completion: calculateScores(eng.id).rawPercent
-                }))}>
+                <BarChart data={data.engineers.map(eng => {
+                  const scores = calculateScores(eng.id);
+                  return {
+                    name: eng.name,
+                    completion: useWeightedScores ? scores.weightedPercent : scores.rawPercent
+                  };
+                })}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                   <YAxis />
@@ -1080,7 +1128,10 @@ function App() {
                     {['A Shift', 'B Shift', 'C Shift', 'D Shift', 'Day Shift'].map(shift => {
                       const shiftEngineers = data.engineers.filter(e => e.shift === shift);
                       const avgCompletion = shiftEngineers.length > 0
-                        ? (shiftEngineers.reduce((sum, eng) => sum + calculateScores(eng.id).rawPercent, 0) / shiftEngineers.length).toFixed(1)
+                        ? (shiftEngineers.reduce((sum, eng) => {
+                            const scores = calculateScores(eng.id);
+                            return sum + (useWeightedScores ? scores.weightedPercent : scores.rawPercent);
+                          }, 0) / shiftEngineers.length).toFixed(1)
                         : 0;
 
                       return (
@@ -1145,11 +1196,11 @@ function App() {
                               <div className="mt-4 grid grid-cols-2 gap-4">
                                 <div>
                                   <p className="text-sm text-blue-100">Overall Completion</p>
-                                  <p className="text-3xl font-bold">{scores.rawPercent.toFixed(1)}%</p>
+                                  <p className="text-3xl font-bold">{(useWeightedScores ? scores.weightedPercent : scores.rawPercent).toFixed(1)}%</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-blue-100">Total Competencies</p>
-                                  <p className="text-3xl font-bold">{scores.total}</p>
+                                  <p className="text-3xl font-bold">{data.productionAreas.reduce((sum, a) => sum + a.machines.reduce((s, m) => s + m.competencies.length, 0), 0)}</p>
                                 </div>
                               </div>
                             </div>
