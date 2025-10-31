@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard';
 import ProgressGraph from './components/ProgressGraph';
 import CoreSkills from './components/CoreSkills';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
+import EngineerAnalysis from './components/EngineerAnalysis';
 import { useTheme } from './contexts/ThemeContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -1192,83 +1193,39 @@ function App() {
             {/* Individual Analysis Sub-Tab */}
             {reportsSubTab === 'individual' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold dark:text-white mb-4">Individual Engineer Analysis</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">Deep dive into individual engineer performance</p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                  <h2 className="text-xl font-bold dark:text-white mb-2">Individual Engineer Analysis</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Deep dive into individual engineer performance with interactive visualizations
+                  </p>
 
                   {/* Engineer Selection */}
                   <select
                     onChange={(e) => setShowModal({ type: 'individualAnalysis', engineerId: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg mb-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    value={showModal?.type === 'individualAnalysis' ? showModal.engineerId : ''}
+                    className="w-full px-4 py-3 border-2 border-accent rounded-lg mb-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium shadow-sm"
                   >
-                    <option value="">Select an engineer to analyze...</option>
+                    <option value="">🔍 Select an engineer to analyze...</option>
                     {data.engineers.map(eng => (
-                      <option key={eng.id} value={eng.id}>{eng.name} ({eng.shift})</option>
+                      <option key={eng.id} value={eng.id}>
+                        {eng.name} - {eng.shift}
+                      </option>
                     ))}
                   </select>
-
-                  {showModal?.type === 'individualAnalysis' && showModal.engineerId && (
-                    <div className="space-y-6">
-                      {(() => {
-                        const engineer = data.engineers.find(e => e.id === showModal.engineerId);
-                        const scores = calculateScores(engineer.id);
-
-                        return (
-                          <>
-                            {/* Engineer Info Card */}
-                            <div className="bg-gradient-to-r from-accent to-accent-light rounded-xl p-6 text-white">
-                              <h3 className="text-2xl font-bold mb-2">{engineer.name}</h3>
-                              <p className="text-blue-100">Shift: {engineer.shift}</p>
-                              <div className="mt-4 grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm text-blue-100">Overall Completion</p>
-                                  <p className="text-3xl font-bold">{(useWeightedScores ? scores.weightedPercent : scores.rawPercent).toFixed(1)}%</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-blue-100">Total Competencies</p>
-                                  <p className="text-3xl font-bold">{data.productionAreas.reduce((sum, a) => sum + a.machines.reduce((s, m) => s + m.competencies.length, 0), 0)}</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Detailed Breakdown by Area */}
-                            <div className="space-y-4">
-                              <h3 className="text-lg font-bold dark:text-white">Performance by Production Area</h3>
-                              {data.productionAreas.map(area => {
-                                let areaTotal = 0;
-                                let areaMax = 0;
-
-                                area.machines.forEach(machine => {
-                                  machine.competencies.forEach(comp => {
-                                    areaTotal += getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
-                                    areaMax += comp.maxScore;
-                                  });
-                                });
-
-                                const areaPercent = areaMax > 0 ? ((areaTotal / areaMax) * 100).toFixed(1) : 0;
-
-                                return (
-                                  <div key={area.id} className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <h4 className="font-bold text-gray-900 dark:text-white">{area.name}</h4>
-                                      <span className="text-lg font-bold text-accent">{areaPercent}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                      <div
-                                        className="bg-blue-600 h-2 rounded-full"
-                                        style={{ width: `${areaPercent}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
                 </div>
+
+                {/* Enhanced Engineer Analysis Component */}
+                {showModal?.type === 'individualAnalysis' && showModal.engineerId && (() => {
+                  const engineer = data.engineers.find(e => e.id === showModal.engineerId);
+                  return engineer ? (
+                    <EngineerAnalysis
+                      data={data}
+                      engineer={engineer}
+                      getAssessmentScore={getAssessmentScore}
+                      useWeightedScores={useWeightedScores}
+                    />
+                  ) : null;
+                })()}
               </div>
             )}
           </div>
