@@ -78,8 +78,8 @@ const Dashboard = ({ data }) => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Team performance overview and key metrics</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400">Team performance overview and key metrics</p>
       </div>
 
       {/* Quick Stats Cards */}
@@ -120,8 +120,8 @@ const Dashboard = ({ data }) => {
       {/* Score Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Score Distribution</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Score Distribution</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -174,8 +174,8 @@ const Dashboard = ({ data }) => {
         </div>
 
         {/* Bar Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Engineer Performance</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Engineer Performance</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={engineerPerformance}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -191,10 +191,10 @@ const Dashboard = ({ data }) => {
       {/* Top Performers and Needs Attention */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performers */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <Award className="text-green-600" size={24} />
-            <h2 className="text-xl font-bold text-gray-900">Top Performers</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Top Performers</h2>
           </div>
           <div className="space-y-3">
             {topPerformers.map((engineer, index) => (
@@ -218,10 +218,10 @@ const Dashboard = ({ data }) => {
         </div>
 
         {/* Needs Attention */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="text-orange-600" size={24} />
-            <h2 className="text-xl font-bold text-gray-900">Needs Attention</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Needs Attention</h2>
           </div>
           <div className="space-y-3">
             {needsAttention.map((engineer, index) => (
@@ -246,19 +246,19 @@ const Dashboard = ({ data }) => {
       </div>
 
       {/* Summary Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 border border-blue-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Key Insights</h2>
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-lg p-6 border border-blue-200 dark:border-gray-600">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Key Insights</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Total Assessments</p>
-            <p className="text-3xl font-bold text-gray-900">{totalAssessments}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Assessments</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalAssessments}</p>
           </div>
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Fully Trained (≥2)</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fully Trained (≥2)</p>
             <p className="text-3xl font-bold text-green-600">{fullyTrained}</p>
           </div>
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Need Training (&lt;2)</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Need Training (&lt;2)</p>
             <p className="text-3xl font-bold text-orange-600">{totalAssessments - fullyTrained}</p>
           </div>
         </div>

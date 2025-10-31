@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key } from 'lucide-react';
+import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key, Moon, Sun } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { exportToExcel, exportEngineerReport } from './utils/excelExport';
 import { importFromExcel, validateImportedData } from './utils/excelImport';
 import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
 import Dashboard from './components/Dashboard';
+import { useTheme } from './contexts/ThemeContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 function App() {
   // Authentication
   const { currentUser, isAuthenticated, login, logout } = useAuth();
+
+  // Theme
+  const { theme, toggleTheme } = useTheme();
 
   // Data management
   const dataHook = useData(currentUser);
@@ -435,7 +439,7 @@ function App() {
 
   // Main Application
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
@@ -450,6 +454,17 @@ function App() {
               </span>
             </div>
             <button
+              onClick={toggleTheme}
+              className="p-2.5 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg hover:bg-opacity-30 transition-all duration-200"
+              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {theme === 'light' ? (
+                <Moon className="text-white" size={20} />
+              ) : (
+                <Sun className="text-yellow-300" size={20} />
+              )}
+            </button>
+            <button
               onClick={handleLogout}
               className="px-5 py-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
             >
@@ -461,7 +476,7 @@ function App() {
 
       {/* Tabs */}
       {currentUser.role === 'admin' && (
-        <div className="bg-white shadow-sm">
+        <div className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-1 overflow-x-auto">
               {['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
@@ -471,7 +486,7 @@ function App() {
                   className={`px-6 py-4 font-medium capitalize whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab
                       ? 'bg-blue-600 text-white rounded-t-lg shadow-md'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-t-lg'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-t-lg'
                   }`}
                 >
                   {tab === 'dashboard' && '📈 '}
@@ -523,7 +538,7 @@ function App() {
         {activeTab === 'admin' && currentUser.role === 'admin' && (
           <div className="space-y-6">
             {/* Admin Sub-Tabs */}
-            <div className="bg-white rounded-lg shadow-md p-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
               <div className="flex gap-2">
                 {['engineers', 'production', 'users'].map(subTab => (
                   <button
@@ -532,7 +547,7 @@ function App() {
                     className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
                       adminSubTab === subTab
                         ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600'
                     }`}
                   >
                     {subTab === 'engineers' && '👷 Engineers'}
@@ -545,9 +560,9 @@ function App() {
 
             {/* Engineers Sub-Tab */}
             {adminSubTab === 'engineers' && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Engineers</h2>
+                  <h2 className="text-xl font-bold dark:text-white">Engineers</h2>
                 <button
                   onClick={addEngineer}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -563,13 +578,13 @@ function App() {
                     placeholder="Search engineers..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
                 <select
                   value={filterShift}
                   onChange={(e) => setFilterShift(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="all">All Shifts</option>
                   <option value="A Shift">A Shift</option>
@@ -582,10 +597,10 @@ function App() {
 
               <div className="space-y-2">
                 {getFilteredEngineers().map(engineer => (
-                  <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800">
                     <div>
-                      <p className="font-medium">{engineer.name}</p>
-                      <p className="text-sm text-gray-600">{engineer.shift}</p>
+                      <p className="font-medium dark:text-white">{engineer.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{engineer.shift}</p>
                     </div>
                     <button
                       onClick={() => deleteEngineer(engineer.id)}
@@ -601,9 +616,9 @@ function App() {
 
             {/* Production Areas Sub-Tab */}
             {adminSubTab === 'production' && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Production Areas</h2>
+                  <h2 className="text-xl font-bold dark:text-white">Production Areas</h2>
                 <button
                   onClick={addProductionArea}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -681,9 +696,9 @@ function App() {
 
             {/* User Accounts Sub-Tab */}
             {adminSubTab === 'users' && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">User Accounts</h2>
+                  <h2 className="text-xl font-bold dark:text-white">User Accounts</h2>
                 <button
                   onClick={() => {
                     const username = prompt('Enter username:');
