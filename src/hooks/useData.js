@@ -284,10 +284,26 @@ export const useData = (currentUser) => {
       ...data,
       users: data.users.filter(u => u.id !== userId)
     };
-    
+
     updateData(newData, `Deleted user: ${user?.username}`);
   };
-  
+
+  const resetPassword = (userId, newPassword) => {
+    const user = data.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const newData = {
+      ...data,
+      users: data.users.map(u =>
+        u.id === userId
+          ? { ...u, password: newPassword }
+          : u
+      )
+    };
+
+    updateData(newData, `Reset password for user: ${user.username}`);
+  };
+
   const addCertification = (cert) => {
     const newCert = {
       id: Date.now(),
@@ -358,6 +374,7 @@ export const useData = (currentUser) => {
     bulkUpdateAssessments,
     addUser,
     deleteUser,
+    resetPassword,
     addCertification,
     updateCertification,
     deleteCertification,

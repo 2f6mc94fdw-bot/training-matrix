@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { exportToExcel, exportEngineerReport } from './utils/excelExport';
@@ -103,7 +103,26 @@ function App() {
     const name = prompt('Enter engineer name:');
     const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
     if (name && shift) {
-      dataHook.addEngineer({ name, shift });
+      // Create the engineer
+      const newEngineer = dataHook.addEngineer({ name, shift });
+
+      // Auto-create user account for the engineer
+      // Generate username from name (lowercase, no spaces)
+      const username = name.toLowerCase().replace(/\s+/g, '.');
+
+      // Check if username already exists
+      const existingUser = data.users.find(u => u.username === username);
+      if (!existingUser) {
+        dataHook.addUser({
+          username: username,
+          password: 'password',
+          role: 'engineer',
+          engineerId: newEngineer.id
+        });
+        alert(`Engineer added!\n\nLogin credentials:\nUsername: ${username}\nPassword: password\n\nThe engineer should change their password after first login.`);
+      } else {
+        alert(`Engineer added! Note: A user account with username "${username}" already exists.`);
+      }
     }
   };
 
@@ -656,18 +675,34 @@ function App() {
                         {user.engineerId && ` (${data.engineers.find(e => e.id === user.engineerId)?.name || 'Unknown'})`}
                       </p>
                     </div>
-                    {user.username !== 'admin' && (
+                    <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          if (confirm(`Delete user "${user.username}"?`)) {
-                            dataHook.deleteUser(user.id);
+                          const newPassword = prompt(`Reset password for "${user.username}".\n\nEnter new password:`);
+                          if (newPassword) {
+                            dataHook.resetPassword(user.id, newPassword);
+                            alert(`Password reset successfully for "${user.username}"!`);
                           }
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Reset Password"
                       >
-                        <Trash2 size={20} />
+                        <Key size={20} />
                       </button>
-                    )}
+                      {user.username !== 'admin' && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete user "${user.username}"?`)) {
+                              dataHook.deleteUser(user.id);
+                            }
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          title="Delete User"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -944,9 +979,13 @@ function App() {
                 onChange={(e) => {
                   if (e.target.value) {
                     const plan = generateTrainingPlan(parseInt(e.target.value));
+                    console.log('Training plan generated:', plan); // Debug log
                     setShowModal({ type: 'trainingPlan', data: plan, engineerId: e.target.value });
+                  } else {
+                    setShowModal(null);
                   }
                 }}
+                value={showModal?.type === 'trainingPlan' ? showModal.engineerId : ''}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
               >
                 <option value="">Select engineer to generate training plan...</option>
@@ -956,7 +995,7 @@ function App() {
               </select>
 
               {showModal?.type === 'trainingPlan' && (
-                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="mt-4 border-2 border-blue-400 rounded-lg p-6 bg-blue-50 animate-fadeIn">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg">
                       Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
@@ -967,12 +1006,14 @@ function App() {
                   </div>
 
                   {showModal.data.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-green-600 font-bold text-lg mb-2">🎉 Excellent!</p>
-                      <p className="text-gray-600">
-                        This engineer has scored 2 or higher on all competencies.
-                        <br />
-                        No training is currently needed.
+                    <div className="text-center py-12 bg-green-50 border-2 border-green-300 rounded-lg">
+                      <div className="text-6xl mb-4">🎉</div>
+                      <p className="text-green-700 font-bold text-2xl mb-3">Excellent Work!</p>
+                      <p className="text-gray-700 text-lg">
+                        <strong>{data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
+                      </p>
+                      <p className="text-green-600 font-medium mt-2">
+                        ✓ No training currently needed
                       </p>
                     </div>
                   ) : (
