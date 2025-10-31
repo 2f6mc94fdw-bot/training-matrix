@@ -7,6 +7,7 @@ import { exportToExcel, exportEngineerReport } from './utils/excelExport';
 import { importFromExcel, validateImportedData } from './utils/excelImport';
 import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
 import Dashboard from './components/Dashboard';
+import ProgressGraph from './components/ProgressGraph';
 import { useTheme } from './contexts/ThemeContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -1566,6 +1567,9 @@ function App() {
                     </div>
                   </div>
 
+                  {/* Progress Graph */}
+                  <ProgressGraph data={data} engineerId={engineer.id} />
+
                   {/* Recent Updates / Historical Progress */}
                   {data.snapshots && data.snapshots.length > 0 && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
@@ -1703,9 +1707,18 @@ function App() {
         {/* Assessment Tab */}
         {activeTab === 'assessment' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-4">Engineer Assessments</h2>
-              
+            {currentUser.role === 'engineer' && (
+              <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4">
+                <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-2">📝 Self-Assessment</h3>
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  You can update your own competency scores by clicking on the score buttons (0-3) below.
+                  All changes are automatically tracked, and your progress will be displayed in your dashboard!
+                </p>
+              </div>
+            )}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold dark:text-white mb-4">Engineer Assessments</h2>
+
               {/* Filters */}
               <div className="mb-4 flex gap-3">
                 <select
@@ -1866,26 +1879,30 @@ function App() {
                                       <div key={comp.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                         <span className="text-sm">{comp.name}</span>
                                         <div className="flex gap-1">
-                                          {[0, 1, 2, 3].map(value => (
-                                            <button
-                                              key={value}
-                                              onClick={() => {
-                                                if (currentUser.role === 'admin') {
-                                                  updateAssessment(engineer.id, area.id, machine.id, comp.id, value);
-                                                }
-                                              }}
-                                              disabled={currentUser.role !== 'admin'}
-                                              className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
-                                                currentScore === value
-                                                  ? 'bg-blue-600 text-white'
-                                                  : currentUser.role !== 'admin'
-                                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                  : 'bg-white border-2 border-gray-300 hover:border-blue-400'
-                                              }`}
-                                            >
-                                              {value}
-                                            </button>
-                                          ))}
+                                          {[0, 1, 2, 3].map(value => {
+                                            const canEdit = currentUser.role === 'admin' ||
+                                              (currentUser.role === 'engineer' && currentUser.engineerId === engineer.id);
+                                            return (
+                                              <button
+                                                key={value}
+                                                onClick={() => {
+                                                  if (canEdit) {
+                                                    updateAssessment(engineer.id, area.id, machine.id, comp.id, value);
+                                                  }
+                                                }}
+                                                disabled={!canEdit}
+                                                className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                                                  currentScore === value
+                                                    ? 'bg-blue-600 text-white'
+                                                    : !canEdit
+                                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                    : 'bg-white border-2 border-gray-300 hover:border-blue-400'
+                                                }`}
+                                              >
+                                                {value}
+                                              </button>
+                                            );
+                                          })}
                                         </div>
                                       </div>
                                     );

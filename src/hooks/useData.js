@@ -226,14 +226,29 @@ export const useData = (currentUser) => {
   
   const updateAssessment = (engineerId, areaId, machineId, compId, score) => {
     const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
+    const existingAssessment = data.assessments[key];
+    const timestamp = new Date().toISOString();
+
+    // Create history entry if score changed
+    const history = existingAssessment?.history || [];
+    if (existingAssessment && existingAssessment.score !== score) {
+      history.push({
+        oldScore: existingAssessment.score,
+        newScore: score,
+        timestamp,
+        updatedBy: currentUser?.username || 'System'
+      });
+    }
+
     const newData = {
       ...data,
       assessments: {
         ...data.assessments,
         [key]: {
           score,
-          lastUpdated: new Date().toISOString(),
-          updatedBy: currentUser?.username || 'System'
+          lastUpdated: timestamp,
+          updatedBy: currentUser?.username || 'System',
+          history
         }
       }
     };
@@ -243,12 +258,28 @@ export const useData = (currentUser) => {
   
   const bulkUpdateAssessments = (updates) => {
     const newAssessments = { ...data.assessments };
+    const timestamp = new Date().toISOString();
+
     updates.forEach(({ engineerId, areaId, machineId, compId, score }) => {
       const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
+      const existingAssessment = newAssessments[key];
+
+      // Create history entry if score changed
+      const history = existingAssessment?.history || [];
+      if (existingAssessment && existingAssessment.score !== score) {
+        history.push({
+          oldScore: existingAssessment.score,
+          newScore: score,
+          timestamp,
+          updatedBy: currentUser?.username || 'System'
+        });
+      }
+
       newAssessments[key] = {
         score,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: currentUser?.username || 'System'
+        lastUpdated: timestamp,
+        updatedBy: currentUser?.username || 'System',
+        history
       };
     });
 
