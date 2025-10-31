@@ -8,6 +8,8 @@ import { importFromExcel, validateImportedData } from './utils/excelImport';
 import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
 import Dashboard from './components/Dashboard';
 import ProgressGraph from './components/ProgressGraph';
+import CoreSkills from './components/CoreSkills';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
 import { useTheme } from './contexts/ThemeContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -482,7 +484,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-1 overflow-x-auto">
             {currentUser.role === 'admin' ? (
-              ['dashboard', 'assessment', 'reports', 'admin', 'data', 'advanced'].map(tab => (
+              ['dashboard', 'assessment', 'reports', 'coreskills', 'admin', 'data', 'advanced'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -498,11 +500,12 @@ function App() {
                   {tab === 'reports' && '📊 '}
                   {tab === 'advanced' && '🚀 '}
                   {tab === 'assessment' && '✍️ '}
-                  {tab}
+                  {tab === 'coreskills' && '🎓 '}
+                  {tab === 'coreskills' ? 'Core Skills' : tab}
                 </button>
               ))
             ) : (
-              ['mydashboard', 'mytraining', 'assessment'].map(tab => (
+              ['mydashboard', 'mytraining', 'assessment', 'coreskills'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -515,6 +518,7 @@ function App() {
                   {tab === 'mydashboard' && '🏠 My Dashboard'}
                   {tab === 'mytraining' && '📋 My Training Plan'}
                   {tab === 'assessment' && '✍️ My Scores'}
+                  {tab === 'coreskills' && '🎓 Core Skills'}
                 </button>
               ))
             )}
@@ -551,6 +555,11 @@ function App() {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && currentUser.role === 'admin' && (
           <Dashboard data={data} />
+        )}
+
+        {/* Core Skills Tab */}
+        {activeTab === 'coreskills' && (
+          <CoreSkills data={data} dataHook={dataHook} currentUser={currentUser} />
         )}
 
         {/* Admin Tab */}
@@ -1267,6 +1276,11 @@ function App() {
 
         {/* Advanced Tab */}
         {activeTab === 'advanced' && currentUser.role === 'admin' && (
+          <AdvancedAnalytics data={data} />
+        )}
+
+        {/* Training Management Tab (moved from Advanced) */}
+        {activeTab === 'training-mgmt' && currentUser.role === 'admin' && (
           <div className="space-y-6">
             {/* Training Plans */}
             <div className="bg-white rounded-lg shadow p-6">
