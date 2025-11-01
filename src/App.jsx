@@ -41,6 +41,7 @@ function App() {
   const [bulkSelectMode, setBulkSelectMode] = useState(false);
   const [selectedEngineers, setSelectedEngineers] = useState([]);
   const [showModal, setShowModal] = useState(null);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // Login handling
   const handleLogin = (e) => {
@@ -55,6 +56,40 @@ function App() {
     logout();
     setLoginForm({ username: '', password: '' });
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ignore if typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      // Cmd/Ctrl + S: Create snapshot
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (currentUser?.role === 'admin') {
+          dataHook.takeSnapshot('Manual snapshot');
+          toast.success('Snapshot created!');
+        }
+      }
+
+      // Cmd/Ctrl + E: Export data
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+        e.preventDefault();
+        if (currentUser?.role === 'admin') {
+          handleExportToExcel();
+        }
+      }
+
+      // ?: Show keyboard shortcuts help
+      if (e.key === '?' && !e.shiftKey) {
+        e.preventDefault();
+        setShowShortcutsHelp(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentUser, data]);
 
   // Production Area Management
   const addProductionArea = () => {
@@ -1989,6 +2024,66 @@ function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Keyboard Shortcuts Help Modal */}
+        {showShortcutsHelp && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full shadow-soft-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">⌨️ Keyboard Shortcuts</h2>
+                <button
+                  onClick={() => setShowShortcutsHelp(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X size={24} className="text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">General</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-gray-700 dark:text-gray-300">Show this help</span>
+                      <kbd className="px-3 py-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded font-mono text-sm shadow-soft">?</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                {currentUser?.role === 'admin' && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Admin Actions</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span className="text-gray-700 dark:text-gray-300">Create snapshot</span>
+                        <kbd className="px-3 py-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded font-mono text-sm shadow-soft">⌘S / Ctrl+S</kbd>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
+                        <kbd className="px-3 py-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded font-mono text-sm shadow-soft">⌘E / Ctrl+E</kbd>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    💡 <strong>Tip:</strong> Shortcuts work when you're not typing in an input field.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={() => setShowShortcutsHelp(false)}
+                  className="px-6 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all shadow-btn hover:shadow-btn-hover font-medium"
+                >
+                  Got it!
+                </button>
               </div>
             </div>
           </div>
