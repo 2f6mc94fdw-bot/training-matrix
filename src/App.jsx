@@ -553,27 +553,38 @@ function App() {
 
         {/* Admin Tab */}
         {activeTab === 'admin' && currentUser.role === 'admin' && (
-          <div className="space-y-6">
-            {/* Admin Sub-Tabs */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-3">
-              <div className="flex gap-2">
-                {['engineers', 'production', 'users'].map(subTab => (
-                  <button
-                    key={subTab}
-                    onClick={() => setAdminSubTab(subTab)}
-                    className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
-                      adminSubTab === subTab
-                        ? 'bg-accent text-white shadow-btn'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-accent'
-                    }`}
-                  >
-                    {subTab === 'engineers' && '👷 Engineers'}
-                    {subTab === 'production' && '🏭 Production Areas'}
-                    {subTab === 'users' && '👤 User Accounts'}
-                  </button>
-                ))}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Sidebar Navigation */}
+            <div className="w-full lg:w-64 flex-shrink-0">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-4 lg:sticky lg:top-4">
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-3 lg:block hidden">
+                  Admin Settings
+                </h3>
+                <nav className="flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+                  {[
+                    { id: 'engineers', icon: '👷', label: 'Engineers' },
+                    { id: 'production', icon: '🏭', label: 'Production Areas' },
+                    { id: 'users', icon: '👤', label: 'User Accounts' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => setAdminSubTab(item.id)}
+                      className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 whitespace-nowrap ${
+                        adminSubTab === item.id
+                          ? 'bg-accent text-white shadow-btn font-medium'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
               </div>
             </div>
+
+            {/* Content Area */}
+            <div className="flex-1 min-w-0">{/* This ensures proper flex behavior */}
 
             {/* Engineers Sub-Tab */}
             {adminSubTab === 'engineers' && (
@@ -818,6 +829,7 @@ function App() {
               </div>
             </div>
             )}
+            </div>
           </div>
         )}
 
@@ -886,51 +898,62 @@ function App() {
 
         {/* Reports Tab */}
         {activeTab === 'reports' && currentUser.role === 'admin' && (
-          <div className="space-y-6">
-            {/* Reports Sub-Tabs */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-3">
-              <div className="flex justify-between items-center gap-4">
-                <div className="flex gap-2 overflow-x-auto flex-1">
-                  {['skillgap', 'progress', 'heatmap', 'shifts', 'individual'].map(subTab => (
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Sidebar Navigation */}
+            <div className="w-full lg:w-64 flex-shrink-0">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-4 lg:sticky lg:top-4">
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-3 lg:block hidden">
+                  Reports
+                </h3>
+                <nav className="flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 mb-4 lg:mb-6">
+                  {[
+                    { id: 'skillgap', icon: '📊', label: 'Skill Gap' },
+                    { id: 'progress', icon: '📈', label: 'Progress' },
+                    { id: 'heatmap', icon: '🗺️', label: 'Heatmap' },
+                    { id: 'shifts', icon: '🔄', label: 'Shifts' },
+                    { id: 'individual', icon: '👤', label: 'Individual' }
+                  ].map(item => (
                     <button
-                      key={subTab}
-                      onClick={() => setReportsSubTab(subTab)}
-                      className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
-                        reportsSubTab === subTab
-                          ? 'bg-accent text-white shadow-btn'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-accent'
+                      key={item.id}
+                      onClick={() => setReportsSubTab(item.id)}
+                      className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 whitespace-nowrap ${
+                        reportsSubTab === item.id
+                          ? 'bg-accent text-white shadow-btn font-medium'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
-                      {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
-                      {subTab === 'progress' && '📈 Engineer Progress'}
-                      {subTab === 'heatmap' && '🗺️ Competency Heatmap'}
-                      {subTab === 'shifts' && '🔄 Shift Comparison'}
-                      {subTab === 'individual' && '👤 Individual Analysis'}
+                      <span className="text-xl">{item.icon}</span>
+                      <span>{item.label}</span>
                     </button>
                   ))}
-                </div>
+                </nav>
 
                 {/* Weighted/Unweighted Toggle */}
-                <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-soft">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    {useWeightedScores ? '⚖️ Weighted' : '📊 Unweighted'}
-                  </span>
-                  <button
-                    onClick={() => setUseWeightedScores(!useWeightedScores)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shadow-inner-light ${
-                      useWeightedScores ? 'bg-accent' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                    title={useWeightedScores ? 'Switch to unweighted scores' : 'Switch to weighted scores (by machine importance)'}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-soft ${
-                        useWeightedScores ? 'translate-x-6' : 'translate-x-1'
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {useWeightedScores ? '⚖️ Weighted' : '📊 Unweighted'}
+                    </span>
+                    <button
+                      onClick={() => setUseWeightedScores(!useWeightedScores)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shadow-inner-light ${
+                        useWeightedScores ? 'bg-accent' : 'bg-gray-300 dark:bg-gray-600'
                       }`}
-                    />
-                  </button>
+                      title={useWeightedScores ? 'Switch to unweighted scores' : 'Switch to weighted scores (by machine importance)'}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-soft ${
+                          useWeightedScores ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Content Area */}
+            <div className="flex-1 min-w-0 space-y-6">{/* This ensures proper flex behavior */}
 
             {/* Skill Gap Analysis Sub-Tab */}
             {reportsSubTab === 'skillgap' && (
@@ -1216,6 +1239,7 @@ function App() {
                 })()}
               </div>
             )}
+            </div>
           </div>
         )}
 
