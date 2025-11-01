@@ -193,14 +193,34 @@ export const useData = (currentUser) => {
       name: engineer.name,
       shift: engineer.shift
     };
-    
+
+    // Generate username from name
+    const username = engineer.name.toLowerCase().replace(/\s+/g, '.');
+
+    // Check if username already exists
+    const existingUser = data.users.find(u => u.username === username);
+
+    let newUsers = data.users;
+    if (!existingUser) {
+      // Auto-create user account
+      const newUser = {
+        id: `user_${Date.now()}`,
+        username: username,
+        password: 'password',
+        role: 'engineer',
+        engineerId: newEngineer.id
+      };
+      newUsers = [...data.users, newUser];
+    }
+
     const newData = {
       ...data,
-      engineers: [...data.engineers, newEngineer]
+      engineers: [...data.engineers, newEngineer],
+      users: newUsers
     };
-    
+
     updateData(newData, `Added engineer: ${engineer.name}`);
-    return newEngineer;
+    return { newEngineer, username, userCreated: !existingUser };
   };
   
   const updateEngineer = (engineerId, updates) => {

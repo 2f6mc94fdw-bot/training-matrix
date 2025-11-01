@@ -83,45 +83,45 @@ const Dashboard = ({ data }) => {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-navy">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl shadow-card p-6 border-l-4 border-gray-900">
           <div className="flex items-center justify-between mb-2">
-            <Users size={32} className="text-primary-navy" />
+            <Users size={32} className="text-gray-700" />
           </div>
-          <p className="text-3xl font-bold mb-1 text-primary-navy">{totalEngineers}</p>
-          <p className="text-gray-600 text-sm">Total Engineers</p>
+          <p className="text-4xl font-bold mb-1 text-gray-900">{totalEngineers}</p>
+          <p className="text-gray-600 text-sm font-medium">Total Engineers</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-accent">
+        <div className="bg-white rounded-xl shadow-card p-6 border-l-4 border-accent">
           <div className="flex items-center justify-between mb-2">
             <Target size={32} className="text-accent" />
           </div>
-          <p className="text-3xl font-bold mb-1 text-accent">{totalCompetencies}</p>
-          <p className="text-gray-600 text-sm">Total Competencies</p>
+          <p className="text-4xl font-bold mb-1 text-accent">{totalCompetencies}</p>
+          <p className="text-gray-600 text-sm font-medium">Total Competencies</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-success">
+        <div className="bg-white rounded-xl shadow-card p-6 border-l-4 border-success">
           <div className="flex items-center justify-between mb-2">
             <TrendingUp size={32} className="text-success" />
           </div>
-          <p className="text-3xl font-bold mb-1 text-success">{averageScore}</p>
-          <p className="text-gray-600 text-sm">Average Skill Level</p>
+          <p className="text-4xl font-bold mb-1 text-success">{averageScore}</p>
+          <p className="text-gray-600 text-sm font-medium">Average Skill Level</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-info">
+        <div className="bg-white rounded-xl shadow-card p-6 border-l-4 border-warning">
           <div className="flex items-center justify-between mb-2">
-            <Award size={32} className="text-info" />
+            <Award size={32} className="text-warning" />
           </div>
-          <p className="text-3xl font-bold mb-1 text-info">{completionRate}%</p>
-          <p className="text-gray-600 text-sm">Completion Rate</p>
+          <p className="text-4xl font-bold mb-1 text-warning">{completionRate}%</p>
+          <p className="text-gray-600 text-sm font-medium">Completion Rate</p>
         </div>
       </div>
 
       {/* Score Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Score Distribution</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Score Distribution</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -174,8 +174,8 @@ const Dashboard = ({ data }) => {
         </div>
 
         {/* Bar Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Engineer Performance</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Engineer Performance</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={engineerPerformance}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -191,10 +191,10 @@ const Dashboard = ({ data }) => {
       {/* Top Performers and Needs Attention */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performers */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Award className="text-success" size={24} />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Top Performers</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Award className="text-success" size={28} />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Top Performers</h2>
           </div>
           <div className="space-y-3">
             {topPerformers.map((engineer, index) => (
@@ -218,10 +218,10 @@ const Dashboard = ({ data }) => {
         </div>
 
         {/* Needs Attention */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="text-warning" size={24} />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Needs Attention</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <AlertTriangle className="text-warning" size={28} />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Needs Attention</h2>
           </div>
           <div className="space-y-3">
             {needsAttention.map((engineer, index) => (
@@ -246,20 +246,20 @@ const Dashboard = ({ data }) => {
       </div>
 
       {/* Summary Insights */}
-      <div className="bg-white dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-lg p-6 border-2 border-gray-200 dark:border-gray-600">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Key Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Assessments</p>
-            <p className="text-3xl font-bold text-primary-navy dark:text-white">{totalAssessments}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-8 border-l-4 border-gray-900">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Key Insights</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-5 border border-gray-200 dark:border-gray-600 shadow-soft">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Total Assessments</p>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">{totalAssessments}</p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fully Trained (≥2)</p>
-            <p className="text-3xl font-bold text-success">{fullyTrained}</p>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-5 border border-gray-200 dark:border-gray-600 shadow-soft">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Fully Trained (≥2)</p>
+            <p className="text-4xl font-bold text-success">{fullyTrained}</p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Need Training (&lt;2)</p>
-            <p className="text-3xl font-bold text-warning">{totalAssessments - fullyTrained}</p>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-5 border border-gray-200 dark:border-gray-600 shadow-soft">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Need Training (&lt;2)</p>
+            <p className="text-4xl font-bold text-warning">{totalAssessments - fullyTrained}</p>
           </div>
         </div>
       </div>
