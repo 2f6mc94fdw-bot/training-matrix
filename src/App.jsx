@@ -382,11 +382,11 @@ function App() {
   // Render Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-soft-2xl p-10 w-full max-w-md">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🎯</div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Training Matrix
             </h1>
             <p className="text-gray-600">Competency Management System</p>
@@ -398,7 +398,7 @@ function App() {
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all shadow-inner-light"
                 placeholder="Enter your username"
                 required
               />
@@ -409,19 +409,19 @@ function App() {
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all shadow-inner-light"
                 placeholder="Enter your password"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+              className="w-full bg-accent text-white py-3 rounded-lg hover:bg-accent-600 transition-all duration-200 font-semibold shadow-btn hover:shadow-btn-hover"
             >
               Sign In
             </button>
           </form>
-          <div className="mt-6 p-4 bg-red-50 rounded-lg border border-blue-200">
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-700 text-center">
               <span className="font-semibold">Default Login:</span> admin / admin123
             </p>
@@ -435,32 +435,32 @@ function App() {
   return (
     <div className="min-h-screen bg-bg dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-primary-navy shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+      <div className="bg-gray-900 dark:bg-gray-950 shadow-soft-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Training Matrix System</h1>
-            <p className="text-gray-200 text-sm mt-1">Competency Management & Analytics</p>
+            <p className="text-gray-300 text-sm mt-1">Competency Management & Analytics</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
-              <span className="text-sm text-white font-medium">
+            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg px-5 py-2 shadow-soft">
+              <span className="text-sm text-gray-200 font-medium">
                 {currentUser.role === 'admin' ? '👨‍💼 Admin' : '👷 Engineer'}: {currentUser.username}
               </span>
             </div>
             <button
               onClick={toggleTheme}
-              className="p-2.5 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg hover:bg-opacity-30 transition-all duration-200"
+              className="p-2.5 bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-lg hover:bg-gray-700 transition-all duration-200 shadow-btn hover:shadow-btn-hover"
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
               {theme === 'light' ? (
-                <Moon className="text-white" size={20} />
+                <Moon className="text-gray-300" size={20} />
               ) : (
                 <Sun className="text-warning" size={20} />
               )}
             </button>
             <button
               onClick={handleLogout}
-              className="px-5 py-2 bg-accent text-white rounded-lg hover:bg-accent-light transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+              className="px-5 py-2 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 font-medium shadow-btn hover:shadow-btn-hover"
             >
               Logout
             </button>
@@ -517,20 +517,20 @@ function App() {
 
       {/* Confirmation Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-6">{confirmDelete.message}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-soft-2xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Confirm Delete</h3>
+            <p className="text-gray-600 mb-8">{confirmDelete.message}</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium shadow-btn hover:shadow-btn-hover"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete.onConfirm}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all font-medium shadow-btn hover:shadow-btn-hover"
               >
                 Delete
               </button>
@@ -555,7 +555,7 @@ function App() {
         {activeTab === 'admin' && currentUser.role === 'admin' && (
           <div className="space-y-6">
             {/* Admin Sub-Tabs */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-3">
               <div className="flex gap-2">
                 {['engineers', 'production', 'users'].map(subTab => (
                   <button
@@ -563,8 +563,8 @@ function App() {
                     onClick={() => setAdminSubTab(subTab)}
                     className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
                       adminSubTab === subTab
-                        ? 'bg-accent text-white shadow-md'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700 hover:text-accent'
+                        ? 'bg-accent text-white shadow-btn'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-accent'
                     }`}
                   >
                     {subTab === 'engineers' && '👷 Engineers'}
@@ -577,12 +577,12 @@ function App() {
 
             {/* Engineers Sub-Tab */}
             {adminSubTab === 'engineers' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold dark:text-white">Engineers</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold dark:text-white text-gray-900">Engineers</h2>
                 <button
                   onClick={addEngineer}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Plus size={20} /> Add Engineer
                 </button>
@@ -633,12 +633,12 @@ function App() {
 
             {/* Production Areas Sub-Tab */}
             {adminSubTab === 'production' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold dark:text-white">Production Areas</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold dark:text-white text-gray-900">Production Areas</h2>
                 <button
                   onClick={addProductionArea}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Plus size={20} /> Add Area
                 </button>
@@ -732,9 +732,9 @@ function App() {
 
             {/* User Accounts Sub-Tab */}
             {adminSubTab === 'users' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold dark:text-white">User Accounts</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold dark:text-white text-gray-900">User Accounts</h2>
                 <button
                   onClick={() => {
                     const username = prompt('Enter username:');
@@ -762,7 +762,7 @@ function App() {
 
                     dataHook.addUser({ username, password, role, engineerId });
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Plus size={20} /> Add User
                 </button>
@@ -824,19 +824,19 @@ function App() {
         {/* Data Management Tab */}
         {activeTab === 'data' && currentUser.role === 'admin' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-4">Data Management</h2>
+            <div className="bg-white rounded-lg shadow-card p-8">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">Data Management</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={handleExportToExcel}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-blue-600 text-accent rounded-lg hover:bg-red-50"
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-accent hover:bg-gray-50 transition-all shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Download size={24} />
                   <span className="font-medium">Export to Excel</span>
                 </button>
 
-                <label className="flex items-center justify-center gap-2 p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 cursor-pointer">
+                <label className="flex items-center justify-center gap-3 p-5 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-success hover:bg-gray-50 cursor-pointer transition-all shadow-btn hover:shadow-btn-hover font-medium">
                   <Upload size={24} />
                   <span className="font-medium">Import from Excel</span>
                   <input
@@ -849,13 +849,13 @@ function App() {
 
                 <button
                   onClick={handleExportToJSON}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50"
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-accent hover:bg-gray-50 transition-all shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Download size={24} />
                   <span className="font-medium">Export to JSON</span>
                 </button>
 
-                <label className="flex items-center justify-center gap-2 p-4 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 cursor-pointer">
+                <label className="flex items-center justify-center gap-3 p-5 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-success hover:bg-gray-50 cursor-pointer transition-all shadow-btn hover:shadow-btn-hover font-medium">
                   <Upload size={24} />
                   <span className="font-medium">Import from JSON</span>
                   <input
@@ -868,15 +868,15 @@ function App() {
 
                 <button
                   onClick={handleExportToJSON}
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-accent hover:bg-gray-50 transition-all shadow-btn hover:shadow-btn-hover font-medium"
                 >
                   <Save size={24} />
                   <span className="font-medium">Create Backup</span>
                 </button>
               </div>
 
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-sm text-gray-700">
                   <strong>Note:</strong> Always create backups before importing data. Imports will replace all current data.
                 </p>
               </div>
@@ -888,7 +888,7 @@ function App() {
         {activeTab === 'reports' && currentUser.role === 'admin' && (
           <div className="space-y-6">
             {/* Reports Sub-Tabs */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-3">
               <div className="flex justify-between items-center gap-4">
                 <div className="flex gap-2 overflow-x-auto flex-1">
                   {['skillgap', 'progress', 'heatmap', 'shifts', 'individual'].map(subTab => (
@@ -897,8 +897,8 @@ function App() {
                       onClick={() => setReportsSubTab(subTab)}
                       className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 whitespace-nowrap ${
                         reportsSubTab === subTab
-                          ? 'bg-accent text-white shadow-md'
-                          : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700 hover:text-accent'
+                          ? 'bg-accent text-white shadow-btn'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-accent'
                       }`}
                     >
                       {subTab === 'skillgap' && '📊 Skill Gap Analysis'}
@@ -911,19 +911,19 @@ function App() {
                 </div>
 
                 {/* Weighted/Unweighted Toggle */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-soft">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                     {useWeightedScores ? '⚖️ Weighted' : '📊 Unweighted'}
                   </span>
                   <button
                     onClick={() => setUseWeightedScores(!useWeightedScores)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      useWeightedScores ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shadow-inner-light ${
+                      useWeightedScores ? 'bg-accent' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                     title={useWeightedScores ? 'Switch to unweighted scores' : 'Switch to weighted scores (by machine importance)'}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-soft ${
                         useWeightedScores ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
@@ -937,43 +937,43 @@ function App() {
               <div className="space-y-6">
                 {/* Overall Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-accent">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Engineers</p>
-                    <p className="text-2xl font-bold text-accent">{data.engineers.length}</p>
+                    <p className="text-sm text-gray-600 font-medium">Total Engineers</p>
+                    <p className="text-3xl font-bold text-gray-900">{data.engineers.length}</p>
                   </div>
                   <Users size={32} className="text-accent" />
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-success">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Production Areas</p>
-                    <p className="text-2xl font-bold text-green-600">{data.productionAreas.length}</p>
+                    <p className="text-sm text-gray-600 font-medium">Production Areas</p>
+                    <p className="text-3xl font-bold text-gray-900">{data.productionAreas.length}</p>
                   </div>
-                  <TrendingUp size={32} className="text-green-600" />
+                  <TrendingUp size={32} className="text-success" />
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-gray-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Machines</p>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-sm text-gray-600 font-medium">Total Machines</p>
+                    <p className="text-3xl font-bold text-gray-900">
                       {data.productionAreas.reduce((sum, area) => sum + area.machines.length, 0)}
                     </p>
                   </div>
-                  <Award size={32} className="text-purple-600" />
+                  <Award size={32} className="text-gray-500" />
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-warning">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Avg Completion</p>
-                    <p className="text-2xl font-bold text-orange-600">
+                    <p className="text-sm text-gray-600 font-medium">Avg Completion</p>
+                    <p className="text-3xl font-bold text-gray-900">
                       {data.engineers.length > 0
                         ? (data.engineers.reduce((sum, eng) => {
                             const scores = calculateScores(eng.id);
@@ -982,41 +982,41 @@ function App() {
                         : 0}%
                     </p>
                   </div>
-                  <AlertCircle size={32} className="text-orange-600" />
+                  <AlertCircle size={32} className="text-warning" />
                 </div>
               </div>
             </div>
 
             {/* Skills Gap Analysis */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-4">Skills Gap Analysis</h2>
+            <div className="bg-white rounded-lg shadow-card p-6">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">Skills Gap Analysis</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4">Area</th>
-                      <th className="text-left py-3 px-4">Machine</th>
-                      <th className="text-left py-3 px-4">Competency</th>
-                      <th className="text-center py-3 px-4">Current Avg</th>
-                      <th className="text-center py-3 px-4">Target</th>
-                      <th className="text-center py-3 px-4">Gap</th>
-                      <th className="text-center py-3 px-4">Priority</th>
+                    <tr className="border-b-2 border-gray-200 bg-gray-50">
+                      <th className="text-left py-4 px-4 font-semibold text-gray-700">Area</th>
+                      <th className="text-left py-4 px-4 font-semibold text-gray-700">Machine</th>
+                      <th className="text-left py-4 px-4 font-semibold text-gray-700">Competency</th>
+                      <th className="text-center py-4 px-4 font-semibold text-gray-700">Current Avg</th>
+                      <th className="text-center py-4 px-4 font-semibold text-gray-700">Target</th>
+                      <th className="text-center py-4 px-4 font-semibold text-gray-700">Gap</th>
+                      <th className="text-center py-4 px-4 font-semibold text-gray-700">Priority</th>
                     </tr>
                   </thead>
                   <tbody>
                     {calculateSkillsGap().map((gap, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">{gap.area}</td>
-                        <td className="py-3 px-4">{gap.machine}</td>
-                        <td className="py-3 px-4">{gap.competency}</td>
-                        <td className="text-center py-3 px-4">{gap.currentAvg}</td>
-                        <td className="text-center py-3 px-4">{gap.target}</td>
-                        <td className="text-center py-3 px-4 font-bold">{gap.gap}</td>
-                        <td className="text-center py-3 px-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            gap.priority === 'High' ? 'bg-red-100 text-red-800' :
-                            gap.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
+                      <tr key={index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4 text-gray-900">{gap.area}</td>
+                        <td className="py-4 px-4 text-gray-900">{gap.machine}</td>
+                        <td className="py-4 px-4 text-gray-900">{gap.competency}</td>
+                        <td className="text-center py-4 px-4 text-gray-700">{gap.currentAvg}</td>
+                        <td className="text-center py-4 px-4 text-gray-700">{gap.target}</td>
+                        <td className="text-center py-4 px-4 font-bold text-gray-900">{gap.gap}</td>
+                        <td className="text-center py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-soft ${
+                            gap.priority === 'High' ? 'bg-accent-100 text-accent-800' :
+                            gap.priority === 'Medium' ? 'bg-warning/10 text-warning' :
+                            'bg-success/10 text-success'
                           }`}>
                             {gap.priority}
                           </span>
@@ -1448,21 +1448,21 @@ function App() {
               return (
                 <>
                   {/* Welcome Card */}
-                  <div className="bg-gradient-to-r from-accent to-accent-light rounded-xl shadow-lg p-8 text-white">
+                  <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl shadow-soft-xl p-8 text-white">
                     <h1 className="text-3xl font-bold mb-2">Welcome, {engineer.name}!</h1>
-                    <p className="text-blue-100 text-lg">{engineer.shift}</p>
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
-                        <p className="text-sm text-blue-100 mb-1">Overall Completion</p>
-                        <p className="text-4xl font-bold">{scores.rawPercent.toFixed(1)}%</p>
+                    <p className="text-gray-300 text-lg">{engineer.shift}</p>
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-5 border border-white border-opacity-20 shadow-soft">
+                        <p className="text-sm text-gray-300 mb-2 font-medium">Overall Completion</p>
+                        <p className="text-5xl font-bold text-accent">{scores.rawPercent.toFixed(1)}%</p>
                       </div>
-                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
-                        <p className="text-sm text-blue-100 mb-1">Total Competencies</p>
-                        <p className="text-4xl font-bold">{data.productionAreas.reduce((sum, a) => sum + a.machines.reduce((s, m) => s + m.competencies.length, 0), 0)}</p>
+                      <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-5 border border-white border-opacity-20 shadow-soft">
+                        <p className="text-sm text-gray-300 mb-2 font-medium">Total Competencies</p>
+                        <p className="text-5xl font-bold">{data.productionAreas.reduce((sum, a) => sum + a.machines.reduce((s, m) => s + m.competencies.length, 0), 0)}</p>
                       </div>
-                      <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4">
-                        <p className="text-sm text-blue-100 mb-1">Competencies Mastered</p>
-                        <p className="text-4xl font-bold">
+                      <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-5 border border-white border-opacity-20 shadow-soft">
+                        <p className="text-sm text-gray-300 mb-2 font-medium">Competencies Mastered</p>
+                        <p className="text-5xl font-bold text-success">
                           {data.productionAreas.reduce((count, area) => {
                             return count + area.machines.reduce((mCount, machine) => {
                               return mCount + machine.competencies.filter(comp =>

@@ -128,40 +128,40 @@ const ProgressGraph = ({ data, engineerId }) => {
 
   if (progressData.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Progress Over Time</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <TrendingUp className="text-gray-600 dark:text-gray-400" size={28} />
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Progress Over Time</h3>
         </div>
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <Calendar size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No score changes recorded yet.</p>
-          <p className="text-sm mt-2">As you update your scores, your progress will be tracked here!</p>
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <Calendar size={64} className="mx-auto mb-4 opacity-50" />
+          <p className="text-lg mb-2">No score changes recorded yet.</p>
+          <p className="text-sm">As you update your scores, your progress will be tracked here!</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="text-accent dark:text-accent-light" size={24} />
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Progress Over Time</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <TrendingUp className="text-accent dark:text-accent-light" size={28} />
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Progress Over Time</h3>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-success shadow-md">
-          <div className="text-3xl font-bold text-success">+{stats.totalImprovements}</div>
-          <div className="text-sm text-gray-600 font-medium">Total Improvements</div>
+      <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg p-6 text-center border-l-4 border-success shadow-card">
+          <div className="text-4xl font-bold text-success">+{stats.totalImprovements}</div>
+          <div className="text-sm text-gray-600 font-medium mt-2">Total Improvements</div>
         </div>
-        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-info shadow-md">
-          <div className="text-3xl font-bold text-info">{stats.totalChanges}</div>
-          <div className="text-sm text-gray-600 font-medium">Total Updates</div>
+        <div className="bg-white rounded-lg p-6 text-center border-l-4 border-gray-500 shadow-card">
+          <div className="text-4xl font-bold text-gray-900">{stats.totalChanges}</div>
+          <div className="text-sm text-gray-600 font-medium mt-2">Total Updates</div>
         </div>
-        <div className="bg-white rounded-lg p-4 text-center border-l-4 border-accent shadow-md">
-          <div className="text-3xl font-bold text-accent">{stats.daysActive}</div>
-          <div className="text-sm text-gray-600 font-medium">Active Days</div>
+        <div className="bg-white rounded-lg p-6 text-center border-l-4 border-accent shadow-card">
+          <div className="text-4xl font-bold text-accent">{stats.daysActive}</div>
+          <div className="text-sm text-gray-600 font-medium mt-2">Active Days</div>
         </div>
       </div>
 
