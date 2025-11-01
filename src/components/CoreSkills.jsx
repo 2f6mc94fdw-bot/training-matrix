@@ -105,33 +105,46 @@ const CoreSkills = ({ data, dataHook, currentUser }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Core Engineering Skills</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl shadow-card p-8 text-white">
+        <h1 className="text-3xl font-bold mb-2">Core Engineering Skills</h1>
+        <p className="text-gray-300">
           Fundamental skills independent of specific production equipment
         </p>
       </div>
 
-      {/* Sub-Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
-        <div className="flex gap-2">
-          {['assessment', 'analytics', 'management'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
-                activeTab === tab
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              {tab === 'assessment' && '📝 Assessment'}
-              {tab === 'analytics' && '📊 Analytics'}
-              {tab === 'management' && '⚙️ Management'}
-            </button>
-          ))}
+      {/* Sidebar + Content Layout */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <div className="w-full lg:w-64 flex-shrink-0">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-4 lg:sticky lg:top-4">
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-3 lg:block hidden">
+              Core Skills
+            </h3>
+            <nav className="flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+              {[
+                { id: 'assessment', icon: '📝', label: 'Assessment' },
+                { id: 'analytics', icon: '📊', label: 'Analytics' },
+                { id: 'management', icon: '⚙️', label: 'Management' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-accent text-white shadow-btn font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-xl">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 space-y-6">
 
       {/* Assessment Tab */}
       {activeTab === 'assessment' && (
@@ -353,6 +366,8 @@ const CoreSkills = ({ data, dataHook, currentUser }) => {
           </div>
         </div>
       )}
+        </div> {/* End Content Area */}
+      </div> {/* End Flex Container */}
     </div>
   );
 };

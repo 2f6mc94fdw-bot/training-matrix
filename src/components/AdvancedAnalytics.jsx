@@ -234,17 +234,17 @@ const AdvancedAnalytics = ({ data }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl shadow-card p-8 text-white">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Advanced Analytics</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <h1 className="text-3xl font-bold mb-2">Advanced Analytics</h1>
+            <p className="text-gray-300">
               Predictive insights, trends, and automated reporting
             </p>
           </div>
           <button
             onClick={generateReport}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 shadow-btn hover:shadow-btn-hover font-medium"
           >
             <Download size={20} />
             Export Report
@@ -252,26 +252,39 @@ const AdvancedAnalytics = ({ data }) => {
         </div>
       </div>
 
-      {/* Sub-Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2">
-        <div className="flex gap-2">
-          {['trends', 'shifts', 'insights'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium capitalize rounded-lg transition-all duration-200 ${
-                activeTab === tab
-                  ? 'bg-accent text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              {tab === 'trends' && '📈 Trends & Predictions'}
-              {tab === 'shifts' && '🔄 Shift Comparison'}
-              {tab === 'insights' && '💡 Automated Insights'}
-            </button>
-          ))}
+      {/* Sidebar + Content Layout */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <div className="w-full lg:w-64 flex-shrink-0">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-card p-4 lg:sticky lg:top-4">
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-3 lg:block hidden">
+              Analytics
+            </h3>
+            <nav className="flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+              {[
+                { id: 'trends', icon: '📈', label: 'Trends & Predictions' },
+                { id: 'shifts', icon: '🔄', label: 'Shift Comparison' },
+                { id: 'insights', icon: '💡', label: 'Automated Insights' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-accent text-white shadow-btn font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-xl">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 space-y-6">
 
       {/* Trends Tab */}
       {activeTab === 'trends' && (
@@ -422,6 +435,8 @@ const AdvancedAnalytics = ({ data }) => {
           </div>
         </div>
       )}
+      </div> {/* End Content Area */}
+    </div> {/* End Flex Container */}
     </div>
   );
 };
