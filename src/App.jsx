@@ -115,25 +115,13 @@ function App() {
     const name = prompt('Enter engineer name:');
     const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
     if (name && shift) {
-      // Create the engineer
-      const newEngineer = dataHook.addEngineer({ name, shift });
+      // Create the engineer and auto-create user account in one operation
+      const result = dataHook.addEngineer({ name, shift });
 
-      // Auto-create user account for the engineer
-      // Generate username from name (lowercase, no spaces)
-      const username = name.toLowerCase().replace(/\s+/g, '.');
-
-      // Check if username already exists
-      const existingUser = data.users.find(u => u.username === username);
-      if (!existingUser) {
-        dataHook.addUser({
-          username: username,
-          password: 'password',
-          role: 'engineer',
-          engineerId: newEngineer.id
-        });
-        alert(`Engineer added!\n\nLogin credentials:\nUsername: ${username}\nPassword: password\n\nThe engineer should change their password after first login.`);
+      if (result.userCreated) {
+        alert(`Engineer added!\n\nLogin credentials:\nUsername: ${result.username}\nPassword: password\n\nThe engineer should change their password after first login.`);
       } else {
-        alert(`Engineer added! Note: A user account with username "${username}" already exists.`);
+        alert(`Engineer added!\n\nNote: A user account with username "${result.username}" already exists.`);
       }
     }
   };
