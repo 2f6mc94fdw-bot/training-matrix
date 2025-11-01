@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
     "recharts": "^2.5.0",
-    "lucide-react": "^0.263.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

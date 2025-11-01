@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key, Moon, Sun } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { exportToExcel, exportEngineerReport } from './utils/excelExport';
@@ -46,7 +47,7 @@ function App() {
     e.preventDefault();
     const result = login(loginForm.username, loginForm.password);
     if (!result.success) {
-      alert(result.message || 'Invalid credentials');
+      toast.error(result.message || 'Invalid credentials');
     }
   };
 
@@ -119,9 +120,20 @@ function App() {
       const result = dataHook.addEngineer({ name, shift });
 
       if (result.userCreated) {
-        alert(`Engineer added!\n\nLogin credentials:\nUsername: ${result.username}\nPassword: password\n\nThe engineer should change their password after first login.`);
+        toast.success(`Engineer added! Login: ${result.username} / password`, {
+          duration: 6000,
+          icon: '✅',
+        });
+        toast.info('Engineer should change password after first login', {
+          duration: 5000,
+        });
       } else {
-        alert(`Engineer added!\n\nNote: A user account with username "${result.username}" already exists.`);
+        toast.success(`Engineer added!`, {
+          duration: 4000,
+        });
+        toast.info(`User account "${result.username}" already exists`, {
+          duration: 4000,
+        });
       }
     }
   };
@@ -153,7 +165,7 @@ function App() {
   // Bulk Operations
   const bulkUpdateScores = (competencyId, score) => {
     if (selectedEngineers.length === 0) {
-      alert('Please select engineers first');
+      toast.error('Please select engineers first');
       return;
     }
 
@@ -301,17 +313,19 @@ function App() {
               const importedData = JSON.parse(jsonString);
               // Save directly to localStorage first
               localStorage.setItem('training_matrix_data', JSON.stringify(importedData));
-              alert('Data imported successfully! Page will reload.');
+              toast.success('Data imported successfully! Reloading...', {
+                duration: 2000,
+              });
               // Small delay to ensure localStorage write completes
               setTimeout(() => {
                 window.location.reload();
               }, 100);
             }
           } else {
-            alert(result.message);
+            toast.error(result.message);
           }
         } catch (error) {
-          alert('Error importing file. Please check the format.');
+          toast.error('Error importing file. Please check the format.');
           console.error('Import error:', error);
         }
       };
@@ -330,7 +344,10 @@ function App() {
         const validation = validateImportedData(imported);
 
         if (!validation.isValid) {
-          alert('Import failed:\n' + validation.errors.join('\n'));
+          toast.error('Import failed: ' + validation.errors[0]);
+          validation.errors.slice(1).forEach(err => {
+            toast.error(err, { duration: 6000 });
+          });
           return;
         }
 
@@ -346,14 +363,16 @@ function App() {
           };
           // Save directly to localStorage
           localStorage.setItem('training_matrix_data', JSON.stringify(newData));
-          alert('Excel data imported successfully! Page will reload.');
+          toast.success('Excel data imported successfully! Reloading...', {
+            duration: 2000,
+          });
           // Small delay to ensure localStorage write completes
           setTimeout(() => {
             window.location.reload();
           }, 100);
         }
       } catch (error) {
-        alert('Error importing Excel file: ' + error.message);
+        toast.error('Error importing Excel file: ' + error.message);
         console.error('Excel import error:', error);
       }
     }
@@ -374,7 +393,14 @@ function App() {
   if (loading || !data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-gray-200 border-t-accent rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-accent/30 rounded-full animate-spin mx-auto" style={{ animationDuration: '1.5s' }}></div>
+          </div>
+          <p className="mt-6 text-xl font-semibold text-gray-900">Loading Training Matrix...</p>
+          <p className="mt-2 text-sm text-gray-500">Preparing your dashboard</p>
+        </div>
       </div>
     );
   }
@@ -434,6 +460,33 @@ function App() {
   // Main Application
   return (
     <div className="min-h-screen bg-bg dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#171717',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+            borderRadius: '0.5rem',
+            padding: '1rem',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ff6b6b',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
       {/* Header */}
       <div className="bg-gray-900 dark:bg-gray-950 shadow-soft-lg">
         <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
@@ -624,7 +677,26 @@ function App() {
               </div>
 
               <div className="space-y-2">
-                {getFilteredEngineers().map(engineer => (
+                {getFilteredEngineers().length === 0 ? (
+                  <div className="text-center py-16 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <Users size={64} className="mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">No Engineers Found</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      {searchTerm || filterShift !== 'all'
+                        ? 'Try adjusting your filters'
+                        : 'Get started by adding your first engineer'}
+                    </p>
+                    {!searchTerm && filterShift === 'all' && (
+                      <button
+                        onClick={addEngineer}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all shadow-btn hover:shadow-btn-hover font-medium"
+                      >
+                        <Plus size={20} /> Add Engineer
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  getFilteredEngineers().map(engineer => (
                   <div key={engineer.id} className="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800">
                     <div>
                       <p className="font-medium dark:text-white">{engineer.name}</p>
@@ -637,7 +709,8 @@ function App() {
                       <Trash2 size={20} />
                     </button>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </div>
             )}
@@ -656,7 +729,22 @@ function App() {
               </div>
 
               <div className="space-y-4">
-                {data.productionAreas.map(area => (
+                {data.productionAreas.length === 0 ? (
+                  <div className="text-center py-16 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <TrendingUp size={64} className="mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">No Production Areas Yet</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      Start by creating your first production area to organize machines and competencies
+                    </p>
+                    <button
+                      onClick={addProductionArea}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all shadow-btn hover:shadow-btn-hover font-medium"
+                    >
+                      <Plus size={20} /> Add Production Area
+                    </button>
+                  </div>
+                ) : (
+                  data.productionAreas.map(area => (
                   <div key={area.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-lg font-semibold">{area.name}</h3>
@@ -691,8 +779,9 @@ function App() {
                                       const importance = parseInt(newImportance);
                                       if (importance >= 1 && importance <= 10) {
                                         dataHook.updateMachine(area.id, machine.id, { importance });
+                                        toast.success(`Updated importance to ${importance}`);
                                       } else {
-                                        alert('Importance must be between 1 and 10');
+                                        toast.error('Importance must be between 1 and 10');
                                       }
                                     }
                                   }}
@@ -736,7 +825,8 @@ function App() {
                       ))}
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </div>
             )}
@@ -756,7 +846,7 @@ function App() {
 
                     const role = prompt('Enter role (admin or engineer):');
                     if (role !== 'admin' && role !== 'engineer') {
-                      alert('Role must be "admin" or "engineer"');
+                      toast.error('Role must be "admin" or "engineer"');
                       return;
                     }
 
@@ -765,13 +855,14 @@ function App() {
                       const engineerName = prompt('Link to which engineer? Enter engineer name:');
                       const engineer = data.engineers.find(e => e.name.toLowerCase() === engineerName.toLowerCase());
                       if (!engineer) {
-                        alert('Engineer not found. Please add the engineer first, then create their user account.');
+                        toast.error('Engineer not found. Please add the engineer first.');
                         return;
                       }
                       engineerId = engineer.id;
                     }
 
                     dataHook.addUser({ username, password, role, engineerId });
+                    toast.success(`User "${username}" created successfully!`);
                   }}
                   className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 shadow-btn hover:shadow-btn-hover font-medium"
                 >
@@ -795,7 +886,7 @@ function App() {
                           const newPassword = prompt(`Reset password for "${user.username}".\n\nEnter new password:`);
                           if (newPassword) {
                             dataHook.resetPassword(user.id, newPassword);
-                            alert(`Password reset successfully for "${user.username}"!`);
+                            toast.success(`Password reset for "${user.username}"!`);
                           }
                         }}
                         className="p-2 text-accent hover:bg-red-50 rounded"
@@ -1783,7 +1874,7 @@ function App() {
                                 if (confirm(`Set score to ${score} for ${selectedEngineers.length} engineer(s)?`)) {
                                   bulkUpdateScores(showModal.bulkCompetency, score);
                                   setShowModal(null);
-                                  alert(`Successfully updated ${selectedEngineers.length} engineer(s)!`);
+                                  toast.success(`Successfully updated ${selectedEngineers.length} engineer(s)!`);
                                 }
                               }}
                               className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-red-50 font-bold text-lg transition-colors"

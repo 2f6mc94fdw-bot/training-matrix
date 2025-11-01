@@ -1,14 +1,29 @@
 // Storage utility for managing data persistence and audit logging
+import bcrypt from 'bcryptjs';
 
 const STORAGE_KEY = 'training_matrix_data';
 const AUDIT_KEY = 'training_matrix_audit';
+
+// Password hashing utilities
+export const hashPassword = (password) => {
+  return bcrypt.hashSync(password, 10);
+};
+
+export const verifyPassword = (password, hashedPassword) => {
+  return bcrypt.compareSync(password, hashedPassword);
+};
 
 // Initialize default data structure
 export const getDefaultData = () => ({
   productionAreas: [],
   engineers: [],
   users: [
-    { id: 'admin', username: 'admin', password: 'admin123', role: 'admin', engineerId: null }
+    {  id: 'admin',
+      username: 'admin',
+      password: hashPassword('admin123'),
+      role: 'admin',
+      engineerId: null
+    }
   ],
   assessments: {},
   certifications: [],
