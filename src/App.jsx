@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, Upload, Search, Filter, Plus, Trash2, Edit2, Save, X, FileDown, Users, Award, TrendingUp, AlertCircle, Key, Moon, Sun } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -7,14 +7,26 @@ import { useData } from './hooks/useData';
 import { exportToExcel, exportEngineerReport } from './utils/excelExport';
 import { importFromExcel, validateImportedData } from './utils/excelImport';
 import { exportBackup, importBackup, getAuditLogs } from './utils/storage';
-import Dashboard from './components/Dashboard';
-import ProgressGraph from './components/ProgressGraph';
-import CoreSkills from './components/CoreSkills';
-import AdvancedAnalytics from './components/AdvancedAnalytics';
-import EngineerAnalysis from './components/EngineerAnalysis';
 import { useTheme } from './contexts/ThemeContext';
 
+// Lazy load major components for code splitting
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const ProgressGraph = lazy(() => import('./components/ProgressGraph'));
+const CoreSkills = lazy(() => import('./components/CoreSkills'));
+const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
+const EngineerAnalysis = lazy(() => import('./components/EngineerAnalysis'));
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+// Loading fallback component
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-gray-200 border-t-accent rounded-full animate-spin mx-auto"></div>
+      <p className="mt-4 text-sm text-gray-500">Loading component...</p>
+    </div>
+  </div>
+);
 
 function App() {
   // Authentication
@@ -42,6 +54,8 @@ function App() {
   const [selectedEngineers, setSelectedEngineers] = useState([]);
   const [showModal, setShowModal] = useState(null);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Login handling
   const handleLogin = (e) => {
@@ -78,6 +92,18 @@ function App() {
         if (currentUser?.role === 'admin') {
           handleExportToExcel();
         }
+      }
+
+      // Cmd/Ctrl + K: Global search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(true);
+      }
+
+      // Escape: Close modals
+      if (e.key === 'Escape') {
+        setShowGlobalSearch(false);
+        setShowShortcutsHelp(false);
       }
 
       // ?: Show keyboard shortcuts help
@@ -631,12 +657,16 @@ function App() {
       <div className="max-w-7xl mx-auto p-4">
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && currentUser.role === 'admin' && (
-          <Dashboard data={data} />
+          <Suspense fallback={<ComponentLoader />}>
+            <Dashboard data={data} />
+          </Suspense>
         )}
 
         {/* Core Skills Tab */}
         {activeTab === 'coreskills' && (
-          <CoreSkills data={data} dataHook={dataHook} currentUser={currentUser} />
+          <Suspense fallback={<ComponentLoader />}>
+            <CoreSkills data={data} dataHook={dataHook} currentUser={currentUser} />
+          </Suspense>
         )}
 
         {/* Admin Tab */}
@@ -1355,12 +1385,14 @@ function App() {
                 {showModal?.type === 'individualAnalysis' && showModal.engineerId && (() => {
                   const engineer = data.engineers.find(e => e.id === showModal.engineerId);
                   return engineer ? (
-                    <EngineerAnalysis
-                      data={data}
-                      engineer={engineer}
-                      getAssessmentScore={getAssessmentScore}
-                      useWeightedScores={useWeightedScores}
-                    />
+                    <Suspense fallback={<ComponentLoader />}>
+                      <EngineerAnalysis
+                        data={data}
+                        engineer={engineer}
+                        getAssessmentScore={getAssessmentScore}
+                        useWeightedScores={useWeightedScores}
+                      />
+                    </Suspense>
                   ) : null;
                 })()}
               </div>
@@ -1371,7 +1403,9 @@ function App() {
 
         {/* Advanced Tab */}
         {activeTab === 'advanced' && currentUser.role === 'admin' && (
-          <AdvancedAnalytics data={data} />
+          <Suspense fallback={<ComponentLoader />}>
+            <AdvancedAnalytics data={data} />
+          </Suspense>
         )}
 
         {/* Training Management Tab (moved from Advanced) */}
@@ -1677,7 +1711,9 @@ function App() {
                   </div>
 
                   {/* Progress Graph */}
-                  <ProgressGraph data={data} engineerId={engineer.id} />
+                  <Suspense fallback={<ComponentLoader />}>
+                    <ProgressGraph data={data} engineerId={engineer.id} />
+                  </Suspense>
 
                   {/* Recent Updates / Historical Progress */}
                   {data.snapshots && data.snapshots.length > 0 && (
@@ -2029,6 +2065,171 @@ function App() {
           </div>
         )}
 
+        {/* Global Search Modal */}
+        {showGlobalSearch && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 backdrop-blur-sm pt-20">
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-soft-2xl overflow-hidden">
+              {/* Search Input */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search engineers, areas, machines, competencies..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent text-gray-900 dark:text-white"
+                  />
+                  <kbd className="absolute right-3 top-3 px-2 py-1 bg-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded text-xs font-mono text-gray-600 dark:text-gray-300">
+                    ESC
+                  </kbd>
+                </div>
+              </div>
+
+              {/* Search Results */}
+              <div className="max-h-96 overflow-y-auto p-2">
+                {searchQuery.trim() === '' ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <Search size={48} className="mx-auto mb-3 opacity-50" />
+                    <p>Start typing to search...</p>
+                    <p className="text-sm mt-2">Search across engineers, production areas, machines, and competencies</p>
+                  </div>
+                ) : (() => {
+                  const query = searchQuery.toLowerCase();
+                  const results = [];
+
+                  // Search engineers
+                  data.engineers.forEach(engineer => {
+                    if (engineer.name.toLowerCase().includes(query) || engineer.shift.toLowerCase().includes(query)) {
+                      results.push({
+                        type: 'engineer',
+                        title: engineer.name,
+                        subtitle: engineer.shift,
+                        icon: '👷',
+                        action: () => {
+                          setActiveTab('assessment');
+                          setShowGlobalSearch(false);
+                          setSearchQuery('');
+                          toast.success(`Navigated to ${engineer.name}`);
+                        }
+                      });
+                    }
+                  });
+
+                  // Search production areas
+                  data.productionAreas.forEach(area => {
+                    if (area.name.toLowerCase().includes(query)) {
+                      results.push({
+                        type: 'area',
+                        title: area.name,
+                        subtitle: `${area.machines.length} machines`,
+                        icon: '🏭',
+                        action: () => {
+                          setActiveTab('admin');
+                          setAdminSubTab('production');
+                          setShowGlobalSearch(false);
+                          setSearchQuery('');
+                          toast.success(`Navigated to ${area.name}`);
+                        }
+                      });
+                    }
+
+                    // Search machines
+                    area.machines.forEach(machine => {
+                      if (machine.name.toLowerCase().includes(query)) {
+                        results.push({
+                          type: 'machine',
+                          title: machine.name,
+                          subtitle: `${area.name} • ${machine.competencies.length} competencies`,
+                          icon: '⚙️',
+                          action: () => {
+                            setActiveTab('assessment');
+                            setFilterArea(area.id);
+                            setShowGlobalSearch(false);
+                            setSearchQuery('');
+                            toast.success(`Filtered by ${machine.name}`);
+                          }
+                        });
+                      }
+
+                      // Search competencies
+                      machine.competencies.forEach(comp => {
+                        if (comp.name.toLowerCase().includes(query)) {
+                          results.push({
+                            type: 'competency',
+                            title: comp.name,
+                            subtitle: `${machine.name} • ${area.name}`,
+                            icon: '📋',
+                            action: () => {
+                              setActiveTab('assessment');
+                              setFilterArea(area.id);
+                              setShowGlobalSearch(false);
+                              setSearchQuery('');
+                              toast.success(`Found competency: ${comp.name}`);
+                            }
+                          });
+                        }
+                      });
+                    });
+                  });
+
+                  return results.length > 0 ? (
+                    <div className="space-y-1">
+                      {results.slice(0, 20).map((result, index) => (
+                        <button
+                          key={index}
+                          onClick={result.action}
+                          className="w-full flex items-start gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left group"
+                        >
+                          <span className="text-2xl">{result.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate group-hover:text-accent">
+                              {result.title}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {result.subtitle}
+                            </p>
+                          </div>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                            {result.type}
+                          </span>
+                        </button>
+                      ))}
+                      {results.length > 20 && (
+                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">
+                          Showing first 20 of {results.length} results
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      <AlertCircle size={48} className="mx-auto mb-3 opacity-50" />
+                      <p>No results found for "{searchQuery}"</p>
+                      <p className="text-sm mt-2">Try a different search term</p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded font-mono">↑↓</kbd>
+                    Navigate
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded font-mono">Enter</kbd>
+                    Select
+                  </span>
+                </div>
+                <span>Press ESC to close</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Keyboard Shortcuts Help Modal */}
         {showShortcutsHelp && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -2047,6 +2248,10 @@ function App() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">General</h3>
                   <div className="space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-gray-700 dark:text-gray-300">Global search</span>
+                      <kbd className="px-3 py-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded font-mono text-sm shadow-soft">⌘K / Ctrl+K</kbd>
+                    </div>
                     <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <span className="text-gray-700 dark:text-gray-300">Show this help</span>
                       <kbd className="px-3 py-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded font-mono text-sm shadow-soft">?</kbd>
