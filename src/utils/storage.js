@@ -86,13 +86,46 @@ export const getDefaultData = () => ({
   version: '1.0.0'
 });
 
+// Check if a password is already hashed (bcrypt hashes start with $2)
+const isPasswordHashed = (password) => {
+  return password && typeof password === 'string' && password.startsWith('$2');
+};
+
+// Migrate plain text passwords to hashed passwords
+const migratePasswords = (data) => {
+  let needsMigration = false;
+
+  const migratedUsers = data.users.map(user => {
+    if (!isPasswordHashed(user.password)) {
+      needsMigration = true;
+      console.log(`Migrating password for user: ${user.username}`);
+      return {
+        ...user,
+        password: hashPassword(user.password)
+      };
+    }
+    return user;
+  });
+
+  if (needsMigration) {
+    const migratedData = { ...data, users: migratedUsers };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedData));
+    console.log('✅ Migrated passwords to bcrypt hashes');
+    return migratedData;
+  }
+
+  return data;
+};
+
 // Load data from storage
 export const loadData = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
-      return { ...getDefaultData(), ...data };
+      const mergedData = { ...getDefaultData(), ...data };
+      // Migrate plain text passwords to hashed passwords
+      return migratePasswords(mergedData);
     }
     return getDefaultData();
   } catch (error) {
