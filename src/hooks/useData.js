@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadData, saveData, logAction, createSnapshot } from '../utils/storage';
+import { loadData, saveData, logAction, createSnapshot, hashPassword } from '../utils/storage';
 
 export const useData = (currentUser) => {
   const [data, setData] = useState(null);
@@ -206,7 +206,7 @@ export const useData = (currentUser) => {
       const newUser = {
         id: `user_${Date.now()}`,
         username: username,
-        password: 'password',
+        password: hashPassword('password'),
         role: 'engineer',
         engineerId: newEngineer.id
       };
@@ -315,7 +315,7 @@ export const useData = (currentUser) => {
     const newUser = {
       id: `user_${Date.now()}`,
       username: user.username,
-      password: user.password,
+      password: hashPassword(user.password),
       role: user.role,
       engineerId: user.engineerId || null
     };
@@ -347,7 +347,7 @@ export const useData = (currentUser) => {
       ...data,
       users: data.users.map(u =>
         u.id === userId
-          ? { ...u, password: newPassword }
+          ? { ...u, password: hashPassword(newPassword) }
           : u
       )
     };

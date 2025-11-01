@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { loadData, saveData, logAction } from '../utils/storage';
+import { loadData, saveData, logAction, verifyPassword } from '../utils/storage';
 
 export const useAuth = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+
   useEffect(() => {
     // Check if user is already logged in
     const savedUser = sessionStorage.getItem('current_user');
@@ -18,14 +18,12 @@ export const useAuth = () => {
       }
     }
   }, []);
-  
+
   const login = (username, password) => {
     const data = loadData();
-    const user = data.users.find(
-      u => u.username === username && u.password === password
-    );
-    
-    if (user) {
+    const user = data.users.find(u => u.username === username);
+
+    if (user && verifyPassword(password, user.password)) {
       const userSession = {
         id: user.id,
         username: user.username,
