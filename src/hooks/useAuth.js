@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadData, saveData, logAction, verifyPassword } from '../utils/storage';
+import * as api from '../utils/api';
 
 export const useAuth = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -19,55 +19,65 @@ export const useAuth = () => {
     }
   }, []);
 
-  const login = (username, password) => {
-    const data = loadData();
-    const user = data.users.find(u => u.username === username);
+  const login = async (username, password) => {
+    try {
+      const user = await api.login(username, password);
 
-    if (user && verifyPassword(password, user.password)) {
       const userSession = {
         id: user.id,
         username: user.username,
         role: user.role,
-        engineerId: user.engineerId
+        engineerId: user.engineer_id || user.engineerId
       };
-      
+
       setCurrentUser(userSession);
       setIsAuthenticated(true);
       sessionStorage.setItem('current_user', JSON.stringify(userSession));
-      
-      logAction(username, 'login', 'User logged in');
-      
+
+      // Log the login action
+      await api.logAction(username, 'login', 'User logged in');
+
       return { success: true, user: userSession };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, message: error.message || 'Invalid username or password' };
     }
-    
-    return { success: false, message: 'Invalid username or password' };
   };
-  
-  const logout = () => {
+
+  const logout = async () => {
     if (currentUser) {
-      logAction(currentUser.username, 'logout', 'User logged out');
+      try {
+        await api.logAction(currentUser.username, 'logout', 'User logged out');
+      } catch (error) {
+        console.error('Error logging logout:', error);
+      }
     }
-    
+
     setCurrentUser(null);
     setIsAuthenticated(false);
     sessionStorage.removeItem('current_user');
   };
-  
+
   const isAdmin = () => {
     return currentUser?.role === 'admin';
   };
-  
+
   const isEngineer = () => {
     return currentUser?.role === 'engineer';
   };
-  
-  const getEngineerProfile = () => {
+
+  const getEngineerProfile = async () => {
     if (!currentUser?.engineerId) return null;
-    
-    const data = loadData();
-    return data.engineers.find(e => e.id === currentUser.engineerId);
+
+    try {
+      const data = await api.getAllData();
+      return data.engineers.find(e => e.id === currentUser.engineerId);
+    } catch (error) {
+      console.error('Error getting engineer profile:', error);
+      return null;
+    }
   };
-  
+
   return {
     currentUser,
     isAuthenticated,

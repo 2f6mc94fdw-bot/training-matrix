@@ -59,16 +59,18 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Login handling
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const result = login(loginForm.username, loginForm.password);
+    const result = await login(loginForm.username, loginForm.password);
     if (!result.success) {
       toast.error(result.message || 'Invalid credentials');
+    } else {
+      toast.success('Login successful');
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setLoginForm({ username: '', password: '' });
   };
 

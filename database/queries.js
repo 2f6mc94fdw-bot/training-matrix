@@ -3,6 +3,9 @@
 const db = require('./connection');
 const bcrypt = require('bcryptjs');
 
+// Re-export testConnection and closePool from connection module
+const { testConnection, closePool } = db;
+
 // ==================== USERS ====================
 
 async function getAllUsers() {
@@ -204,6 +207,66 @@ async function deleteProductionArea(areaId) {
   return { success: true };
 }
 
+// ==================== MACHINES ====================
+
+async function createMachine(areaId, machine) {
+  const result = await db.query(`
+    INSERT INTO machines (production_area_id, name, importance)
+    OUTPUT INSERTED.*
+    VALUES (@param0, @param1, @param2)
+  `, [areaId, machine.name, machine.importance || 1]);
+
+  return result.recordset[0];
+}
+
+async function updateMachine(machineId, updates) {
+  await db.query(`
+    UPDATE machines
+    SET name = @param0, importance = @param1, updated_at = GETDATE()
+    WHERE id = @param2
+  `, [updates.name, updates.importance, machineId]);
+
+  return { success: true };
+}
+
+async function deleteMachine(machineId) {
+  await db.query(`
+    DELETE FROM machines WHERE id = @param0
+  `, [machineId]);
+
+  return { success: true };
+}
+
+// ==================== COMPETENCIES ====================
+
+async function createCompetency(machineId, competency) {
+  const result = await db.query(`
+    INSERT INTO competencies (machine_id, name, max_score)
+    OUTPUT INSERTED.*
+    VALUES (@param0, @param1, @param2)
+  `, [machineId, competency.name, competency.maxScore || 3]);
+
+  return result.recordset[0];
+}
+
+async function updateCompetency(compId, updates) {
+  await db.query(`
+    UPDATE competencies
+    SET name = @param0, max_score = @param1, updated_at = GETDATE()
+    WHERE id = @param2
+  `, [updates.name, updates.maxScore, compId]);
+
+  return { success: true };
+}
+
+async function deleteCompetency(compId) {
+  await db.query(`
+    DELETE FROM competencies WHERE id = @param0
+  `, [compId]);
+
+  return { success: true };
+}
+
 // ==================== ASSESSMENTS ====================
 
 async function getAllAssessments() {
@@ -270,6 +333,21 @@ async function deleteEngineerAssessments(engineerId) {
   return { success: true };
 }
 
+async function bulkUpdateAssessments(updates) {
+  // Process each update
+  for (const update of updates) {
+    await saveAssessment(
+      update.engineerId,
+      update.areaId,
+      update.machineId,
+      update.competencyId,
+      update.score
+    );
+  }
+
+  return { success: true, count: updates.length };
+}
+
 // ==================== CORE SKILLS ====================
 
 async function getCoreSkills() {
@@ -332,6 +410,34 @@ async function saveCoreSkillAssessment(engineerId, categoryId, skillId, score) {
       VALUES (@param0, @param1, @param2, @param3)
     END
   `, [engineerId, categoryId, skillId, score]);
+
+  return { success: true };
+}
+
+async function createCoreSkillCategory(category) {
+  const result = await db.query(`
+    INSERT INTO core_skill_categories (id, name)
+    OUTPUT INSERTED.*
+    VALUES (@param0, @param1)
+  `, [category.id || `cat_${Date.now()}`, category.name]);
+
+  return result.recordset[0];
+}
+
+async function createCoreSkill(categoryId, skill) {
+  const result = await db.query(`
+    INSERT INTO core_skills (id, category_id, name, max_score)
+    OUTPUT INSERTED.*
+    VALUES (@param0, @param1, @param2, @param3)
+  `, [skill.id || `skill_${Date.now()}`, categoryId, skill.name, skill.maxScore || 3]);
+
+  return result.recordset[0];
+}
+
+async function deleteCoreSkill(skillId) {
+  await db.query(`
+    DELETE FROM core_skills WHERE id = @param0
+  `, [skillId]);
 
   return { success: true };
 }
@@ -479,16 +585,30 @@ module.exports = {
   updateProductionArea,
   deleteProductionArea,
 
+  // Machines
+  createMachine,
+  updateMachine,
+  deleteMachine,
+
+  // Competencies
+  createCompetency,
+  updateCompetency,
+  deleteCompetency,
+
   // Assessments
   getAllAssessments,
   getAssessmentScore,
   saveAssessment,
   deleteEngineerAssessments,
+  bulkUpdateAssessments,
 
   // Core Skills
   getCoreSkills,
   getCoreSkillAssessments,
   saveCoreSkillAssessment,
+  createCoreSkillCategory,
+  createCoreSkill,
+  deleteCoreSkill,
 
   // Certifications
   getAllCertifications,
@@ -505,5 +625,9 @@ module.exports = {
   createAuditLog,
 
   // Bulk
-  getAllData
+  getAllData,
+
+  // Connection utilities
+  testConnection,
+  closePool
 };
