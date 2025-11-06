@@ -2,14 +2,14 @@
 
 A comprehensive training and competency management system for tracking engineer skills across production areas.
 
-## 🆕 Version 2.0 - SQL Database Support
+## 🆕 Version 2.0 - SQL Server Database Support
 
-The application now supports **SQL databases** (PostgreSQL, MySQL, SQL Server) for centralized data storage, multi-user access, and remote connectivity to work servers.
+The application now stores data in **Microsoft SQL Server** for centralized data storage, multi-user access, and remote connectivity to work servers.
 
 **Quick links:**
-- 🚀 [Quick Start Guide](./QUICKSTART_DATABASE.md) - Get running in 5 minutes
-- 📖 [Full Database Setup](./DATABASE_SETUP.md) - Complete documentation
-- 🔧 [Connecting to Work Server](#connecting-to-work-server) - Remote database setup
+- 📖 [SQL Server Setup Guide](./SQL_SERVER_SETUP.md) - Complete setup instructions
+- 🔧 [Connecting to Work Server](./SQL_SERVER_SETUP.md#connecting-to-work-server) - Remote server connection guide
+- 🧪 [Test Your Connection](./SQL_SERVER_SETUP.md#quick-start) - Verify database connection
 
 ## Features
 
@@ -40,85 +40,121 @@ The application now supports **SQL databases** (PostgreSQL, MySQL, SQL Server) f
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
-- PostgreSQL 12+ (or MySQL/SQL Server)
+- **Node.js 18+** installed
+- **npm** package manager
+- **Microsoft SQL Server** (2016 or later)
+  - SQL Server Express (free) for local/small teams
+  - SQL Server Standard/Enterprise for production
+  - Azure SQL Database also supported
 
-### Quick Setup (5 minutes)
+### Quick Setup
 
 1. **Clone and install:**
 ```bash
 git clone <your-repo-url>
 cd training-matrix
 npm install
-cd server && npm install && cd ..
 ```
 
-2. **Create database:**
+2. **Configure connection:**
 ```bash
-# Create PostgreSQL database
-createdb training_matrix
+# Copy the example config file
+cp database/config.example.js database/config.js
 
-# Import schema
-psql -d training_matrix -f server/db/schema.sql
+# Edit database/config.js with your SQL Server details
 ```
 
-3. **Configure connection:**
-```bash
-# Copy environment template
-cp .env.example .env
+Example `database/config.js`:
+```javascript
+const config = {
+  server: 'localhost',            // Your SQL Server name or IP
+  database: 'training_matrix',
+  user: 'sa',                     // Your SQL Server username
+  password: 'YourPassword123',    // Your SQL Server password
 
-# Edit .env and update with your database credentials
-# Example: DB_CONNECTION_STRING=postgresql://postgres:password@localhost:5432/training_matrix
+  options: {
+    encrypt: true,
+    trustServerCertificate: true
+  }
+};
 ```
 
-4. **Start application:**
-```bash
-# Terminal 1 - Start backend
-npm run server
+3. **Create database:**
 
-# Terminal 2 - Start frontend
+Open SQL Server Management Studio (SSMS) or use `sqlcmd`:
+```sql
+CREATE DATABASE training_matrix;
+GO
+```
+
+4. **Run schema script:**
+
+In SSMS, open `database/schema.sql` and execute it (F5).
+
+Or via command line:
+```bash
+sqlcmd -S localhost -U sa -P YourPassword -d training_matrix -i database/schema.sql
+```
+
+5. **Test connection:**
+```bash
+node database/test-connection.js
+```
+
+6. **Start application:**
+```bash
 npm run dev
 ```
 
-5. **Open browser:**
-Navigate to `http://localhost:5173`
+Open `http://localhost:5173`
 
 ### Default Login
-- **Username:** admin
-- **Password:** admin123
+- **Username:** `admin`
+- **Password:** `admin123`
 
-⚠️ **Change the default password after first login!**
+⚠️ **Change the default password immediately after first login!**
 
 ## Connecting to Work Server
 
-To connect to your company's database server:
+To connect to your company's SQL Server:
 
 1. **Get credentials from IT:**
-   - Server address (e.g., `db.company.com` or `192.168.1.100`)
-   - Port (usually `5432` for PostgreSQL)
-   - Database name
+   - Server name (e.g., `SERVERNAME`, `192.168.1.100`, or `server.company.com`)
+   - Instance name (if applicable, e.g., `SQLEXPRESS`)
+   - Database name: `training_matrix`
    - Username and password
+   - Port (usually `1433`)
 
-2. **Update .env file:**
-```env
-DB_CONNECTION_STRING=postgresql://username:password@db.company.com:5432/training_matrix
-DB_SSL=true
-NODE_ENV=production
+2. **Update database/config.js:**
+```javascript
+const config = {
+  server: 'YOUR_SERVER',          // e.g., '192.168.1.100' or 'SERVERNAME'
+  database: 'training_matrix',
+  user: 'your_username',
+  password: 'your_password',
+
+  options: {
+    encrypt: true,
+    trustServerCertificate: true
+  }
+};
 ```
 
-3. **Setup database on server:**
+3. **Setup database on work server:**
+
+Connect to your work server via SSMS and run `database/schema.sql`
+
+4. **Test connection:**
 ```bash
-psql "postgresql://username:password@server:5432/database" -f server/db/schema.sql
+node database/test-connection.js
 ```
 
-4. **Start application:**
+5. **Start application:**
 ```bash
-npm run server  # Backend
-npm run dev     # Frontend
+npm run dev
 ```
 
-**See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for detailed instructions and troubleshooting.**
+**See [SQL_SERVER_SETUP.md](./SQL_SERVER_SETUP.md) for detailed instructions, connection string examples, and troubleshooting.**
 
 ## Building for Production
 
@@ -150,12 +186,11 @@ src/
 - **XLSX** - Excel import/export
 - **Lucide React** - Icons
 
-### Backend (New in v2.0)
-- **Node.js** - Server runtime
-- **Express** - Web framework
-- **PostgreSQL** - Primary database (MySQL/SQL Server supported)
-- **bcryptjs** - Password hashing
-- **pg** - PostgreSQL client
+### Backend & Database (New in v2.0)
+- **Microsoft SQL Server** - Database (2016+ / Express / Azure SQL)
+- **mssql** - SQL Server client for Node.js
+- **bcryptjs** - Password hashing and authentication
+- Direct SQL queries - No REST API overhead
 
 ## Usage
 
