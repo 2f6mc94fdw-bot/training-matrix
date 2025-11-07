@@ -1,6 +1,6 @@
 // SQL Server Database Connection Module
 const sql = require('mssql');
-const config = require('./config');
+const config = require('./config.cjs');
 
 let pool = null;
 
@@ -28,18 +28,39 @@ async function getPool() {
   }
 }
 
-// Execute a query
+// Execute a query (supports PostgreSQL-style $1, $2 placeholders)
 async function query(queryText, params = []) {
   try {
     const pool = await getPool();
     const request = pool.request();
 
-    // Add parameters to the request
+    // Convert PostgreSQL-style placeholders ($1, $2) to SQL Server (@param0, @param1)
+    let convertedQuery = queryText;
     params.forEach((param, index) => {
+      const pgPlaceholder = `$${index + 1}`;
+      const sqlPlaceholder = `@param${index}`;
+      convertedQuery = convertedQuery.replace(new RegExp('\\' + pgPlaceholder + '\\b', 'g'), sqlPlaceholder);
       request.input(`param${index}`, param);
     });
 
-    const result = await request.query(queryText);
+    // Convert RETURNING to OUTPUT INSERTED
+    convertedQuery = convertedQuery.replace(/RETURNING\s+(\*|[\w,\s]+)/gi, (match, columns) => {
+      if (columns === '*') {
+        return 'OUTPUT INSERTED.*';
+      }
+      const cols = columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+      return `OUTPUT ${cols}`;
+    });
+
+    // Convert CURRENT_TIMESTAMP to GETDATE()
+    convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
+
+    const result = await request.query(convertedQuery);
+
+    // Make result compatible with PostgreSQL format
+    result.rows = result.recordset;
+    result.rowCount = result.rowsAffected[0] || 0;
+
     return result;
   } catch (error) {
     console.error('❌ Query error:', error.message);

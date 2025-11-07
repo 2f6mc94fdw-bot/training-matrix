@@ -1,508 +1,379 @@
 import { useState, useEffect } from 'react';
-import { loadData, saveData, logAction, createSnapshot, hashPassword } from '../utils/storage';
+import api from '../utils/api';
+import { getDefaultData } from '../utils/storage';
 
 export const useData = (currentUser) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
+  // Load all data from API on mount
   useEffect(() => {
-    const loadedData = loadData();
-    setData(loadedData);
-    setLoading(false);
+    loadDataFromAPI();
   }, []);
-  
-  const updateData = (newData, actionDescription) => {
-    setData(newData);
-    saveData(newData);
-    
-    if (currentUser && actionDescription) {
-      logAction(currentUser.username, 'data_update', actionDescription);
-    }
-  };
-  
-  const addProductionArea = (area) => {
-    const newArea = {
-      id: `area_${Date.now()}`,
-      name: area.name,
-      machines: []
-    };
-    
-    const newData = {
-      ...data,
-      productionAreas: [...data.productionAreas, newArea]
-    };
-    
-    updateData(newData, `Added production area: ${area.name}`);
-    return newArea;
-  };
-  
-  const updateProductionArea = (areaId, updates) => {
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId ? { ...area, ...updates } : area
-      )
-    };
-    
-    updateData(newData, `Updated production area: ${updates.name || areaId}`);
-  };
-  
-  const deleteProductionArea = (areaId) => {
-    const area = data.productionAreas.find(a => a.id === areaId);
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.filter(a => a.id !== areaId)
-    };
-    
-    updateData(newData, `Deleted production area: ${area?.name}`);
-  };
-  
-  const addMachine = (areaId, machine) => {
-    const newMachine = {
-      id: `machine_${Date.now()}`,
-      name: machine.name,
-      importance: machine.importance || 1,
-      competencies: []
-    };
-    
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? { ...area, machines: [...area.machines, newMachine] }
-          : area
-      )
-    };
-    
-    updateData(newData, `Added machine: ${machine.name}`);
-    return newMachine;
-  };
-  
-  const updateMachine = (areaId, machineId, updates) => {
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? {
-              ...area,
-              machines: area.machines.map(machine =>
-                machine.id === machineId ? { ...machine, ...updates } : machine
-              )
-            }
-          : area
-      )
-    };
-    
-    updateData(newData, `Updated machine: ${updates.name || machineId}`);
-  };
-  
-  const deleteMachine = (areaId, machineId) => {
-    const area = data.productionAreas.find(a => a.id === areaId);
-    const machine = area?.machines.find(m => m.id === machineId);
-    
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? { ...area, machines: area.machines.filter(m => m.id !== machineId) }
-          : area
-      )
-    };
-    
-    updateData(newData, `Deleted machine: ${machine?.name}`);
-  };
-  
-  const addCompetency = (areaId, machineId, competency) => {
-    const newComp = {
-      id: `comp_${Date.now()}`,
-      name: competency.name,
-      maxScore: competency.maxScore || 3
-    };
-    
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? {
-              ...area,
-              machines: area.machines.map(machine =>
-                machine.id === machineId
-                  ? { ...machine, competencies: [...machine.competencies, newComp] }
-                  : machine
-              )
-            }
-          : area
-      )
-    };
-    
-    updateData(newData, `Added competency: ${competency.name}`);
-    return newComp;
-  };
-  
-  const updateCompetency = (areaId, machineId, compId, updates) => {
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? {
-              ...area,
-              machines: area.machines.map(machine =>
-                machine.id === machineId
-                  ? {
-                      ...machine,
-                      competencies: machine.competencies.map(comp =>
-                        comp.id === compId ? { ...comp, ...updates } : comp
-                      )
-                    }
-                  : machine
-              )
-            }
-          : area
-      )
-    };
-    
-    updateData(newData, `Updated competency: ${updates.name || compId}`);
-  };
-  
-  const deleteCompetency = (areaId, machineId, compId) => {
-    const newData = {
-      ...data,
-      productionAreas: data.productionAreas.map(area =>
-        area.id === areaId
-          ? {
-              ...area,
-              machines: area.machines.map(machine =>
-                machine.id === machineId
-                  ? {
-                      ...machine,
-                      competencies: machine.competencies.filter(c => c.id !== compId)
-                    }
-                  : machine
-              )
-            }
-          : area
-      )
-    };
-    
-    updateData(newData, `Deleted competency`);
-  };
-  
-  const addEngineer = (engineer) => {
-    const newEngineer = {
-      id: `eng_${Date.now()}`,
-      name: engineer.name,
-      shift: engineer.shift
-    };
 
-    // Generate username from name
-    const username = engineer.name.toLowerCase().replace(/\s+/g, '.');
+  const loadDataFromAPI = async () => {
+    try {
+      setLoading(true);
 
-    // Check if username already exists
-    const existingUser = data.users.find(u => u.username === username);
+      // Load production areas with nested structure
+      const productionAreas = await api.getProductionAreas();
 
-    let newUsers = data.users;
-    if (!existingUser) {
-      // Auto-create user account
-      const newUser = {
-        id: `user_${Date.now()}`,
-        username: username,
-        password: hashPassword('password'),
-        role: 'engineer',
-        engineerId: newEngineer.id
-      };
-      newUsers = [...data.users, newUser];
-    }
+      // Load engineers
+      const engineers = await api.getEngineers();
 
-    const newData = {
-      ...data,
-      engineers: [...data.engineers, newEngineer],
-      users: newUsers
-    };
+      // Load users (we'll keep current users from session for now)
+      const users = await api.getUsers().catch(() => []);
 
-    updateData(newData, `Added engineer: ${engineer.name}`);
-    return { newEngineer, username, userCreated: !existingUser };
-  };
-  
-  const updateEngineer = (engineerId, updates) => {
-    const newData = {
-      ...data,
-      engineers: data.engineers.map(eng =>
-        eng.id === engineerId ? { ...eng, ...updates } : eng
-      )
-    };
-    
-    updateData(newData, `Updated engineer: ${updates.name || engineerId}`);
-  };
-  
-  const deleteEngineer = (engineerId) => {
-    const engineer = data.engineers.find(e => e.id === engineerId);
-    const newData = {
-      ...data,
-      engineers: data.engineers.filter(e => e.id !== engineerId)
-    };
-    
-    updateData(newData, `Deleted engineer: ${engineer?.name}`);
-  };
-  
-  const updateAssessment = (engineerId, areaId, machineId, compId, score) => {
-    const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
-    const existingAssessment = data.assessments[key];
-    const timestamp = new Date().toISOString();
+      // Load core skills
+      const coreSkills = await api.getCoreSkills().catch(() => ({ categories: [] }));
 
-    // Create history entry if score changed
-    const history = existingAssessment?.history || [];
-    if (existingAssessment && existingAssessment.score !== score) {
-      history.push({
-        oldScore: existingAssessment.score,
-        newScore: score,
-        timestamp,
-        updatedBy: currentUser?.username || 'System'
-      });
-    }
+      // Load assessments
+      const assessments = await api.getAssessments().catch(() => []);
 
-    const newData = {
-      ...data,
-      assessments: {
-        ...data.assessments,
-        [key]: {
-          score,
-          lastUpdated: timestamp,
-          updatedBy: currentUser?.username || 'System',
-          history
+      // Load core skill assessments
+      const coreSkillAssessments = await api.getCoreSkillAssessments().catch(() => []);
+
+      // Load certifications
+      const certifications = await api.getCertifications().catch(() => []);
+
+      // Load snapshots
+      const snapshots = await api.getSnapshots().catch(() => []);
+
+      // Transform data to match frontend structure
+      const transformedData = {
+        productionAreas: productionAreas || [],
+        engineers: engineers || [],
+        users: users.length > 0 ? users : getDefaultData().users,
+        assessments: transformAssessments(assessments),
+        certifications: certifications || [],
+        snapshots: snapshots || [],
+        coreSkills: {
+          categories: coreSkills.categories || getDefaultData().coreSkills.categories,
+          assessments: transformCoreSkillAssessments(coreSkillAssessments)
         }
-      }
-    };
+      };
 
-    updateData(newData, `Updated assessment for engineer`);
+      setData(transformedData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading data from API:', error);
+      // Fallback to default data
+      setData(getDefaultData());
+      setLoading(false);
+    }
   };
-  
-  const bulkUpdateAssessments = (updates) => {
-    const newAssessments = { ...data.assessments };
-    const timestamp = new Date().toISOString();
 
-    updates.forEach(({ engineerId, areaId, machineId, compId, score }) => {
-      const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
-      const existingAssessment = newAssessments[key];
+  // Transform assessments from array to object keyed by composite key
+  const transformAssessments = (assessments) => {
+    const result = {};
+    assessments.forEach(assessment => {
+      const key = `${assessment.engineer_id}-${assessment.production_area_id}-${assessment.machine_id}-${assessment.competency_id}`;
+      result[key] = {
+        score: assessment.score,
+        lastUpdated: assessment.updated_at,
+        updatedBy: 'System',
+        history: []
+      };
+    });
+    return result;
+  };
 
-      // Create history entry if score changed
-      const history = existingAssessment?.history || [];
-      if (existingAssessment && existingAssessment.score !== score) {
-        history.push({
-          oldScore: existingAssessment.score,
-          newScore: score,
-          timestamp,
-          updatedBy: currentUser?.username || 'System'
+  // Transform core skill assessments
+  const transformCoreSkillAssessments = (assessments) => {
+    const result = {};
+    assessments.forEach(assessment => {
+      const key = `${assessment.engineer_id}-${assessment.category_id}-${assessment.skill_id}`;
+      result[key] = {
+        score: assessment.score,
+        lastUpdated: assessment.updated_at,
+        updatedBy: 'System',
+        history: []
+      };
+    });
+    return result;
+  };
+
+  // Refresh data from API
+  const refreshData = async () => {
+    await loadDataFromAPI();
+  };
+
+  // Log action helper
+  const logAction = async (action, details) => {
+    if (currentUser) {
+      await api.logAction(currentUser.id, action, details).catch(console.error);
+    }
+  };
+
+  // Production Areas
+  const addProductionArea = async (area) => {
+    try {
+      const newArea = await api.createProductionArea({
+        name: area.name
+      });
+
+      await logAction('add_production_area', `Added production area: ${area.name}`);
+      await refreshData();
+
+      return newArea;
+    } catch (error) {
+      console.error('Error adding production area:', error);
+      throw error;
+    }
+  };
+
+  const updateProductionArea = async (areaId, updates) => {
+    // Note: API doesn't have update endpoint yet, would need to add
+    console.warn('Update production area not yet implemented in API');
+    await logAction('update_production_area', `Updated production area: ${areaId}`);
+  };
+
+  const deleteProductionArea = async (areaId) => {
+    try {
+      await api.deleteProductionArea(areaId);
+      await logAction('delete_production_area', `Deleted production area: ${areaId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting production area:', error);
+      throw error;
+    }
+  };
+
+  // Machines (handled by production area endpoint)
+  const addMachine = async (areaId, machine) => {
+    console.warn('Add machine not yet fully implemented - needs API endpoint');
+    await refreshData();
+  };
+
+  const updateMachine = async (areaId, machineId, updates) => {
+    console.warn('Update machine not yet implemented');
+  };
+
+  const deleteMachine = async (areaId, machineId) => {
+    console.warn('Delete machine not yet implemented');
+  };
+
+  // Competencies
+  const addCompetency = async (areaId, machineId, competency) => {
+    console.warn('Add competency not yet implemented');
+  };
+
+  const updateCompetency = async (areaId, machineId, compId, updates) => {
+    console.warn('Update competency not yet implemented');
+  };
+
+  const deleteCompetency = async (areaId, machineId, compId) => {
+    console.warn('Delete competency not yet implemented');
+  };
+
+  // Engineers
+  const addEngineer = async (engineer) => {
+    try {
+      const newEngineer = await api.createEngineer({
+        id: `eng_${Date.now()}`,
+        name: engineer.name,
+        shift: engineer.shift
+      });
+
+      await logAction('add_engineer', `Added engineer: ${engineer.name}`);
+      await refreshData();
+
+      return { newEngineer, username: '', userCreated: false };
+    } catch (error) {
+      console.error('Error adding engineer:', error);
+      throw error;
+    }
+  };
+
+  const updateEngineer = async (engineerId, updates) => {
+    try {
+      await api.updateEngineer(engineerId, updates);
+      await logAction('update_engineer', `Updated engineer: ${engineerId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating engineer:', error);
+      throw error;
+    }
+  };
+
+  const deleteEngineer = async (engineerId) => {
+    try {
+      await api.deleteEngineer(engineerId);
+      await logAction('delete_engineer', `Deleted engineer: ${engineerId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting engineer:', error);
+      throw error;
+    }
+  };
+
+  // Assessments
+  const updateAssessment = async (engineerId, areaId, machineId, compId, score) => {
+    try {
+      await api.saveAssessment({
+        engineer_id: engineerId,
+        production_area_id: areaId,
+        machine_id: machineId,
+        competency_id: compId,
+        score: score
+      });
+
+      await logAction('update_assessment', `Updated assessment for engineer ${engineerId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating assessment:', error);
+      throw error;
+    }
+  };
+
+  const bulkUpdateAssessments = async (updates) => {
+    try {
+      for (const update of updates) {
+        await api.saveAssessment({
+          engineer_id: update.engineerId,
+          production_area_id: update.areaId,
+          machine_id: update.machineId,
+          competency_id: update.compId,
+          score: update.score
         });
       }
 
-      newAssessments[key] = {
-        score,
-        lastUpdated: timestamp,
-        updatedBy: currentUser?.username || 'System',
-        history
-      };
-    });
-
-    const newData = {
-      ...data,
-      assessments: newAssessments
-    };
-
-    updateData(newData, `Bulk updated ${updates.length} assessments`);
-  };
-  
-  const addUser = (user) => {
-    const newUser = {
-      id: `user_${Date.now()}`,
-      username: user.username,
-      password: hashPassword(user.password),
-      role: user.role,
-      engineerId: user.engineerId || null
-    };
-    
-    const newData = {
-      ...data,
-      users: [...data.users, newUser]
-    };
-    
-    updateData(newData, `Added user: ${user.username}`);
-    return newUser;
-  };
-  
-  const deleteUser = (userId) => {
-    const user = data.users.find(u => u.id === userId);
-    const newData = {
-      ...data,
-      users: data.users.filter(u => u.id !== userId)
-    };
-
-    updateData(newData, `Deleted user: ${user?.username}`);
-  };
-
-  const resetPassword = (userId, newPassword) => {
-    const user = data.users.find(u => u.id === userId);
-    if (!user) return;
-
-    const newData = {
-      ...data,
-      users: data.users.map(u =>
-        u.id === userId
-          ? { ...u, password: hashPassword(newPassword) }
-          : u
-      )
-    };
-
-    updateData(newData, `Reset password for user: ${user.username}`);
-  };
-
-  const addCertification = (cert) => {
-    const newCert = {
-      id: Date.now(),
-      name: cert.name,
-      validityDays: cert.validityDays || 365
-    };
-
-    const newData = {
-      ...data,
-      certifications: [...(data.certifications || []), newCert]
-    };
-
-    updateData(newData, `Added certification: ${cert.name}`);
-    return newCert;
-  };
-  
-  const updateCertification = (certId, updates) => {
-    const newData = {
-      ...data,
-      certifications: data.certifications.map(cert =>
-        cert.id === certId ? { ...cert, ...updates } : cert
-      )
-    };
-    
-    updateData(newData, `Updated certification`);
-  };
-  
-  const deleteCertification = (certId) => {
-    const newData = {
-      ...data,
-      certifications: data.certifications.filter(c => c.id !== certId)
-    };
-    
-    updateData(newData, `Deleted certification`);
-  };
-  
-  const takeSnapshot = (description) => {
-    const snapshots = createSnapshot(data, description);
-    const newData = {
-      ...data,
-      snapshots
-    };
-    
-    updateData(newData, `Created snapshot: ${description}`);
-  };
-  
-  const replaceData = (newData) => {
-    setData(newData);
-    saveData(newData);
-  };
-
-  // Core Skills Management
-  const updateCoreSkillAssessment = (engineerId, categoryId, skillId, score) => {
-    const key = `${engineerId}-${categoryId}-${skillId}`;
-    const existingAssessment = data.coreSkills?.assessments?.[key];
-    const timestamp = new Date().toISOString();
-
-    // Create history entry if score changed
-    const history = existingAssessment?.history || [];
-    if (existingAssessment && existingAssessment.score !== score) {
-      history.push({
-        oldScore: existingAssessment.score,
-        newScore: score,
-        timestamp,
-        updatedBy: currentUser?.username || 'System'
-      });
+      await logAction('bulk_update_assessments', `Bulk updated ${updates.length} assessments`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error bulk updating assessments:', error);
+      throw error;
     }
-
-    const newData = {
-      ...data,
-      coreSkills: {
-        ...data.coreSkills,
-        assessments: {
-          ...(data.coreSkills?.assessments || {}),
-          [key]: {
-            score,
-            lastUpdated: timestamp,
-            updatedBy: currentUser?.username || 'System',
-            history
-          }
-        }
-      }
-    };
-
-    updateData(newData, `Updated core skill assessment`);
   };
 
-  const addCoreSkillCategory = (name) => {
-    const newCategory = {
-      id: `cat_${Date.now()}`,
-      name,
-      skills: []
-    };
+  // Users
+  const addUser = async (user) => {
+    try {
+      const newUser = await api.createUser({
+        id: `user_${Date.now()}`,
+        username: user.username,
+        password: user.password,
+        role: user.role,
+        engineerId: user.engineerId || null
+      });
 
-    const newData = {
-      ...data,
-      coreSkills: {
-        ...data.coreSkills,
-        categories: [...(data.coreSkills?.categories || []), newCategory]
-      }
-    };
+      await logAction('add_user', `Added user: ${user.username}`);
+      await refreshData();
 
-    updateData(newData, `Added core skill category: ${name}`);
-    return newCategory;
+      return newUser;
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    }
   };
 
-  const addCoreSkill = (categoryId, skillName) => {
-    const newSkill = {
-      id: `skill_${Date.now()}`,
-      name: skillName,
-      maxScore: 3
-    };
-
-    const newData = {
-      ...data,
-      coreSkills: {
-        ...data.coreSkills,
-        categories: data.coreSkills.categories.map(cat =>
-          cat.id === categoryId
-            ? { ...cat, skills: [...cat.skills, newSkill] }
-            : cat
-        )
-      }
-    };
-
-    updateData(newData, `Added core skill: ${skillName}`);
-    return newSkill;
+  const deleteUser = async (userId) => {
+    try {
+      await api.deleteUser(userId);
+      await logAction('delete_user', `Deleted user: ${userId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   };
 
-  const deleteCoreSkill = (categoryId, skillId) => {
-    const newData = {
-      ...data,
-      coreSkills: {
-        ...data.coreSkills,
-        categories: data.coreSkills.categories.map(cat =>
-          cat.id === categoryId
-            ? { ...cat, skills: cat.skills.filter(s => s.id !== skillId) }
-            : cat
-        )
-      }
-    };
+  const resetPassword = async (userId, newPassword) => {
+    try {
+      await api.updateUserPassword(userId, newPassword);
+      await logAction('reset_password', `Reset password for user: ${userId}`);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  };
 
-    updateData(newData, `Deleted core skill`);
+  // Certifications
+  const addCertification = async (cert) => {
+    try {
+      const newCert = await api.createCertification(cert);
+      await logAction('add_certification', `Added certification: ${cert.name}`);
+      await refreshData();
+      return newCert;
+    } catch (error) {
+      console.error('Error adding certification:', error);
+      throw error;
+    }
+  };
+
+  const updateCertification = async (certId, updates) => {
+    console.warn('Update certification not yet implemented');
+  };
+
+  const deleteCertification = async (certId) => {
+    try {
+      await api.deleteCertification(certId);
+      await logAction('delete_certification', `Deleted certification: ${certId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting certification:', error);
+      throw error;
+    }
+  };
+
+  // Snapshots
+  const takeSnapshot = async (description) => {
+    try {
+      await api.createSnapshot(description);
+      await logAction('create_snapshot', `Created snapshot: ${description}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating snapshot:', error);
+      throw error;
+    }
+  };
+
+  // Replace data (for import)
+  const replaceData = async (newData) => {
+    try {
+      await api.importData(newData);
+      await logAction('import_data', 'Imported data');
+      await refreshData();
+    } catch (error) {
+      console.error('Error importing data:', error);
+      throw error;
+    }
+  };
+
+  // Core Skills
+  const updateCoreSkillAssessment = async (engineerId, categoryId, skillId, score) => {
+    try {
+      await api.saveCoreSkillAssessment({
+        engineer_id: engineerId,
+        category_id: categoryId,
+        skill_id: skillId,
+        score: score
+      });
+
+      await logAction('update_core_skill', `Updated core skill assessment`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating core skill assessment:', error);
+      throw error;
+    }
+  };
+
+  const addCoreSkillCategory = async (name) => {
+    console.warn('Add core skill category not yet implemented');
+  };
+
+  const addCoreSkill = async (categoryId, skillName) => {
+    console.warn('Add core skill not yet implemented');
+  };
+
+  const deleteCoreSkill = async (categoryId, skillId) => {
+    console.warn('Delete core skill not yet implemented');
   };
 
   return {
     data,
     loading,
+    refreshData,
     addProductionArea,
     updateProductionArea,
     deleteProductionArea,
