@@ -1,8 +1,8 @@
 // Database connection module for SQL Server
-// Reuses the main database connection from /database/connection.js
+// Reuses the main database connection from /database/connection.cjs
 
 const path = require('path');
-const dbConnection = require(path.join(__dirname, '../../database/connection'));
+const dbConnection = require(path.join(__dirname, '../../database/connection.cjs'));
 
 // Re-export the connection functions
 module.exports = {
