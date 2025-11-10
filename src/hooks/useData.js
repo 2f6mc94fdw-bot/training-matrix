@@ -178,7 +178,11 @@ export const useData = (currentUser) => {
       await logAction('add_engineer', `Added engineer: ${engineer.name}`);
       await refreshData();
 
-      return { newEngineer, username: '', userCreated: false };
+      return {
+        newEngineer,
+        username: newEngineer.name || engineer.name,
+        userCreated: false
+      };
     } catch (error) {
       console.error('Error adding engineer:', error);
       throw error;

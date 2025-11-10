@@ -89,6 +89,65 @@ async function execute(procedureName, params = {}) {
   }
 }
 
+// Execute queries within a transaction
+async function transaction(callback) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // Create a client object that mimics PostgreSQL's transaction client
+    const client = {
+      query: async (queryText, params = []) => {
+        const request = new sql.Request(transaction);
+
+        // Convert PostgreSQL-style placeholders to SQL Server style
+        let convertedQuery = queryText;
+        params.forEach((param, index) => {
+          const pgPlaceholder = `$${index + 1}`;
+          const sqlPlaceholder = `@param${index}`;
+          convertedQuery = convertedQuery.replace(new RegExp('\\' + pgPlaceholder + '\\b', 'g'), sqlPlaceholder);
+          request.input(`param${index}`, param);
+        });
+
+        // Convert RETURNING to OUTPUT INSERTED
+        convertedQuery = convertedQuery.replace(/RETURNING\s+(\*|[\w,\s]+)/gi, (match, columns) => {
+          if (columns === '*') {
+            return 'OUTPUT INSERTED.*';
+          }
+          const cols = columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+          return `OUTPUT ${cols}`;
+        });
+
+        // Convert CURRENT_TIMESTAMP to GETDATE()
+        convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
+
+        const result = await request.query(convertedQuery);
+
+        // Make result compatible with PostgreSQL format
+        result.rows = result.recordset;
+        result.rowCount = result.rowsAffected[0] || 0;
+
+        return result;
+      }
+    };
+
+    // Execute the callback with the client
+    const result = await callback(client);
+
+    // Commit the transaction
+    await transaction.commit();
+
+    return result;
+  } catch (error) {
+    // Rollback on error
+    await transaction.rollback();
+    console.error('❌ Transaction error:', error.message);
+    throw error;
+  }
+}
+
 // Test the connection
 async function testConnection() {
   try {
@@ -130,6 +189,7 @@ module.exports = {
   getPool,
   query,
   execute,
+  transaction,
   testConnection,
   closePool,
   sql // Export sql for types (e.g., sql.Int, sql.VarChar)
