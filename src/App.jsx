@@ -59,11 +59,16 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Login handling
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const result = login(loginForm.username, loginForm.password);
-    if (!result.success) {
-      toast.error(result.message || 'Invalid credentials');
+    try {
+      const result = await login(loginForm.username, loginForm.password);
+      if (!result.success) {
+        toast.error(result.message || 'Invalid credentials');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Login failed. Please try again.');
     }
   };
 
@@ -174,28 +179,35 @@ function App() {
   };
 
   // Engineer Management
-  const addEngineer = () => {
+  const addEngineer = async () => {
     const name = prompt('Enter engineer name:');
     const shift = prompt('Enter shift (A Shift, B Shift, C Shift, D Shift, Day Shift):');
     if (name && shift) {
-      // Create the engineer and auto-create user account in one operation
-      const result = dataHook.addEngineer({ name, shift });
+      try {
+        // Create the engineer and auto-create user account in one operation
+        const result = await dataHook.addEngineer({ name, shift });
 
-      if (result.userCreated) {
-        toast.success(`Engineer added! Login: ${result.username} / password`, {
-          duration: 6000,
-          icon: '✅',
-        });
-        toast.info('Engineer should change password after first login', {
-          duration: 5000,
-        });
-      } else {
-        toast.success(`Engineer added!`, {
-          duration: 4000,
-        });
-        toast.info(`User account "${result.username}" already exists`, {
-          duration: 4000,
-        });
+        if (result.userCreated) {
+          toast.success(`Engineer added! Login: ${result.username} / password`, {
+            duration: 6000,
+            icon: '✅',
+          });
+          toast.info('Engineer should change password after first login', {
+            duration: 5000,
+          });
+        } else {
+          toast.success(`Engineer added!`, {
+            duration: 4000,
+          });
+          if (result.username) {
+            toast.info(`User account "${result.username}" already exists`, {
+              duration: 4000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error adding engineer:', error);
+        toast.error('Failed to add engineer. Please try again.');
       }
     }
   };
@@ -907,7 +919,7 @@ function App() {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold dark:text-white text-gray-900">User Accounts</h2>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const username = prompt('Enter username:');
                     if (!username) return;
 
@@ -931,8 +943,13 @@ function App() {
                       engineerId = engineer.id;
                     }
 
-                    dataHook.addUser({ username, password, role, engineerId });
-                    toast.success(`User "${username}" created successfully!`);
+                    try {
+                      await dataHook.addUser({ username, password, role, engineerId });
+                      toast.success(`User "${username}" created successfully!`);
+                    } catch (error) {
+                      console.error('Error adding user:', error);
+                      toast.error('Failed to add user. Please try again.');
+                    }
                   }}
                   className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-all duration-200 shadow-btn hover:shadow-btn-hover font-medium"
                 >
