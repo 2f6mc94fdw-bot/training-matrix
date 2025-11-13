@@ -1,54 +1,40 @@
-// Database Setup Helper Script
+// Database Setup Script for SQL Server
 // Run this after configuring your .env file
-require('dotenv').config({ path: '../.env' });
-const { Pool } = require('pg');
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const bcrypt = require('bcryptjs');
+const db = require('../database/connection.cjs');
 const fs = require('fs');
 const path = require('path');
-
-const config = require('./config/database');
 
 async function setupDatabase() {
   console.log('\n╔══════════════════════════════════════════════════╗');
   console.log('║   Training Matrix - Database Setup              ║');
   console.log('╚══════════════════════════════════════════════════╝\n');
 
-  console.log('📋 Configuration:');
-  console.log(`   Connection: ${config.connectionString.replace(/:[^:]*@/, ':****@')}`);
-  console.log(`   SSL: ${config.ssl ? 'Enabled' : 'Disabled'}\n`);
-
-  // Test connection first
-  console.log('🔌 Testing database connection...');
-  const pool = new Pool({
-    connectionString: config.connectionString,
-    ssl: config.ssl
-  });
-
   try {
-    const result = await pool.query('SELECT NOW() as now, version()');
-    console.log('✅ Connection successful!');
-    console.log(`   Time: ${result.rows[0].now}`);
-    console.log(`   Version: ${result.rows[0].version.split(' ')[0]} ${result.rows[0].version.split(' ')[1]}\n`);
-  } catch (error) {
-    console.error('❌ Connection failed!');
-    console.error(`   Error: ${error.message}\n`);
-    console.log('Please check your .env file configuration.');
-    console.log('Connection string format: postgresql://username:password@host:port/database\n');
-    process.exit(1);
-  }
+    // Test connection
+    console.log('🔌 Testing database connection...');
+    const testResult = await db.testConnection();
 
-  // Check if tables exist
-  console.log('🔍 Checking database state...');
-  try {
-    const tableCheck = await pool.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-      AND table_name IN ('users', 'engineers', 'production_areas', 'machines')
+    if (!testResult) {
+      console.error('❌ Database connection failed!');
+      console.log('Please check your .env file configuration.\n');
+      process.exit(1);
+    }
+
+    // Check if tables exist
+    console.log('\n🔍 Checking database state...');
+    const pool = await db.getPool();
+    const tableCheck = await pool.request().query(`
+      SELECT TABLE_NAME
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_TYPE = 'BASE TABLE'
+      AND TABLE_NAME IN ('users', 'engineers', 'production_areas', 'machines')
     `);
 
-    if (tableCheck.rows.length > 0) {
-      console.log(`⚠️  Found ${tableCheck.rows.length} existing tables`);
-      console.log('   Tables:', tableCheck.rows.map(r => r.table_name).join(', '));
+    if (tableCheck.recordset.length > 0) {
+      console.log(`⚠️  Found ${tableCheck.recordset.length} existing tables`);
+      console.log('   Tables:', tableCheck.recordset.map(r => r.TABLE_NAME).join(', '));
 
       // Ask if user wants to proceed
       const readline = require('readline').createInterface({
@@ -67,20 +53,29 @@ async function setupDatabase() {
       }
 
       console.log('\n🗑️  Dropping existing tables...');
-      await pool.query(`
-        DROP TABLE IF EXISTS audit_logs CASCADE;
-        DROP TABLE IF EXISTS snapshots CASCADE;
-        DROP TABLE IF EXISTS certifications CASCADE;
-        DROP TABLE IF EXISTS core_skill_assessments CASCADE;
-        DROP TABLE IF EXISTS core_skills CASCADE;
-        DROP TABLE IF EXISTS core_skill_categories CASCADE;
-        DROP TABLE IF EXISTS assessments CASCADE;
-        DROP TABLE IF EXISTS competencies CASCADE;
-        DROP TABLE IF EXISTS machines CASCADE;
-        DROP TABLE IF EXISTS production_areas CASCADE;
-        DROP TABLE IF EXISTS engineers CASCADE;
-        DROP TABLE IF EXISTS users CASCADE;
-      `);
+      // Drop in correct order (respecting foreign keys)
+      const dropStatements = [
+        'DROP TABLE IF EXISTS audit_logs',
+        'DROP TABLE IF EXISTS snapshots',
+        'DROP TABLE IF EXISTS certifications',
+        'DROP TABLE IF EXISTS core_skill_assessments',
+        'DROP TABLE IF EXISTS core_skills',
+        'DROP TABLE IF EXISTS core_skill_categories',
+        'DROP TABLE IF EXISTS assessments',
+        'DROP TABLE IF EXISTS competencies',
+        'DROP TABLE IF EXISTS machines',
+        'DROP TABLE IF EXISTS production_areas',
+        'DROP TABLE IF EXISTS engineers',
+        'DROP TABLE IF EXISTS users'
+      ];
+
+      for (const stmt of dropStatements) {
+        try {
+          await pool.request().query(stmt);
+        } catch (err) {
+          // Ignore errors for non-existent tables
+        }
+      }
       console.log('✅ Old tables dropped');
     } else {
       console.log('✅ Database is empty, ready for setup');
@@ -88,22 +83,28 @@ async function setupDatabase() {
 
     // Run schema
     console.log('\n📝 Creating database schema...');
-    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+    const schemaPath = path.join(__dirname, '../database/schema.sql');
+
+    if (!fs.existsSync(schemaPath)) {
+      console.error(`❌ Schema file not found: ${schemaPath}`);
+      process.exit(1);
+    }
+
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    // Split by semicolon and execute each statement
+    // Split by GO or semicolon and execute each statement
     const statements = schema
-      .split(';')
+      .split(/\bGO\b/i)
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.startsWith('--'));
 
     for (let i = 0; i < statements.length; i++) {
       try {
-        await pool.query(statements[i]);
+        await pool.request().query(statements[i]);
       } catch (error) {
-        // Ignore "already exists" errors for idempotency
+        // Log error but continue
         if (!error.message.includes('already exists')) {
-          console.error(`   Error in statement ${i + 1}:`, error.message);
+          console.error(`   Warning in statement ${i + 1}:`, error.message.split('\n')[0]);
         }
       }
     }
@@ -112,37 +113,43 @@ async function setupDatabase() {
 
     // Verify tables
     console.log('\n🔍 Verifying installation...');
-    const tables = await pool.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-      ORDER BY table_name
+    const tables = await pool.request().query(`
+      SELECT TABLE_NAME
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_TYPE = 'BASE TABLE'
+      ORDER BY TABLE_NAME
     `);
 
-    console.log(`✅ Found ${tables.rows.length} tables:`);
-    tables.rows.forEach(row => {
-      console.log(`   ✓ ${row.table_name}`);
+    console.log(`✅ Found ${tables.recordset.length} tables:`);
+    tables.recordset.forEach(row => {
+      console.log(`   ✓ ${row.TABLE_NAME}`);
     });
 
     // Check default data
     console.log('\n📊 Checking default data...');
-    const userCount = await pool.query('SELECT COUNT(*) FROM users');
-    const coreSkillCount = await pool.query('SELECT COUNT(*) FROM core_skills');
+    const userCount = await pool.request().query('SELECT COUNT(*) as count FROM users');
+    const coreSkillCount = await pool.request().query('SELECT COUNT(*) as count FROM core_skills');
 
-    console.log(`   Users: ${userCount.rows[0].count}`);
-    console.log(`   Core Skills: ${coreSkillCount.rows[0].count}`);
+    console.log(`   Users: ${userCount.recordset[0].count}`);
+    console.log(`   Core Skills: ${coreSkillCount.recordset[0].count}`);
 
-    if (userCount.rows[0].count === '0') {
-      console.log('\n⚠️  No default admin user found. Creating one...');
-      const bcrypt = require('bcryptjs');
+    if (userCount.recordset[0].count === 0) {
+      console.log('\n👤 Creating default admin user...');
       const hashedPassword = await bcrypt.hash('admin123', 10);
 
-      await pool.query(
-        `INSERT INTO users (id, username, password, role, engineer_id)
-         VALUES ('admin', 'admin', $1, 'admin', NULL)`,
-        [hashedPassword]
-      );
-      console.log('✅ Admin user created (username: admin, password: admin123)');
+      await pool.request()
+        .input('id', db.sql.VarChar, 'admin')
+        .input('username', db.sql.VarChar, 'admin')
+        .input('password', db.sql.VarChar, hashedPassword)
+        .input('role', db.sql.VarChar, 'admin')
+        .query(`
+          INSERT INTO users (id, username, password, role, engineer_id)
+          VALUES (@id, @username, @password, @role, NULL)
+        `);
+
+      console.log('✅ Admin user created');
+      console.log('   Username: admin');
+      console.log('   Password: admin123');
     }
 
     console.log('\n╔══════════════════════════════════════════════════╗');
@@ -150,8 +157,10 @@ async function setupDatabase() {
     console.log('╚══════════════════════════════════════════════════╝\n');
 
     console.log('Next steps:');
-    console.log('  1. Start the server: npm run server');
-    console.log('  2. Start the frontend: npm run dev');
+    console.log('  1. Start the server (if not running):');
+    console.log('     cd server && node index.cjs');
+    console.log('  2. Start the frontend (in new terminal):');
+    console.log('     npm run dev');
     console.log('  3. Open http://localhost:5173');
     console.log('  4. Login with: admin / admin123');
     console.log('\n⚠️  Remember to change the default password!\n');
@@ -161,7 +170,7 @@ async function setupDatabase() {
     console.error('Stack:', error.stack);
     process.exit(1);
   } finally {
-    await pool.end();
+    await db.closePool();
   }
 }
 
