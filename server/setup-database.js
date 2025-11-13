@@ -92,19 +92,21 @@ async function setupDatabase() {
 
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    // Split by GO or semicolon and execute each statement
-    const statements = schema
-      .split(/\bGO\b/i)
+    // Split by GO statement (SQL Server batch separator)
+    const batches = schema
+      .split(/^\s*GO\s*$/im)
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.startsWith('--'));
 
-    for (let i = 0; i < statements.length; i++) {
+    console.log(`   Found ${batches.length} SQL batches to execute...`);
+
+    for (let i = 0; i < batches.length; i++) {
       try {
-        await pool.request().query(statements[i]);
+        await pool.request().query(batches[i]);
       } catch (error) {
-        // Log error but continue
-        if (!error.message.includes('already exists')) {
-          console.error(`   Warning in statement ${i + 1}:`, error.message.split('\n')[0]);
+        // Log error but continue (some errors are expected for IF NOT EXISTS)
+        if (!error.message.includes('already exists') && !error.message.includes('Cannot drop')) {
+          console.error(`   Warning in batch ${i + 1}:`, error.message.split('\n')[0]);
         }
       }
     }
