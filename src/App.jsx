@@ -79,7 +79,7 @@ function App() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyPress = (e) => {
+    const handleKeyPress = async (e) => {
       // Ignore if typing in an input field
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -87,7 +87,7 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         if (currentUser?.role === 'admin') {
-          dataHook.takeSnapshot('Manual snapshot');
+          await dataHook.takeSnapshot('Manual snapshot');
           toast.success('Snapshot created!');
         }
       }
