@@ -124,56 +124,92 @@ function App() {
   }, [currentUser, data]);
 
   // Production Area Management
-  const addProductionArea = () => {
+  const addProductionArea = async () => {
     const name = prompt('Enter production area name:');
     if (name) {
-      dataHook.addProductionArea({ name });
+      try {
+        await dataHook.addProductionArea({ name });
+        toast.success('Production area added!');
+      } catch (error) {
+        console.error('Error adding production area:', error);
+        toast.error('Failed to add production area');
+      }
     }
   };
 
   const deleteProductionArea = (areaId) => {
     setConfirmDelete({
       message: 'Are you sure you want to delete this production area and all its machines?',
-      onConfirm: () => {
-        dataHook.deleteProductionArea(areaId);
-        setConfirmDelete(null);
+      onConfirm: async () => {
+        try {
+          await dataHook.deleteProductionArea(areaId);
+          setConfirmDelete(null);
+          toast.success('Production area deleted!');
+        } catch (error) {
+          console.error('Error deleting production area:', error);
+          toast.error('Failed to delete production area');
+        }
       }
     });
   };
 
   // Machine Management
-  const addMachine = (areaId) => {
+  const addMachine = async (areaId) => {
     const name = prompt('Enter machine name:');
     const importance = prompt('Enter importance (1-10):', '5');
     if (name && importance) {
-      dataHook.addMachine(areaId, { name, importance: parseInt(importance) });
+      try {
+        await dataHook.addMachine(areaId, { name, importance: parseInt(importance) });
+        toast.success('Machine added!');
+      } catch (error) {
+        console.error('Error adding machine:', error);
+        toast.error('Failed to add machine');
+      }
     }
   };
 
   const deleteMachine = (areaId, machineId) => {
     setConfirmDelete({
       message: 'Are you sure you want to delete this machine and all its competencies?',
-      onConfirm: () => {
-        dataHook.deleteMachine(areaId, machineId);
-        setConfirmDelete(null);
+      onConfirm: async () => {
+        try {
+          await dataHook.deleteMachine(areaId, machineId);
+          setConfirmDelete(null);
+          toast.success('Machine deleted!');
+        } catch (error) {
+          console.error('Error deleting machine:', error);
+          toast.error('Failed to delete machine');
+        }
       }
     });
   };
 
   // Competency Management
-  const addCompetency = (areaId, machineId) => {
+  const addCompetency = async (areaId, machineId) => {
     const name = prompt('Enter competency name:');
     if (name) {
-      dataHook.addCompetency(areaId, machineId, { name, maxScore: 3 });
+      try {
+        await dataHook.addCompetency(areaId, machineId, { name, maxScore: 3 });
+        toast.success('Competency added!');
+      } catch (error) {
+        console.error('Error adding competency:', error);
+        toast.error('Failed to add competency');
+      }
     }
   };
 
   const deleteCompetency = (areaId, machineId, competencyId) => {
     setConfirmDelete({
       message: 'Are you sure you want to delete this competency?',
-      onConfirm: () => {
-        dataHook.deleteCompetency(areaId, machineId, competencyId);
-        setConfirmDelete(null);
+      onConfirm: async () => {
+        try {
+          await dataHook.deleteCompetency(areaId, machineId, competencyId);
+          setConfirmDelete(null);
+          toast.success('Competency deleted!');
+        } catch (error) {
+          console.error('Error deleting competency:', error);
+          toast.error('Failed to delete competency');
+        }
       }
     });
   };
@@ -215,16 +251,27 @@ function App() {
   const deleteEngineer = (engineerId) => {
     setConfirmDelete({
       message: 'Are you sure you want to delete this engineer?',
-      onConfirm: () => {
-        dataHook.deleteEngineer(engineerId);
-        setConfirmDelete(null);
+      onConfirm: async () => {
+        try {
+          await dataHook.deleteEngineer(engineerId);
+          setConfirmDelete(null);
+          toast.success('Engineer deleted!');
+        } catch (error) {
+          console.error('Error deleting engineer:', error);
+          toast.error('Failed to delete engineer');
+        }
       }
     });
   };
 
   // Assessment Management
-  const updateAssessment = (engineerId, areaId, machineId, competencyId, score) => {
-    dataHook.updateAssessment(engineerId, areaId, machineId, competencyId, score);
+  const updateAssessment = async (engineerId, areaId, machineId, competencyId, score) => {
+    try {
+      await dataHook.updateAssessment(engineerId, areaId, machineId, competencyId, score);
+    } catch (error) {
+      console.error('Error updating assessment:', error);
+      toast.error('Failed to update assessment');
+    }
   };
 
   const getAssessmentScore = (engineerId, areaId, machineId, competencyId) => {
@@ -237,7 +284,7 @@ function App() {
   };
 
   // Bulk Operations
-  const bulkUpdateScores = (competencyId, score) => {
+  const bulkUpdateScores = async (competencyId, score) => {
     if (selectedEngineers.length === 0) {
       toast.error('Please select engineers first');
       return;
@@ -255,7 +302,13 @@ function App() {
       });
     });
 
-    dataHook.bulkUpdateAssessments(updates);
+    try {
+      await dataHook.bulkUpdateAssessments(updates);
+      toast.success(`Updated ${updates.length} assessments!`);
+    } catch (error) {
+      console.error('Error bulk updating assessments:', error);
+      toast.error('Failed to update assessments');
+    }
     setBulkSelectMode(false);
     setSelectedEngineers([]);
   };
@@ -357,8 +410,14 @@ function App() {
   };
 
   // Create Snapshot
-  const createSnapshot = () => {
-    dataHook.takeSnapshot(`Snapshot at ${new Date().toLocaleString()}`);
+  const createSnapshot = async () => {
+    try {
+      await dataHook.takeSnapshot(`Snapshot at ${new Date().toLocaleString()}`);
+      toast.success('Snapshot created successfully!');
+    } catch (error) {
+      console.error('Error creating snapshot:', error);
+      toast.error('Failed to create snapshot');
+    }
   };
 
   // Export to Excel
@@ -855,13 +914,18 @@ function App() {
                               <div className="flex items-center gap-2">
                                 <p className="text-sm text-gray-600 dark:text-gray-400">Importance: {machine.importance}/10</p>
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     const newImportance = prompt(`Set importance for "${machine.name}" (1-10):`, machine.importance);
                                     if (newImportance !== null) {
                                       const importance = parseInt(newImportance);
                                       if (importance >= 1 && importance <= 10) {
-                                        dataHook.updateMachine(area.id, machine.id, { importance });
-                                        toast.success(`Updated importance to ${importance}`);
+                                        try {
+                                          await dataHook.updateMachine(area.id, machine.id, { importance });
+                                          toast.success(`Updated importance to ${importance}`);
+                                        } catch (error) {
+                                          console.error('Error updating machine importance:', error);
+                                          toast.error('Failed to update importance');
+                                        }
                                       } else {
                                         toast.error('Importance must be between 1 and 10');
                                       }
@@ -969,11 +1033,16 @@ function App() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           const newPassword = prompt(`Reset password for "${user.username}".\n\nEnter new password:`);
                           if (newPassword) {
-                            dataHook.resetPassword(user.id, newPassword);
-                            toast.success(`Password reset for "${user.username}"!`);
+                            try {
+                              await dataHook.resetPassword(user.id, newPassword);
+                              toast.success(`Password reset for "${user.username}"!`);
+                            } catch (error) {
+                              console.error('Error resetting password:', error);
+                              toast.error('Failed to reset password');
+                            }
                           }
                         }}
                         className="p-2 text-accent hover:bg-red-50 rounded"
@@ -983,9 +1052,15 @@ function App() {
                       </button>
                       {user.username !== 'admin' && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm(`Delete user "${user.username}"?`)) {
-                              dataHook.deleteUser(user.id);
+                              try {
+                                await dataHook.deleteUser(user.id);
+                                toast.success(`User "${user.username}" deleted!`);
+                              } catch (error) {
+                                console.error('Error deleting user:', error);
+                                toast.error('Failed to delete user');
+                              }
                             }
                           }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded"
@@ -1561,11 +1636,17 @@ function App() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Certifications</h2>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const name = prompt('Enter certification name:');
                     const days = prompt('Enter validity period (days):', '365');
                     if (name && days) {
-                      dataHook.addCertification({ name, validityDays: parseInt(days) });
+                      try {
+                        await dataHook.addCertification({ name, validityDays: parseInt(days) });
+                        toast.success('Certification added!');
+                      } catch (error) {
+                        console.error('Error adding certification:', error);
+                        toast.error('Failed to add certification');
+                      }
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
@@ -1584,9 +1665,15 @@ function App() {
                       onClick={() => {
                         setConfirmDelete({
                           message: 'Delete this certification?',
-                          onConfirm: () => {
-                            dataHook.deleteCertification(cert.id);
-                            setConfirmDelete(null);
+                          onConfirm: async () => {
+                            try {
+                              await dataHook.deleteCertification(cert.id);
+                              setConfirmDelete(null);
+                              toast.success('Certification deleted!');
+                            } catch (error) {
+                              console.error('Error deleting certification:', error);
+                              toast.error('Failed to delete certification');
+                            }
                           }
                         });
                       }}
