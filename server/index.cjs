@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const db = require('./db/connection');
+const validation = require('./validation.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,24 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    // Validate required fields
+    const fieldValidation = validation.validateRequiredFields(req.body, ['username', 'password']);
+    if (!fieldValidation.valid) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: `Missing required fields: ${fieldValidation.missing.join(', ')}`
+      });
+    }
+
+    // Validate types and format
+    if (!validation.validateStringLength(username, 1, 100)) {
+      return res.status(400).json({ error: 'Invalid username format' });
+    }
+
+    if (!validation.validateStringLength(password, 1, 128)) {
+      return res.status(400).json({ error: 'Invalid password format' });
+    }
+
     const result = await db.query(
       'SELECT * FROM users WHERE username = $1',
       [username]
@@ -47,7 +66,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const user = result.rows[0];
-    const validPassword = bcrypt.compareSync(password, user.password);
+    const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -77,11 +96,48 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   try {
     const { id, username, password, role, engineerId } = req.body;
-    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    // Validate required fields
+    const fieldValidation = validation.validateRequiredFields(req.body, ['id', 'username', 'password', 'role']);
+    if (!fieldValidation.valid) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: `Missing required fields: ${fieldValidation.missing.join(', ')}`
+      });
+    }
+
+    // Validate ID
+    if (!validation.validateId(id)) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    // Validate username
+    const usernameValidation = validation.validateUsername(username);
+    if (!usernameValidation.valid) {
+      return res.status(400).json({ error: usernameValidation.message });
+    }
+
+    // Validate password
+    const passwordValidation = validation.validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.message });
+    }
+
+    // Validate role
+    if (!validation.validateEnum(role, ['admin', 'engineer'])) {
+      return res.status(400).json({ error: 'Role must be either "admin" or "engineer"' });
+    }
+
+    // Validate engineerId if provided
+    if (engineerId && !validation.validateId(engineerId)) {
+      return res.status(400).json({ error: 'Invalid engineer ID format' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await db.query(
       'INSERT INTO users (id, username, password, role, engineer_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role, engineer_id',
-      [id, username, hashedPassword, role, engineerId]
+      [id, username, hashedPassword, role, engineerId || null]
     );
 
     res.json(result.rows[0]);
@@ -95,7 +151,23 @@ app.put('/api/users/:id/password', async (req, res) => {
   try {
     const { id } = req.params;
     const { password } = req.body;
-    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    // Validate ID from params
+    if (!validation.validateId(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+
+    // Validate password
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    const passwordValidation = validation.validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.message });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
       'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
@@ -134,6 +206,32 @@ app.get('/api/engineers', async (req, res) => {
 app.post('/api/engineers', async (req, res) => {
   try {
     const { id, name, shift } = req.body;
+
+    // Validate required fields
+    const fieldValidation = validation.validateRequiredFields(req.body, ['id', 'name', 'shift']);
+    if (!fieldValidation.valid) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: `Missing required fields: ${fieldValidation.missing.join(', ')}`
+      });
+    }
+
+    // Validate ID
+    if (!validation.validateId(id)) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    // Validate name
+    if (!validation.validateStringLength(name, 1, 100)) {
+      return res.status(400).json({ error: 'Name must be between 1 and 100 characters' });
+    }
+
+    // Validate shift
+    const validShifts = ['A Shift', 'B Shift', 'C Shift', 'D Shift', 'Day Shift'];
+    if (!validation.validateEnum(shift, validShifts)) {
+      return res.status(400).json({ error: `Shift must be one of: ${validShifts.join(', ')}` });
+    }
+
     const result = await db.query(
       'INSERT INTO engineers (id, name, shift) VALUES ($1, $2, $3) RETURNING *',
       [id, name, shift]
@@ -475,6 +573,149 @@ app.get('/api/data/export', async (req, res) => {
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/data/import', async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Validate required fields
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ error: 'Invalid data format' });
+    }
+
+    // Use transaction to ensure atomic import
+    await db.transaction(async (client) => {
+      // Clear existing data (in reverse order of dependencies)
+      await client.query('DELETE FROM core_skill_assessments');
+      await client.query('DELETE FROM assessments');
+      await client.query('DELETE FROM competencies');
+      await client.query('DELETE FROM machines');
+      await client.query('DELETE FROM production_areas');
+      await client.query('DELETE FROM certifications');
+      await client.query('DELETE FROM snapshots');
+      await client.query('DELETE FROM core_skills');
+      await client.query('DELETE FROM core_skill_categories');
+      await client.query('DELETE FROM users WHERE username != $1', ['admin']);
+      await client.query('DELETE FROM engineers');
+
+      // Import engineers
+      if (data.engineers && Array.isArray(data.engineers)) {
+        for (const engineer of data.engineers) {
+          await client.query(
+            'INSERT INTO engineers (id, name, shift) VALUES ($1, $2, $3)',
+            [engineer.id, engineer.name, engineer.shift]
+          );
+        }
+      }
+
+      // Import users (skip admin user)
+      if (data.users && Array.isArray(data.users)) {
+        for (const user of data.users) {
+          if (user.username !== 'admin') {
+            await client.query(
+              'INSERT INTO users (id, username, password, role, engineer_id) VALUES ($1, $2, $3, $4, $5)',
+              [user.id, user.username, user.password, user.role, user.engineer_id || null]
+            );
+          }
+        }
+      }
+
+      // Import production areas with machines and competencies
+      if (data.productionAreas && Array.isArray(data.productionAreas)) {
+        for (const area of data.productionAreas) {
+          await client.query(
+            'INSERT INTO production_areas (id, name) VALUES ($1, $2)',
+            [area.id, area.name]
+          );
+
+          if (area.machines && Array.isArray(area.machines)) {
+            for (const machine of area.machines) {
+              await client.query(
+                'INSERT INTO machines (id, name, production_area_id) VALUES ($1, $2, $3)',
+                [machine.id, machine.name, area.id]
+              );
+
+              if (machine.competencies && Array.isArray(machine.competencies)) {
+                for (const competency of machine.competencies) {
+                  await client.query(
+                    'INSERT INTO competencies (id, name, description, machine_id) VALUES ($1, $2, $3, $4)',
+                    [competency.id, competency.name, competency.description || '', machine.id]
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Import core skill categories and skills
+      if (data.coreSkills && data.coreSkills.categories && Array.isArray(data.coreSkills.categories)) {
+        for (const category of data.coreSkills.categories) {
+          await client.query(
+            'INSERT INTO core_skill_categories (id, name) VALUES ($1, $2)',
+            [category.id, category.name]
+          );
+
+          if (category.skills && Array.isArray(category.skills)) {
+            for (const skill of category.skills) {
+              await client.query(
+                'INSERT INTO core_skills (id, name, category_id) VALUES ($1, $2, $3)',
+                [skill.id, skill.name, category.id]
+              );
+            }
+          }
+        }
+      }
+
+      // Import assessments
+      if (data.assessments && typeof data.assessments === 'object') {
+        for (const [key, score] of Object.entries(data.assessments)) {
+          const [engineerId, areaId, machineId, competencyId] = key.split('-');
+          await client.query(
+            'INSERT INTO assessments (engineer_id, production_area_id, machine_id, competency_id, score) VALUES ($1, $2, $3, $4, $5)',
+            [engineerId, areaId, machineId, competencyId, score]
+          );
+        }
+      }
+
+      // Import core skill assessments
+      if (data.coreSkillAssessments && typeof data.coreSkillAssessments === 'object') {
+        for (const [key, score] of Object.entries(data.coreSkillAssessments)) {
+          const [engineerId, categoryId, skillId] = key.split('-');
+          await client.query(
+            'INSERT INTO core_skill_assessments (engineer_id, category_id, skill_id, score) VALUES ($1, $2, $3, $4)',
+            [engineerId, categoryId, skillId, score]
+          );
+        }
+      }
+
+      // Import certifications
+      if (data.certifications && Array.isArray(data.certifications)) {
+        for (const cert of data.certifications) {
+          await client.query(
+            'INSERT INTO certifications (id, engineer_id, name, issue_date, expiry_date, issuer) VALUES ($1, $2, $3, $4, $5, $6)',
+            [cert.id, cert.engineer_id, cert.name, cert.issue_date, cert.expiry_date || null, cert.issuer || '']
+          );
+        }
+      }
+
+      // Import snapshots
+      if (data.snapshots && Array.isArray(data.snapshots)) {
+        for (const snapshot of data.snapshots) {
+          await client.query(
+            'INSERT INTO snapshots (id, description, snapshot_data, created_at) VALUES ($1, $2, $3, $4)',
+            [snapshot.id, snapshot.description, snapshot.snapshot_data, snapshot.created_at]
+          );
+        }
+      }
+    });
+
+    res.json({ success: true, message: 'Data imported successfully' });
+  } catch (error) {
+    console.error('Import error:', error);
+    res.status(500).json({ error: 'Import failed', message: error.message });
   }
 });
 

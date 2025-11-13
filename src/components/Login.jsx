@@ -11,14 +11,19 @@ export const Login = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
-    const result = onLogin(username, password);
-    
-    if (!result.success) {
-      setError(result.message);
+
+    try {
+      const result = await onLogin(username, password);
+
+      if (!result.success) {
+        setError(result.message);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
   
   return (
