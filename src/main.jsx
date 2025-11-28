@@ -4,7 +4,9 @@ import App from './App'
 import './index.css'
 import { ThemeProvider } from './contexts/ThemeContext'
 
-// Register Service Worker for PWA
+// Register Service Worker for PWA - DISABLED (causing fetch errors)
+// TODO: Fix service worker to properly handle API requests
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
@@ -17,6 +19,7 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+*/
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
