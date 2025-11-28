@@ -303,20 +303,20 @@ app.post('/api/production-areas', async (req, res) => {
   try {
     const { name, machines } = req.body;
 
-    await db.transaction(async (client) => {
+    const area = await db.transaction(async (client) => {
       // Insert production area
       const areaResult = await client.query(
         'INSERT INTO production_areas (name) VALUES ($1) RETURNING *',
         [name]
       );
-      const area = areaResult.rows[0];
+      const createdArea = areaResult.rows[0];
 
       // Insert machines and competencies
       if (machines && machines.length > 0) {
         for (const machine of machines) {
           const machineResult = await client.query(
             'INSERT INTO machines (production_area_id, name, importance) VALUES ($1, $2, $3) RETURNING *',
-            [area.id, machine.name, machine.importance || 1]
+            [createdArea.id, machine.name, machine.importance || 1]
           );
           const machineId = machineResult.rows[0].id;
 
@@ -331,10 +331,10 @@ app.post('/api/production-areas', async (req, res) => {
         }
       }
 
-      return area;
+      return createdArea;
     });
 
-    res.json({ success: true });
+    res.json(area);
   } catch (error) {
     console.error('Create production area error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -348,6 +348,113 @@ app.delete('/api/production-areas/:id', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Delete production area error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/production-areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    const result = await db.query(
+      'UPDATE production_areas SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [name, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update production area error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ==================== MACHINES ====================
+app.post('/api/machines', async (req, res) => {
+  try {
+    const { productionAreaId, name, importance } = req.body;
+
+    const result = await db.query(
+      'INSERT INTO machines (production_area_id, name, importance) VALUES ($1, $2, $3) RETURNING *',
+      [productionAreaId, name, importance || 1]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Create machine error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/machines/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, importance } = req.body;
+
+    const result = await db.query(
+      'UPDATE machines SET name = $1, importance = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+      [name, importance, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update machine error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/machines/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM machines WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete machine error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ==================== COMPETENCIES ====================
+app.post('/api/competencies', async (req, res) => {
+  try {
+    const { machineId, name, maxScore } = req.body;
+
+    const result = await db.query(
+      'INSERT INTO competencies (machine_id, name, max_score) VALUES ($1, $2, $3) RETURNING *',
+      [machineId, name, maxScore || 3]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Create competency error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/competencies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, maxScore } = req.body;
+
+    const result = await db.query(
+      'UPDATE competencies SET name = $1, max_score = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+      [name, maxScore, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update competency error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/competencies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM competencies WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete competency error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
