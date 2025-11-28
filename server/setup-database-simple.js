@@ -139,7 +139,7 @@ async function setupDatabase() {
     // Core skill categories
     await pool.request().query(`
       CREATE TABLE core_skill_categories (
-        id INT IDENTITY(1,1) PRIMARY KEY,
+        id NVARCHAR(50) PRIMARY KEY,
         name NVARCHAR(200) NOT NULL,
         created_at DATETIME DEFAULT GETDATE()
       )
@@ -149,8 +149,8 @@ async function setupDatabase() {
     // Core skills
     await pool.request().query(`
       CREATE TABLE core_skills (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        category_id INT NOT NULL,
+        id NVARCHAR(50) PRIMARY KEY,
+        category_id NVARCHAR(50) NOT NULL,
         name NVARCHAR(200) NOT NULL,
         max_score INT NOT NULL DEFAULT 3,
         created_at DATETIME DEFAULT GETDATE(),
@@ -165,14 +165,18 @@ async function setupDatabase() {
       CREATE TABLE core_skill_assessments (
         id INT IDENTITY(1,1) PRIMARY KEY,
         engineer_id NVARCHAR(50) NOT NULL,
-        core_skill_id INT NOT NULL,
+        category_id NVARCHAR(50) NOT NULL,
+        skill_id NVARCHAR(50) NOT NULL,
         score INT NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         CONSTRAINT FK_core_assessments_engineers FOREIGN KEY (engineer_id)
           REFERENCES engineers(id) ON DELETE CASCADE,
-        CONSTRAINT FK_core_assessments_skills FOREIGN KEY (core_skill_id)
-          REFERENCES core_skills(id) ON DELETE CASCADE
+        CONSTRAINT FK_core_assessments_categories FOREIGN KEY (category_id)
+          REFERENCES core_skill_categories(id),
+        CONSTRAINT FK_core_assessments_skills FOREIGN KEY (skill_id)
+          REFERENCES core_skills(id),
+        CONSTRAINT UQ_core_skill_assessments UNIQUE (engineer_id, category_id, skill_id)
       )
     `);
     console.log('   ✓ core_skill_assessments');
