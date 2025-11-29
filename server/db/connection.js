@@ -8,6 +8,7 @@ const dbConnection = require(path.join(__dirname, '../../database/connection.cjs
 module.exports = {
   pool: dbConnection.getPool,
   query: dbConnection.query,
+  transaction: dbConnection.transaction,
   testConnection: dbConnection.testConnection,
   sql: dbConnection.sql
 };
