@@ -55,6 +55,13 @@ async function query(queryText, params = []) {
     // Convert CURRENT_TIMESTAMP to GETDATE()
     convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
 
+    // Convert LIMIT to TOP (SQL Server syntax)
+    // Pattern: SELECT ... FROM ... LIMIT N  ->  SELECT TOP N ... FROM ...
+    convertedQuery = convertedQuery.replace(/SELECT\s+(.*?)\s+FROM\s+(.*?)\s+LIMIT\s+(\d+)/gi,
+      (match, selectClause, fromClause, limit) => {
+        return `SELECT TOP ${limit} ${selectClause} FROM ${fromClause}`;
+      });
+
     const result = await request.query(convertedQuery);
 
     // Make result compatible with PostgreSQL format
@@ -122,6 +129,13 @@ async function transaction(callback) {
 
         // Convert CURRENT_TIMESTAMP to GETDATE()
         convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
+
+        // Convert LIMIT to TOP (SQL Server syntax)
+        // Pattern: SELECT ... FROM ... LIMIT N  ->  SELECT TOP N ... FROM ...
+        convertedQuery = convertedQuery.replace(/SELECT\s+(.*?)\s+FROM\s+(.*?)\s+LIMIT\s+(\d+)/gi,
+          (match, selectClause, fromClause, limit) => {
+            return `SELECT TOP ${limit} ${selectClause} FROM ${fromClause}`;
+          });
 
         const result = await request.query(convertedQuery);
 
