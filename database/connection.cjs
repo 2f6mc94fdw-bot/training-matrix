@@ -43,14 +43,29 @@ async function query(queryText, params = []) {
       request.input(`param${index}`, param);
     });
 
-    // Convert RETURNING to OUTPUT INSERTED
-    convertedQuery = convertedQuery.replace(/RETURNING\s+(\*|[\w,\s]+)/gi, (match, columns) => {
-      if (columns === '*') {
-        return 'OUTPUT INSERTED.*';
+    // Convert INSERT...RETURNING to INSERT...OUTPUT (SQL Server requires OUTPUT before VALUES)
+    // Pattern: INSERT INTO table (...) VALUES (...) RETURNING *
+    //       -> INSERT INTO table (...) OUTPUT INSERTED.* VALUES (...)
+    convertedQuery = convertedQuery.replace(
+      /(INSERT\s+INTO\s+[\w\[\]\.]+\s*\([^)]+\))\s+VALUES\s*(\([^)]+\))\s+RETURNING\s+(\*|[\w,\s]+)/gi,
+      (match, insertPart, valuesPart, columns) => {
+        const outputClause = columns === '*'
+          ? 'OUTPUT INSERTED.*'
+          : 'OUTPUT ' + columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+        return `${insertPart} ${outputClause} VALUES ${valuesPart}`;
       }
-      const cols = columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
-      return `OUTPUT ${cols}`;
-    });
+    );
+
+    // Convert UPDATE...RETURNING to UPDATE...OUTPUT (for UPDATE statements)
+    convertedQuery = convertedQuery.replace(
+      /(UPDATE\s+[\w\[\]\.]+\s+SET\s+[^R]+)\s+RETURNING\s+(\*|[\w,\s]+)/gi,
+      (match, updatePart, columns) => {
+        const outputClause = columns === '*'
+          ? 'OUTPUT INSERTED.*'
+          : 'OUTPUT ' + columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+        return `${updatePart} ${outputClause}`;
+      }
+    );
 
     // Convert CURRENT_TIMESTAMP to GETDATE()
     convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
@@ -118,14 +133,29 @@ async function transaction(callback) {
           request.input(`param${index}`, param);
         });
 
-        // Convert RETURNING to OUTPUT INSERTED
-        convertedQuery = convertedQuery.replace(/RETURNING\s+(\*|[\w,\s]+)/gi, (match, columns) => {
-          if (columns === '*') {
-            return 'OUTPUT INSERTED.*';
+        // Convert INSERT...RETURNING to INSERT...OUTPUT (SQL Server requires OUTPUT before VALUES)
+        // Pattern: INSERT INTO table (...) VALUES (...) RETURNING *
+        //       -> INSERT INTO table (...) OUTPUT INSERTED.* VALUES (...)
+        convertedQuery = convertedQuery.replace(
+          /(INSERT\s+INTO\s+[\w\[\]\.]+\s*\([^)]+\))\s+VALUES\s*(\([^)]+\))\s+RETURNING\s+(\*|[\w,\s]+)/gi,
+          (match, insertPart, valuesPart, columns) => {
+            const outputClause = columns === '*'
+              ? 'OUTPUT INSERTED.*'
+              : 'OUTPUT ' + columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+            return `${insertPart} ${outputClause} VALUES ${valuesPart}`;
           }
-          const cols = columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
-          return `OUTPUT ${cols}`;
-        });
+        );
+
+        // Convert UPDATE...RETURNING to UPDATE...OUTPUT (for UPDATE statements)
+        convertedQuery = convertedQuery.replace(
+          /(UPDATE\s+[\w\[\]\.]+\s+SET\s+[^R]+)\s+RETURNING\s+(\*|[\w,\s]+)/gi,
+          (match, updatePart, columns) => {
+            const outputClause = columns === '*'
+              ? 'OUTPUT INSERTED.*'
+              : 'OUTPUT ' + columns.split(',').map(c => 'INSERTED.' + c.trim()).join(', ');
+            return `${updatePart} ${outputClause}`;
+          }
+        );
 
         // Convert CURRENT_TIMESTAMP to GETDATE()
         convertedQuery = convertedQuery.replace(/CURRENT_TIMESTAMP/gi, 'GETDATE()');
