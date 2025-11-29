@@ -463,15 +463,8 @@ app.delete('/api/competencies/:id', async (req, res) => {
 app.get('/api/assessments', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM assessments');
-
-    // Convert to the format expected by frontend: { engineerId-areaId-machineId-compId: score }
-    const assessments = {};
-    result.rows.forEach(row => {
-      const key = `${row.engineer_id}-${row.production_area_id}-${row.machine_id}-${row.competency_id}`;
-      assessments[key] = row.score;
-    });
-
-    res.json(assessments);
+    // Return array - frontend will transform it
+    res.json(result.rows || []);
   } catch (error) {
     console.error('Get assessments error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -520,15 +513,8 @@ app.get('/api/core-skills', async (req, res) => {
 app.get('/api/core-skills/assessments', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM core_skill_assessments');
-
-    // Convert to format: { engineerId-categoryId-skillId: score }
-    const assessments = {};
-    result.rows.forEach(row => {
-      const key = `${row.engineer_id}-${row.category_id}-${row.skill_id}`;
-      assessments[key] = row.score;
-    });
-
-    res.json(assessments);
+    // Return array - frontend will transform it
+    res.json(result.rows || []);
   } catch (error) {
     console.error('Get core skill assessments error:', error);
     res.status(500).json({ error: 'Server error' });
