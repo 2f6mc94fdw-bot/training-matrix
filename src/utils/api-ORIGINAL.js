@@ -1,6 +1,5 @@
 // API Client for Training Matrix
 // Communicates with the backend SQL Server API
-// FIXED VERSION - Includes all missing endpoints
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -109,57 +108,8 @@ class ApiClient {
     });
   }
 
-  async updateProductionArea(areaId, areaData) {
-    return this.request(`/production-areas/${areaId}`, {
-      method: 'PUT',
-      body: JSON.stringify(areaData),
-    });
-  }
-
   async deleteProductionArea(areaId) {
     return this.request(`/production-areas/${areaId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // ==================== MACHINES ====================
-  async createMachine(machineData) {
-    return this.request('/machines', {
-      method: 'POST',
-      body: JSON.stringify(machineData),
-    });
-  }
-
-  async updateMachine(machineId, machineData) {
-    return this.request(`/machines/${machineId}`, {
-      method: 'PUT',
-      body: JSON.stringify(machineData),
-    });
-  }
-
-  async deleteMachine(machineId) {
-    return this.request(`/machines/${machineId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // ==================== COMPETENCIES ====================
-  async createCompetency(competencyData) {
-    return this.request('/competencies', {
-      method: 'POST',
-      body: JSON.stringify(competencyData),
-    });
-  }
-
-  async updateCompetency(competencyId, competencyData) {
-    return this.request(`/competencies/${competencyId}`, {
-      method: 'PUT',
-      body: JSON.stringify(competencyData),
-    });
-  }
-
-  async deleteCompetency(competencyId) {
-    return this.request(`/competencies/${competencyId}`, {
       method: 'DELETE',
     });
   }
@@ -219,17 +169,9 @@ class ApiClient {
   }
 
   async createSnapshot(description) {
-    // Generate ID and timestamp on client side
-    const snapshotData = {
-      id: `snapshot_${Date.now()}`,
-      description: description || 'Manual snapshot',
-      timestamp: new Date().toISOString(),
-      data: {} // Backend will populate with current data
-    };
-
     return this.request('/snapshots', {
       method: 'POST',
-      body: JSON.stringify(snapshotData),
+      body: JSON.stringify({ description }),
     });
   }
 
@@ -239,18 +181,9 @@ class ApiClient {
   }
 
   async logAction(userId, action, details) {
-    // Generate ID and timestamp on client side
-    const logData = {
-      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      user: userId,
-      action,
-      details
-    };
-
     return this.request('/audit-logs', {
       method: 'POST',
-      body: JSON.stringify(logData),
+      body: JSON.stringify({ userId, action, details }),
     });
   }
 

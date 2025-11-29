@@ -123,9 +123,14 @@ export const useData = (currentUser) => {
   };
 
   const updateProductionArea = async (areaId, updates) => {
-    // Note: API doesn't have update endpoint yet, would need to add
-    console.warn('Update production area not yet implemented in API');
-    await logAction('update_production_area', `Updated production area: ${areaId}`);
+    try {
+      await api.updateProductionArea(areaId, updates);
+      await logAction('update_production_area', `Updated production area: ${areaId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating production area:', error);
+      throw error;
+    }
   };
 
   const deleteProductionArea = async (areaId) => {
@@ -141,29 +146,84 @@ export const useData = (currentUser) => {
 
   // Machines (handled by production area endpoint)
   const addMachine = async (areaId, machine) => {
-    console.warn('Add machine not yet fully implemented - needs API endpoint');
-    await refreshData();
+    try {
+      await api.createMachine({
+        productionAreaId: areaId,
+        name: machine.name,
+        importance: machine.importance || 1
+      });
+      await logAction('add_machine', `Added machine: ${machine.name} to area ${areaId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error adding machine:', error);
+      throw error;
+    }
   };
 
   const updateMachine = async (areaId, machineId, updates) => {
-    console.warn('Update machine not yet implemented');
+    try {
+      await api.updateMachine(machineId, {
+        name: updates.name,
+        importance: updates.importance
+      });
+      await logAction('update_machine', `Updated machine: ${machineId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating machine:', error);
+      throw error;
+    }
   };
 
   const deleteMachine = async (areaId, machineId) => {
-    console.warn('Delete machine not yet implemented');
+    try {
+      await api.deleteMachine(machineId);
+      await logAction('delete_machine', `Deleted machine: ${machineId} from area ${areaId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting machine:', error);
+      throw error;
+    }
   };
 
   // Competencies
   const addCompetency = async (areaId, machineId, competency) => {
-    console.warn('Add competency not yet implemented');
+    try {
+      await api.createCompetency({
+        machineId: machineId,
+        name: competency.name,
+        maxScore: competency.maxScore || 3
+      });
+      await logAction('add_competency', `Added competency: ${competency.name} to machine ${machineId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error adding competency:', error);
+      throw error;
+    }
   };
 
   const updateCompetency = async (areaId, machineId, compId, updates) => {
-    console.warn('Update competency not yet implemented');
+    try {
+      await api.updateCompetency(compId, {
+        name: updates.name,
+        maxScore: updates.maxScore
+      });
+      await logAction('update_competency', `Updated competency: ${compId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error updating competency:', error);
+      throw error;
+    }
   };
 
   const deleteCompetency = async (areaId, machineId, compId) => {
-    console.warn('Delete competency not yet implemented');
+    try {
+      await api.deleteCompetency(compId);
+      await logAction('delete_competency', `Deleted competency: ${compId} from machine ${machineId}`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting competency:', error);
+      throw error;
+    }
   };
 
   // Engineers
