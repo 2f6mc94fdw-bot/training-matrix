@@ -475,10 +475,10 @@ app.post('/api/assessments', async (req, res) => {
   try {
     const { engineerId, areaId, machineId, competencyId, score } = req.body;
 
-    // SQL Server MERGE statement (upsert)
+    // SQL Server MERGE statement (upsert) - using VALUES for proper parameter binding
     await db.query(
       `MERGE INTO assessments AS target
-       USING (SELECT $1 AS engineer_id, $2 AS production_area_id, $3 AS machine_id, $4 AS competency_id) AS source
+       USING (VALUES ($1, $2, $3, $4)) AS source(engineer_id, production_area_id, machine_id, competency_id)
        ON (target.engineer_id = source.engineer_id
            AND target.production_area_id = source.production_area_id
            AND target.machine_id = source.machine_id
@@ -533,10 +533,10 @@ app.post('/api/core-skills/assessments', async (req, res) => {
   try {
     const { engineerId, categoryId, skillId, score } = req.body;
 
-    // SQL Server MERGE statement (upsert)
+    // SQL Server MERGE statement (upsert) - using VALUES for proper parameter binding
     await db.query(
       `MERGE INTO core_skill_assessments AS target
-       USING (SELECT $1 AS engineer_id, $2 AS category_id, $3 AS skill_id) AS source
+       USING (VALUES ($1, $2, $3)) AS source(engineer_id, category_id, skill_id)
        ON (target.engineer_id = source.engineer_id
            AND target.category_id = source.category_id
            AND target.skill_id = source.skill_id)
