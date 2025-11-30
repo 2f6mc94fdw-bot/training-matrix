@@ -16,7 +16,19 @@ export const useData = (currentUser) => {
       setLoading(true);
 
       // Load production areas with nested structure
-      const productionAreas = await api.getProductionAreas();
+      const productionAreasRaw = await api.getProductionAreas();
+
+      // Transform snake_case to camelCase for competencies
+      const productionAreas = productionAreasRaw.map(area => ({
+        ...area,
+        machines: area.machines.map(machine => ({
+          ...machine,
+          competencies: machine.competencies.map(comp => ({
+            ...comp,
+            maxScore: comp.max_score || comp.maxScore || 3  // Transform max_score to maxScore
+          }))
+        }))
+      }));
 
       // Load engineers
       const engineers = await api.getEngineers();
