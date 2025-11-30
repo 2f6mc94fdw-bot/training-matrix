@@ -320,10 +320,15 @@ function App() {
     let totalPossibleRaw = 0;
     let totalPossibleWeighted = 0;
 
+    console.log(`📊 Calculating scores for engineer ${engineerId}`);
+    console.log('📦 Available assessments:', data.assessments);
+
     data.productionAreas.forEach(area => {
       area.machines.forEach(machine => {
         machine.competencies.forEach(comp => {
           const score = getAssessmentScore(engineerId, area.id, machine.id, comp.id);
+          const key = `${engineerId}-${area.id}-${machine.id}-${comp.id}`;
+          console.log(`  Checking ${key}: score=${score}, maxScore=${comp.maxScore}`);
           totalRaw += score;
           totalWeighted += score * machine.importance;
           totalPossibleRaw += comp.maxScore;
@@ -332,12 +337,14 @@ function App() {
       });
     });
 
-    return {
+    const result = {
       raw: totalRaw,
       weighted: totalWeighted,
       rawPercent: totalPossibleRaw > 0 ? (totalRaw / totalPossibleRaw * 100) : 0,
       weightedPercent: totalPossibleWeighted > 0 ? (totalWeighted / totalPossibleWeighted * 100) : 0
     };
+    console.log(`✅ Final scores for engineer ${engineerId}:`, result);
+    return result;
   };
 
   // Skills Gap Analysis
