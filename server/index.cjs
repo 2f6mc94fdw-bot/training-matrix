@@ -475,19 +475,22 @@ app.post('/api/assessments', async (req, res) => {
   try {
     const { engineerId, areaId, machineId, competencyId, score } = req.body;
 
-    // SQL Server MERGE statement (upsert) - using VALUES for proper parameter binding
+    // SQL Server upsert using IF EXISTS pattern (MERGE has parameter binding issues)
     await db.query(
-      `MERGE INTO assessments AS target
-       USING (VALUES ($1, $2, $3, $4)) AS source(engineer_id, production_area_id, machine_id, competency_id)
-       ON (target.engineer_id = source.engineer_id
-           AND target.production_area_id = source.production_area_id
-           AND target.machine_id = source.machine_id
-           AND target.competency_id = source.competency_id)
-       WHEN MATCHED THEN
-         UPDATE SET score = $5, updated_at = GETDATE()
-       WHEN NOT MATCHED THEN
-         INSERT (engineer_id, production_area_id, machine_id, competency_id, score)
-         VALUES (source.engineer_id, source.production_area_id, source.machine_id, source.competency_id, $5);`,
+      `IF EXISTS (SELECT 1 FROM assessments
+                  WHERE engineer_id = $1 AND production_area_id = $2
+                  AND machine_id = $3 AND competency_id = $4)
+       BEGIN
+         UPDATE assessments
+         SET score = $5, updated_at = GETDATE()
+         WHERE engineer_id = $1 AND production_area_id = $2
+         AND machine_id = $3 AND competency_id = $4
+       END
+       ELSE
+       BEGIN
+         INSERT INTO assessments (engineer_id, production_area_id, machine_id, competency_id, score)
+         VALUES ($1, $2, $3, $4, $5)
+       END`,
       [engineerId, areaId, machineId, competencyId, score]
     );
 
@@ -533,18 +536,20 @@ app.post('/api/core-skills/assessments', async (req, res) => {
   try {
     const { engineerId, categoryId, skillId, score } = req.body;
 
-    // SQL Server MERGE statement (upsert) - using VALUES for proper parameter binding
+    // SQL Server upsert using IF EXISTS pattern (MERGE has parameter binding issues)
     await db.query(
-      `MERGE INTO core_skill_assessments AS target
-       USING (VALUES ($1, $2, $3)) AS source(engineer_id, category_id, skill_id)
-       ON (target.engineer_id = source.engineer_id
-           AND target.category_id = source.category_id
-           AND target.skill_id = source.skill_id)
-       WHEN MATCHED THEN
-         UPDATE SET score = $4, updated_at = GETDATE()
-       WHEN NOT MATCHED THEN
-         INSERT (engineer_id, category_id, skill_id, score)
-         VALUES (source.engineer_id, source.category_id, source.skill_id, $4);`,
+      `IF EXISTS (SELECT 1 FROM core_skill_assessments
+                  WHERE engineer_id = $1 AND category_id = $2 AND skill_id = $3)
+       BEGIN
+         UPDATE core_skill_assessments
+         SET score = $4, updated_at = GETDATE()
+         WHERE engineer_id = $1 AND category_id = $2 AND skill_id = $3
+       END
+       ELSE
+       BEGIN
+         INSERT INTO core_skill_assessments (engineer_id, category_id, skill_id, score)
+         VALUES ($1, $2, $3, $4)
+       END`,
       [engineerId, categoryId, skillId, score]
     );
 
