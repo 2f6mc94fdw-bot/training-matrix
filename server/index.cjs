@@ -474,6 +474,8 @@ app.get('/api/assessments', async (req, res) => {
 app.post('/api/assessments', async (req, res) => {
   try {
     const { engineerId, areaId, machineId, competencyId, score } = req.body;
+    console.log('📝 Assessment data received:', { engineerId, areaId, machineId, competencyId, score });
+    console.log('📦 Full request body:', req.body);
 
     // SQL Server upsert: Try UPDATE first, if no rows affected then INSERT
     const updateResult = await db.query(
