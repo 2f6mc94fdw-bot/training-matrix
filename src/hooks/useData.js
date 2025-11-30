@@ -65,12 +65,6 @@ export const useData = (currentUser) => {
         }
       };
 
-      console.log('👥 Loaded engineers:', engineers);
-      console.log('🏭 Loaded production areas:', productionAreas);
-      if (productionAreas[0]?.machines?.[0]?.competencies?.[0]) {
-        console.log('🔧 Sample competency structure:', productionAreas[0].machines[0].competencies[0]);
-      }
-
       setData(transformedData);
       setLoading(false);
     } catch (error) {
@@ -84,10 +78,8 @@ export const useData = (currentUser) => {
   // Transform assessments from array to object keyed by composite key
   const transformAssessments = (assessments) => {
     const result = {};
-    console.log('🔍 Transforming assessments:', assessments);
     assessments.forEach(assessment => {
       const key = `${assessment.engineer_id}-${assessment.production_area_id}-${assessment.machine_id}-${assessment.competency_id}`;
-      console.log(`  Key: ${key}, Score: ${assessment.score}`);
       result[key] = {
         score: assessment.score,
         lastUpdated: assessment.updated_at,
@@ -95,7 +87,6 @@ export const useData = (currentUser) => {
         history: []
       };
     });
-    console.log('✅ Transformed assessments object:', result);
     return result;
   };
 
