@@ -473,9 +473,8 @@ app.get('/api/assessments', async (req, res) => {
 
 app.post('/api/assessments', async (req, res) => {
   try {
-    const { engineerId, areaId, machineId, competencyId, score } = req.body;
+    const { engineer_id: engineerId, production_area_id: areaId, machine_id: machineId, competency_id: competencyId, score } = req.body;
     console.log('📝 Assessment data received:', { engineerId, areaId, machineId, competencyId, score });
-    console.log('📦 Full request body:', req.body);
 
     // SQL Server upsert: Try UPDATE first, if no rows affected then INSERT
     const updateResult = await db.query(
@@ -535,7 +534,7 @@ app.get('/api/core-skills/assessments', async (req, res) => {
 
 app.post('/api/core-skills/assessments', async (req, res) => {
   try {
-    const { engineerId, categoryId, skillId, score } = req.body;
+    const { engineer_id: engineerId, category_id: categoryId, skill_id: skillId, score } = req.body;
 
     // SQL Server upsert: Try UPDATE first, if no rows affected then INSERT
     const updateResult = await db.query(
