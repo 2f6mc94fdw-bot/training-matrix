@@ -475,11 +475,19 @@ app.post('/api/assessments', async (req, res) => {
   try {
     const { engineerId, areaId, machineId, competencyId, score } = req.body;
 
+    // SQL Server MERGE statement (upsert)
     await db.query(
-      `INSERT INTO assessments (engineer_id, production_area_id, machine_id, competency_id, score)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (engineer_id, production_area_id, machine_id, competency_id)
-       DO UPDATE SET score = $5, updated_at = CURRENT_TIMESTAMP`,
+      `MERGE INTO assessments AS target
+       USING (SELECT $1 AS engineer_id, $2 AS production_area_id, $3 AS machine_id, $4 AS competency_id) AS source
+       ON (target.engineer_id = source.engineer_id
+           AND target.production_area_id = source.production_area_id
+           AND target.machine_id = source.machine_id
+           AND target.competency_id = source.competency_id)
+       WHEN MATCHED THEN
+         UPDATE SET score = $5, updated_at = GETDATE()
+       WHEN NOT MATCHED THEN
+         INSERT (engineer_id, production_area_id, machine_id, competency_id, score)
+         VALUES (source.engineer_id, source.production_area_id, source.machine_id, source.competency_id, $5);`,
       [engineerId, areaId, machineId, competencyId, score]
     );
 
@@ -525,11 +533,18 @@ app.post('/api/core-skills/assessments', async (req, res) => {
   try {
     const { engineerId, categoryId, skillId, score } = req.body;
 
+    // SQL Server MERGE statement (upsert)
     await db.query(
-      `INSERT INTO core_skill_assessments (engineer_id, category_id, skill_id, score)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (engineer_id, category_id, skill_id)
-       DO UPDATE SET score = $4, updated_at = CURRENT_TIMESTAMP`,
+      `MERGE INTO core_skill_assessments AS target
+       USING (SELECT $1 AS engineer_id, $2 AS category_id, $3 AS skill_id) AS source
+       ON (target.engineer_id = source.engineer_id
+           AND target.category_id = source.category_id
+           AND target.skill_id = source.skill_id)
+       WHEN MATCHED THEN
+         UPDATE SET score = $4, updated_at = GETDATE()
+       WHEN NOT MATCHED THEN
+         INSERT (engineer_id, category_id, skill_id, score)
+         VALUES (source.engineer_id, source.category_id, source.skill_id, $4);`,
       [engineerId, categoryId, skillId, score]
     );
 
