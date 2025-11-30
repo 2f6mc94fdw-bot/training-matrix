@@ -60,7 +60,7 @@ const EngineerAnalysis = ({ data, engineer, getAssessmentScore, useWeightedScore
       return allMachines;
     } else {
       // Show machines for selected area only
-      const area = data.productionAreas.find(a => a.id === selectedArea);
+      const area = data.productionAreas.find(a => a.id === parseInt(selectedArea));
       if (!area) return [];
 
       return area.machines.map(machine => {

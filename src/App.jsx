@@ -1608,7 +1608,7 @@ function App() {
                 <div className="mt-4 border-2 border-accent rounded-lg p-6 bg-red-50 animate-fadeIn">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg">
-                      Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
+                      Training Plan for {data.engineers.find(e => e.id === showModal.engineerId)?.name}
                     </h3>
                     <button onClick={() => setShowModal(null)} className="text-gray-500 hover:text-gray-700">
                       <X size={20} />
@@ -1620,7 +1620,7 @@ function App() {
                       <div className="text-6xl mb-4">🎉</div>
                       <p className="text-green-700 font-bold text-2xl mb-3">Excellent Work!</p>
                       <p className="text-gray-700 text-lg">
-                        <strong>{data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
+                        <strong>{data.engineers.find(e => e.id === showModal.engineerId)?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
                       </p>
                       <p className="text-green-600 font-medium mt-2">
                         ✓ No training currently needed
