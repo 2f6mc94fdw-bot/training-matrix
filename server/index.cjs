@@ -475,24 +475,23 @@ app.post('/api/assessments', async (req, res) => {
   try {
     const { engineerId, areaId, machineId, competencyId, score } = req.body;
 
-    // SQL Server upsert using IF EXISTS pattern (MERGE has parameter binding issues)
-    await db.query(
-      `IF EXISTS (SELECT 1 FROM assessments
-                  WHERE engineer_id = $1 AND production_area_id = $2
-                  AND machine_id = $3 AND competency_id = $4)
-       BEGIN
-         UPDATE assessments
-         SET score = $5, updated_at = GETDATE()
-         WHERE engineer_id = $1 AND production_area_id = $2
-         AND machine_id = $3 AND competency_id = $4
-       END
-       ELSE
-       BEGIN
-         INSERT INTO assessments (engineer_id, production_area_id, machine_id, competency_id, score)
-         VALUES ($1, $2, $3, $4, $5)
-       END`,
+    // SQL Server upsert: Try UPDATE first, if no rows affected then INSERT
+    const updateResult = await db.query(
+      `UPDATE assessments
+       SET score = $5, updated_at = GETDATE()
+       WHERE engineer_id = $1 AND production_area_id = $2
+       AND machine_id = $3 AND competency_id = $4`,
       [engineerId, areaId, machineId, competencyId, score]
     );
+
+    // If UPDATE didn't affect any rows, INSERT a new record
+    if (updateResult.rowCount === 0) {
+      await db.query(
+        `INSERT INTO assessments (engineer_id, production_area_id, machine_id, competency_id, score)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [engineerId, areaId, machineId, competencyId, score]
+      );
+    }
 
     res.json({ success: true });
   } catch (error) {
@@ -536,22 +535,22 @@ app.post('/api/core-skills/assessments', async (req, res) => {
   try {
     const { engineerId, categoryId, skillId, score } = req.body;
 
-    // SQL Server upsert using IF EXISTS pattern (MERGE has parameter binding issues)
-    await db.query(
-      `IF EXISTS (SELECT 1 FROM core_skill_assessments
-                  WHERE engineer_id = $1 AND category_id = $2 AND skill_id = $3)
-       BEGIN
-         UPDATE core_skill_assessments
-         SET score = $4, updated_at = GETDATE()
-         WHERE engineer_id = $1 AND category_id = $2 AND skill_id = $3
-       END
-       ELSE
-       BEGIN
-         INSERT INTO core_skill_assessments (engineer_id, category_id, skill_id, score)
-         VALUES ($1, $2, $3, $4)
-       END`,
+    // SQL Server upsert: Try UPDATE first, if no rows affected then INSERT
+    const updateResult = await db.query(
+      `UPDATE core_skill_assessments
+       SET score = $4, updated_at = GETDATE()
+       WHERE engineer_id = $1 AND category_id = $2 AND skill_id = $3`,
       [engineerId, categoryId, skillId, score]
     );
+
+    // If UPDATE didn't affect any rows, INSERT a new record
+    if (updateResult.rowCount === 0) {
+      await db.query(
+        `INSERT INTO core_skill_assessments (engineer_id, category_id, skill_id, score)
+         VALUES ($1, $2, $3, $4)`,
+        [engineerId, categoryId, skillId, score]
+      );
+    }
 
     res.json({ success: true });
   } catch (error) {
