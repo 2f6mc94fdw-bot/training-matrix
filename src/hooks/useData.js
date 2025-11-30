@@ -55,6 +55,9 @@ export const useData = (currentUser) => {
 
       console.log('👥 Loaded engineers:', engineers);
       console.log('🏭 Loaded production areas:', productionAreas);
+      if (productionAreas[0]?.machines?.[0]?.competencies?.[0]) {
+        console.log('🔧 Sample competency structure:', productionAreas[0].machines[0].competencies[0]);
+      }
 
       setData(transformedData);
       setLoading(false);
