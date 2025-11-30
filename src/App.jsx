@@ -1228,6 +1228,26 @@ function App() {
             {/* Skill Gap Analysis Sub-Tab */}
             {reportsSubTab === 'skillgap' && (
               <div className="space-y-6">
+                {/* Check if there's data to analyze */}
+                {data.engineers.length === 0 || data.productionAreas.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-card p-12 text-center">
+                    <div className="text-6xl mb-4">📊</div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Data Available</h3>
+                    <p className="text-gray-600 mb-4">
+                      Add engineers and production areas to start seeing skill gap analysis.
+                    </p>
+                    <div className="text-left max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="font-semibold text-blue-900 mb-2">Quick Start:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                        <li>Go to Admin → Engineers to add engineers</li>
+                        <li>Production areas are already loaded from your import</li>
+                        <li>Start scoring competencies in the Dashboard tab</li>
+                        <li>Return here to see insights and analysis</li>
+                      </ol>
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 {/* Overall Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-accent">
@@ -1323,8 +1343,16 @@ function App() {
                     ))}
                   </tbody>
                 </table>
+                {calculateSkillsGap().length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-lg font-medium">No skill gaps detected!</p>
+                    <p className="text-sm mt-1">All competencies are being met. Great job! 🎉</p>
+                  </div>
+                )}
               </div>
             </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1332,6 +1360,13 @@ function App() {
             {reportsSubTab === 'progress' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Engineer Progress Overview</h2>
+              {data.engineers.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-6xl mb-4">📈</div>
+                  <p className="text-lg font-medium">No Engineers Yet</p>
+                  <p className="text-sm mt-2">Add engineers in the Admin tab to see progress charts.</p>
+                </div>
+              ) : (
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={data.engineers.map(eng => {
                   const scores = calculateScores(eng.id);
@@ -1348,6 +1383,7 @@ function App() {
                   <Bar dataKey="completion" fill="#3B82F6" name="Completion %" />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
             )}
 
@@ -1355,6 +1391,13 @@ function App() {
             {reportsSubTab === 'heatmap' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Competency Heatmap</h2>
+              {data.engineers.length === 0 || data.productionAreas.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-6xl mb-4">🗺️</div>
+                  <p className="text-lg font-medium">No Data for Heatmap</p>
+                  <p className="text-sm mt-2">Add engineers and score competencies to see the heatmap.</p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -1432,6 +1475,7 @@ function App() {
                   <span>0%</span>
                 </div>
               </div>
+              )}
             </div>
             )}
 

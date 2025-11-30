@@ -5,6 +5,10 @@ import { TrendingUp, TrendingDown, AlertCircle, Award, Users, Target, Calendar, 
 const AdvancedAnalytics = ({ data }) => {
   const [activeTab, setActiveTab] = useState('trends');
 
+  // Check if there's any data to analyze
+  const hasData = data && data.engineers && data.engineers.length > 0 &&
+                  data.productionAreas && data.productionAreas.length > 0;
+
   // Calculate trend data from snapshots
   const trendData = useMemo(() => {
     if (!data.snapshots || data.snapshots.length === 0) return [];
@@ -233,6 +237,26 @@ const AdvancedAnalytics = ({ data }) => {
 
   return (
     <div className="space-y-6">
+      {/* Show "no data" message if there's no data */}
+      {!hasData ? (
+        <div className="bg-white rounded-xl shadow-card p-12 text-center">
+          <div className="text-6xl mb-4">📊</div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">No Data Available</h2>
+          <p className="text-gray-600 mb-6">
+            Advanced analytics requires engineers and production areas with assessment data.
+          </p>
+          <div className="text-left max-w-lg mx-auto bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <p className="font-semibold text-blue-900 mb-3">To get started:</p>
+            <ol className="list-decimal list-inside space-y-2 text-blue-800">
+              <li>Add engineers in the <span className="font-semibold">Admin → Engineers</span> tab</li>
+              <li>Score competencies in the <span className="font-semibold">Dashboard</span> tab</li>
+              <li>Create snapshots in the <span className="font-semibold">Admin → Snapshots</span> section to track trends</li>
+              <li>Return here to see predictions, trends, and automated insights</li>
+            </ol>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl shadow-card p-8 text-white">
         <div className="flex justify-between items-center">
@@ -437,6 +461,8 @@ const AdvancedAnalytics = ({ data }) => {
       )}
       </div> {/* End Content Area */}
     </div> {/* End Flex Container */}
+        </>
+      )}
     </div>
   );
 };
