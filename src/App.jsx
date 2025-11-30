@@ -1398,83 +1398,85 @@ function App() {
                   <p className="text-sm mt-2">Add engineers and score competencies to see the heatmap.</p>
                 </div>
               ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border p-2 bg-gray-100">Engineer</th>
-                      {(reportFilterArea === 'all'
-                        ? data.productionAreas
-                        : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
-                      ).flatMap(area =>
-                        area.machines.flatMap(machine =>
-                          machine.competencies.map(comp => (
-                            <th key={`${area.id}-${machine.id}-${comp.id}`} className="border p-2 bg-gray-100 writing-mode-vertical">
-                              {comp.name}
-                            </th>
-                          ))
-                        )
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.engineers.map(engineer => (
-                      <tr key={engineer.id}>
-                        <td className="border p-2 font-medium">{engineer.name}</td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="border p-2 bg-gray-100">Engineer</th>
                         {(reportFilterArea === 'all'
                           ? data.productionAreas
                           : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
                         ).flatMap(area =>
                           area.machines.flatMap(machine =>
-                            machine.competencies.map(comp => {
-                              const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
-                              const percentage = (score / comp.maxScore) * 100;
-                              return (
-                                <td
-                                  key={`${engineer.id}-${area.id}-${machine.id}-${comp.id}`}
-                                  className="border p-2 text-center"
-                                  style={{
-                                    backgroundColor: 
-                                      percentage >= 80 ? '#86efac' :
-                                      percentage >= 60 ? '#fde047' :
-                                      percentage >= 40 ? '#fdba74' :
-                                      percentage > 0 ? '#fca5a5' :
-                                      '#f3f4f6'
-                                  }}
-                                >
-                                  {score}
-                                </td>
-                              );
-                            })
+                            machine.competencies.map(comp => (
+                              <th key={`${area.id}-${machine.id}-${comp.id}`} className="border p-2 bg-gray-100 writing-mode-vertical">
+                                {comp.name}
+                              </th>
+                            ))
                           )
                         )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-4 flex gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-300"></div>
-                  <span>80-100%</span>
+                    </thead>
+                    <tbody>
+                      {data.engineers.map(engineer => (
+                        <tr key={engineer.id}>
+                          <td className="border p-2 font-medium">{engineer.name}</td>
+                          {(reportFilterArea === 'all'
+                            ? data.productionAreas
+                            : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
+                          ).flatMap(area =>
+                            area.machines.flatMap(machine =>
+                              machine.competencies.map(comp => {
+                                const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                                const percentage = (score / comp.maxScore) * 100;
+                                return (
+                                  <td
+                                    key={`${engineer.id}-${area.id}-${machine.id}-${comp.id}`}
+                                    className="border p-2 text-center"
+                                    style={{
+                                      backgroundColor:
+                                        percentage >= 80 ? '#86efac' :
+                                        percentage >= 60 ? '#fde047' :
+                                        percentage >= 40 ? '#fdba74' :
+                                        percentage > 0 ? '#fca5a5' :
+                                        '#f3f4f6'
+                                    }}
+                                  >
+                                    {score}
+                                  </td>
+                                );
+                              })
+                            )
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-300"></div>
-                  <span>60-79%</span>
+                <div className="mt-4 flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-300"></div>
+                    <span>80-100%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-300"></div>
+                    <span>60-79%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-300"></div>
+                    <span>40-59%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-300"></div>
+                    <span>1-39%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-100"></div>
+                    <span>0%</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-orange-300"></div>
-                  <span>40-59%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-300"></div>
-                  <span>1-39%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-100"></div>
-                  <span>0%</span>
-                </div>
-              </div>
+              </>
               )}
             </div>
             )}
