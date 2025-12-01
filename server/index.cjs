@@ -564,7 +564,16 @@ app.post('/api/core-skills/assessments', async (req, res) => {
 app.get('/api/certifications', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM certifications ORDER BY date_earned DESC');
-    res.json(result.rows);
+    // Transform snake_case to camelCase
+    const transformed = result.rows.map(cert => ({
+      id: cert.id,
+      engineerId: cert.engineer_id,
+      name: cert.name,
+      dateEarned: cert.date_earned,
+      expiryDate: cert.expiry_date,
+      createdAt: cert.created_at
+    }));
+    res.json(transformed);
   } catch (error) {
     console.error('Get certifications error:', error);
     res.status(500).json({ error: 'Server error' });

@@ -1683,16 +1683,37 @@ function App() {
                 <h2 className="text-xl font-bold">Certifications</h2>
                 <button
                   onClick={async () => {
+                    // Select engineer
+                    const engineerName = prompt(`Select engineer:\n${data.engineers.map((e, i) => `${i + 1}. ${e.name}`).join('\n')}\n\nEnter engineer number:`);
+                    if (!engineerName) return;
+
+                    const engineerIndex = parseInt(engineerName) - 1;
+                    if (engineerIndex < 0 || engineerIndex >= data.engineers.length) {
+                      toast.error('Invalid engineer selection');
+                      return;
+                    }
+                    const engineer = data.engineers[engineerIndex];
+
                     const name = prompt('Enter certification name:');
+                    if (!name) return;
+
                     const days = prompt('Enter validity period (days):', '365');
-                    if (name && days) {
-                      try {
-                        await dataHook.addCertification({ name, validityDays: parseInt(days) });
-                        toast.success('Certification added!');
-                      } catch (error) {
-                        console.error('Error adding certification:', error);
-                        toast.error('Failed to add certification');
-                      }
+                    if (!days) return;
+
+                    try {
+                      const dateEarned = new Date().toISOString().split('T')[0];
+                      const expiryDate = new Date(Date.now() + parseInt(days) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                      await dataHook.addCertification({
+                        engineerId: engineer.id,
+                        name,
+                        dateEarned,
+                        expiryDate
+                      });
+                      toast.success('Certification added!');
+                    } catch (error) {
+                      console.error('Error adding certification:', error);
+                      toast.error('Failed to add certification');
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
@@ -1701,30 +1722,43 @@ function App() {
                 </button>
               </div>
               <div className="space-y-2">
-                {(data.certifications || []).map(cert => (
-                  <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium">{cert.name}</p>
-                      <p className="text-sm text-gray-600">Valid for {cert.validityDays} days</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setConfirmDelete({
-                          message: 'Delete this certification?',
-                          onConfirm: async () => {
-                            try {
-                              await dataHook.deleteCertification(cert.id);
-                              setConfirmDelete(null);
-                              toast.success('Certification deleted!');
-                            } catch (error) {
-                              console.error('Error deleting certification:', error);
-                              toast.error('Failed to delete certification');
+                {(data.certifications || []).map(cert => {
+                  const engineer = data.engineers.find(e => e.id === cert.engineerId);
+                  const daysRemaining = cert.expiryDate ? Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const isExpired = daysRemaining !== null && daysRemaining < 0;
+
+                  return (
+                    <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">{cert.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {engineer?.name || 'Unknown Engineer'} •
+                          Earned: {new Date(cert.dateEarned).toLocaleDateString()}
+                          {cert.expiryDate && (
+                            <span className={isExpired ? 'text-red-600 font-semibold ml-2' : 'ml-2'}>
+                              • {isExpired ? 'EXPIRED' : `Expires: ${new Date(cert.expiryDate).toLocaleDateString()} (${daysRemaining} days)`}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setConfirmDelete({
+                            message: 'Delete this certification?',
+                            onConfirm: async () => {
+                              try {
+                                await dataHook.deleteCertification(cert.id);
+                                setConfirmDelete(null);
+                                toast.success('Certification deleted!');
+                              } catch (error) {
+                                console.error('Error deleting certification:', error);
+                                toast.error('Failed to delete certification');
+                              }
                             }
-                          }
-                        });
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    >
+                          });
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      >
                       <Trash2 size={20} />
                     </button>
                   </div>
