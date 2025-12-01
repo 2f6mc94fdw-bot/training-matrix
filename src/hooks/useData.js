@@ -15,7 +15,7 @@ export const useData = (currentUser) => {
     try {
       setLoading(true);
 
-      // Load production areas with nested structure
+      // Load production areas with nested structure (already transformed by backend)
       const productionAreas = await api.getProductionAreas();
 
       // Load engineers
@@ -282,8 +282,22 @@ export const useData = (currentUser) => {
         score: score
       });
 
+      // Update local state immediately without full refresh
+      const key = `${engineerId}-${areaId}-${machineId}-${compId}`;
+      setData(prevData => ({
+        ...prevData,
+        assessments: {
+          ...prevData.assessments,
+          [key]: {
+            score: score,
+            lastUpdated: new Date().toISOString(),
+            updatedBy: currentUser?.username || 'System',
+            history: prevData.assessments[key]?.history || []
+          }
+        }
+      }));
+
       await logAction('update_assessment', `Updated assessment for engineer ${engineerId}`);
-      await refreshData();
     } catch (error) {
       console.error('Error updating assessment:', error);
       throw error;
@@ -414,8 +428,25 @@ export const useData = (currentUser) => {
         score: score
       });
 
+      // Update local state immediately without full refresh
+      const key = `${engineerId}-${categoryId}-${skillId}`;
+      setData(prevData => ({
+        ...prevData,
+        coreSkills: {
+          ...prevData.coreSkills,
+          assessments: {
+            ...prevData.coreSkills.assessments,
+            [key]: {
+              score: score,
+              lastUpdated: new Date().toISOString(),
+              updatedBy: currentUser?.username || 'System',
+              history: prevData.coreSkills.assessments[key]?.history || []
+            }
+          }
+        }
+      }));
+
       await logAction('update_core_skill', `Updated core skill assessment`);
-      await refreshData();
     } catch (error) {
       console.error('Error updating core skill assessment:', error);
       throw error;

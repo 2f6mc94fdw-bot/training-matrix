@@ -1228,6 +1228,26 @@ function App() {
             {/* Skill Gap Analysis Sub-Tab */}
             {reportsSubTab === 'skillgap' && (
               <div className="space-y-6">
+                {/* Check if there's data to analyze */}
+                {data.engineers.length === 0 || data.productionAreas.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-card p-12 text-center">
+                    <div className="text-6xl mb-4">📊</div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Data Available</h3>
+                    <p className="text-gray-600 mb-4">
+                      Add engineers and production areas to start seeing skill gap analysis.
+                    </p>
+                    <div className="text-left max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="font-semibold text-blue-900 mb-2">Quick Start:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                        <li>Go to Admin → Engineers to add engineers</li>
+                        <li>Production areas are already loaded from your import</li>
+                        <li>Start scoring competencies in the Dashboard tab</li>
+                        <li>Return here to see insights and analysis</li>
+                      </ol>
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 {/* Overall Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-accent">
@@ -1323,8 +1343,16 @@ function App() {
                     ))}
                   </tbody>
                 </table>
+                {calculateSkillsGap().length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-lg font-medium">No skill gaps detected!</p>
+                    <p className="text-sm mt-1">All competencies are being met. Great job! 🎉</p>
+                  </div>
+                )}
               </div>
             </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1332,6 +1360,13 @@ function App() {
             {reportsSubTab === 'progress' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Engineer Progress Overview</h2>
+              {data.engineers.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-6xl mb-4">📈</div>
+                  <p className="text-lg font-medium">No Engineers Yet</p>
+                  <p className="text-sm mt-2">Add engineers in the Admin tab to see progress charts.</p>
+                </div>
+              ) : (
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={data.engineers.map(eng => {
                   const scores = calculateScores(eng.id);
@@ -1348,6 +1383,7 @@ function App() {
                   <Bar dataKey="completion" fill="#3B82F6" name="Completion %" />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
             )}
 
@@ -1355,83 +1391,93 @@ function App() {
             {reportsSubTab === 'heatmap' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Competency Heatmap</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border p-2 bg-gray-100">Engineer</th>
-                      {(reportFilterArea === 'all'
-                        ? data.productionAreas
-                        : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
-                      ).flatMap(area =>
-                        area.machines.flatMap(machine =>
-                          machine.competencies.map(comp => (
-                            <th key={`${area.id}-${machine.id}-${comp.id}`} className="border p-2 bg-gray-100 writing-mode-vertical">
-                              {comp.name}
-                            </th>
-                          ))
-                        )
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.engineers.map(engineer => (
-                      <tr key={engineer.id}>
-                        <td className="border p-2 font-medium">{engineer.name}</td>
+              {data.engineers.length === 0 || data.productionAreas.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-6xl mb-4">🗺️</div>
+                  <p className="text-lg font-medium">No Data for Heatmap</p>
+                  <p className="text-sm mt-2">Add engineers and score competencies to see the heatmap.</p>
+                </div>
+              ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="border p-2 bg-gray-100">Engineer</th>
                         {(reportFilterArea === 'all'
                           ? data.productionAreas
                           : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
                         ).flatMap(area =>
                           area.machines.flatMap(machine =>
-                            machine.competencies.map(comp => {
-                              const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
-                              const percentage = (score / comp.maxScore) * 100;
-                              return (
-                                <td
-                                  key={`${engineer.id}-${area.id}-${machine.id}-${comp.id}`}
-                                  className="border p-2 text-center"
-                                  style={{
-                                    backgroundColor: 
-                                      percentage >= 80 ? '#86efac' :
-                                      percentage >= 60 ? '#fde047' :
-                                      percentage >= 40 ? '#fdba74' :
-                                      percentage > 0 ? '#fca5a5' :
-                                      '#f3f4f6'
-                                  }}
-                                >
-                                  {score}
-                                </td>
-                              );
-                            })
+                            machine.competencies.map(comp => (
+                              <th key={`${area.id}-${machine.id}-${comp.id}`} className="border p-2 bg-gray-100 writing-mode-vertical">
+                                {comp.name}
+                              </th>
+                            ))
                           )
                         )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-4 flex gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-300"></div>
-                  <span>80-100%</span>
+                    </thead>
+                    <tbody>
+                      {data.engineers.map(engineer => (
+                        <tr key={engineer.id}>
+                          <td className="border p-2 font-medium">{engineer.name}</td>
+                          {(reportFilterArea === 'all'
+                            ? data.productionAreas
+                            : data.productionAreas.filter(area => area.id === parseInt(reportFilterArea))
+                          ).flatMap(area =>
+                            area.machines.flatMap(machine =>
+                              machine.competencies.map(comp => {
+                                const score = getAssessmentScore(engineer.id, area.id, machine.id, comp.id);
+                                const percentage = (score / comp.maxScore) * 100;
+                                return (
+                                  <td
+                                    key={`${engineer.id}-${area.id}-${machine.id}-${comp.id}`}
+                                    className="border p-2 text-center"
+                                    style={{
+                                      backgroundColor:
+                                        percentage >= 80 ? '#86efac' :
+                                        percentage >= 60 ? '#fde047' :
+                                        percentage >= 40 ? '#fdba74' :
+                                        percentage > 0 ? '#fca5a5' :
+                                        '#f3f4f6'
+                                    }}
+                                  >
+                                    {score}
+                                  </td>
+                                );
+                              })
+                            )
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-300"></div>
-                  <span>60-79%</span>
+                <div className="mt-4 flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-300"></div>
+                    <span>80-100%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-300"></div>
+                    <span>60-79%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-300"></div>
+                    <span>40-59%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-300"></div>
+                    <span>1-39%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-100"></div>
+                    <span>0%</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-orange-300"></div>
-                  <span>40-59%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-300"></div>
-                  <span>1-39%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-100"></div>
-                  <span>0%</span>
-                </div>
-              </div>
+              </>
+              )}
             </div>
             )}
 
@@ -1562,7 +1608,7 @@ function App() {
                 <div className="mt-4 border-2 border-accent rounded-lg p-6 bg-red-50 animate-fadeIn">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg">
-                      Training Plan for {data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}
+                      Training Plan for {data.engineers.find(e => e.id === showModal.engineerId)?.name}
                     </h3>
                     <button onClick={() => setShowModal(null)} className="text-gray-500 hover:text-gray-700">
                       <X size={20} />
@@ -1574,7 +1620,7 @@ function App() {
                       <div className="text-6xl mb-4">🎉</div>
                       <p className="text-green-700 font-bold text-2xl mb-3">Excellent Work!</p>
                       <p className="text-gray-700 text-lg">
-                        <strong>{data.engineers.find(e => e.id === parseInt(showModal.engineerId))?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
+                        <strong>{data.engineers.find(e => e.id === showModal.engineerId)?.name}</strong> has scored <strong>2 or higher</strong> on all competencies.
                       </p>
                       <p className="text-green-600 font-medium mt-2">
                         ✓ No training currently needed
@@ -1637,16 +1683,37 @@ function App() {
                 <h2 className="text-xl font-bold">Certifications</h2>
                 <button
                   onClick={async () => {
+                    // Select engineer
+                    const engineerName = prompt(`Select engineer:\n${data.engineers.map((e, i) => `${i + 1}. ${e.name}`).join('\n')}\n\nEnter engineer number:`);
+                    if (!engineerName) return;
+
+                    const engineerIndex = parseInt(engineerName) - 1;
+                    if (engineerIndex < 0 || engineerIndex >= data.engineers.length) {
+                      toast.error('Invalid engineer selection');
+                      return;
+                    }
+                    const engineer = data.engineers[engineerIndex];
+
                     const name = prompt('Enter certification name:');
+                    if (!name) return;
+
                     const days = prompt('Enter validity period (days):', '365');
-                    if (name && days) {
-                      try {
-                        await dataHook.addCertification({ name, validityDays: parseInt(days) });
-                        toast.success('Certification added!');
-                      } catch (error) {
-                        console.error('Error adding certification:', error);
-                        toast.error('Failed to add certification');
-                      }
+                    if (!days) return;
+
+                    try {
+                      const dateEarned = new Date().toISOString().split('T')[0];
+                      const expiryDate = new Date(Date.now() + parseInt(days) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                      await dataHook.addCertification({
+                        engineerId: engineer.id,
+                        name,
+                        dateEarned,
+                        expiryDate
+                      });
+                      toast.success('Certification added!');
+                    } catch (error) {
+                      console.error('Error adding certification:', error);
+                      toast.error('Failed to add certification');
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-light shadow-md"
@@ -1655,34 +1722,48 @@ function App() {
                 </button>
               </div>
               <div className="space-y-2">
-                {(data.certifications || []).map(cert => (
-                  <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium">{cert.name}</p>
-                      <p className="text-sm text-gray-600">Valid for {cert.validityDays} days</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setConfirmDelete({
-                          message: 'Delete this certification?',
-                          onConfirm: async () => {
-                            try {
-                              await dataHook.deleteCertification(cert.id);
-                              setConfirmDelete(null);
-                              toast.success('Certification deleted!');
-                            } catch (error) {
-                              console.error('Error deleting certification:', error);
-                              toast.error('Failed to delete certification');
+                {(data.certifications || []).map(cert => {
+                  const engineer = data.engineers.find(e => e.id === cert.engineerId);
+                  const daysRemaining = cert.expiryDate ? Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const isExpired = daysRemaining !== null && daysRemaining < 0;
+
+                  return (
+                    <div key={cert.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">{cert.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {engineer?.name || 'Unknown Engineer'} •
+                          Earned: {new Date(cert.dateEarned).toLocaleDateString()}
+                          {cert.expiryDate && (
+                            <span className={isExpired ? 'text-red-600 font-semibold ml-2' : 'ml-2'}>
+                              • {isExpired ? 'EXPIRED' : `Expires: ${new Date(cert.expiryDate).toLocaleDateString()} (${daysRemaining} days)`}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setConfirmDelete({
+                            message: 'Delete this certification?',
+                            onConfirm: async () => {
+                              try {
+                                await dataHook.deleteCertification(cert.id);
+                                setConfirmDelete(null);
+                                toast.success('Certification deleted!');
+                              } catch (error) {
+                                console.error('Error deleting certification:', error);
+                                toast.error('Failed to delete certification');
+                              }
                             }
-                          }
-                        });
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                ))}
+                          });
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
