@@ -1759,10 +1759,11 @@ function App() {
                         }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded"
                       >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                ))}
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
