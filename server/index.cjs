@@ -86,7 +86,14 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users', async (req, res) => {
   try {
     const result = await db.query('SELECT id, username, role, engineer_id FROM users ORDER BY username');
-    res.json(result.rows);
+    // Transform snake_case to camelCase
+    const transformed = result.rows.map(user => ({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      engineerId: user.engineer_id
+    }));
+    res.json(transformed);
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -275,24 +282,54 @@ app.get('/api/production-areas', async (req, res) => {
     // Get all production areas with their machines and competencies
     const areas = await db.query('SELECT * FROM production_areas ORDER BY id');
 
+    // Transform all nested data to camelCase
+    const transformed = [];
     for (const area of areas.rows) {
       const machines = await db.query(
         'SELECT * FROM machines WHERE production_area_id = $1 ORDER BY id',
         [area.id]
       );
 
+      const transformedMachines = [];
       for (const machine of machines.rows) {
         const competencies = await db.query(
           'SELECT * FROM competencies WHERE machine_id = $1 ORDER BY id',
           [machine.id]
         );
-        machine.competencies = competencies.rows;
+
+        // Transform competencies
+        const transformedCompetencies = competencies.rows.map(comp => ({
+          id: comp.id,
+          machineId: comp.machine_id,
+          name: comp.name,
+          maxScore: comp.max_score,
+          createdAt: comp.created_at,
+          updatedAt: comp.updated_at
+        }));
+
+        // Transform machine
+        transformedMachines.push({
+          id: machine.id,
+          productionAreaId: machine.production_area_id,
+          name: machine.name,
+          importance: machine.importance,
+          createdAt: machine.created_at,
+          updatedAt: machine.updated_at,
+          competencies: transformedCompetencies
+        });
       }
 
-      area.machines = machines.rows;
+      // Transform area
+      transformed.push({
+        id: area.id,
+        name: area.name,
+        createdAt: area.created_at,
+        updatedAt: area.updated_at,
+        machines: transformedMachines
+      });
     }
 
-    res.json(areas.rows);
+    res.json(transformed);
   } catch (error) {
     console.error('Get production areas error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -755,15 +792,15 @@ app.post('/api/data/import', async (req, res) => {
           if (area.machines && Array.isArray(area.machines)) {
             for (const machine of area.machines) {
               await client.query(
-                'INSERT INTO machines (id, name, production_area_id) VALUES ($1, $2, $3)',
-                [machine.id, machine.name, area.id]
+                'INSERT INTO machines (id, name, production_area_id, importance) VALUES ($1, $2, $3, $4)',
+                [machine.id, machine.name, area.id, machine.importance || 1]
               );
 
               if (machine.competencies && Array.isArray(machine.competencies)) {
                 for (const competency of machine.competencies) {
                   await client.query(
-                    'INSERT INTO competencies (id, name, description, machine_id) VALUES ($1, $2, $3, $4)',
-                    [competency.id, competency.name, competency.description || '', machine.id]
+                    'INSERT INTO competencies (id, name, machine_id, max_score) VALUES ($1, $2, $3, $4)',
+                    [competency.id, competency.name, machine.id, competency.max_score || competency.maxScore || 3]
                   );
                 }
               }
@@ -817,8 +854,8 @@ app.post('/api/data/import', async (req, res) => {
       if (data.certifications && Array.isArray(data.certifications)) {
         for (const cert of data.certifications) {
           await client.query(
-            'INSERT INTO certifications (id, engineer_id, name, issue_date, expiry_date, issuer) VALUES ($1, $2, $3, $4, $5, $6)',
-            [cert.id, cert.engineer_id, cert.name, cert.issue_date, cert.expiry_date || null, cert.issuer || '']
+            'INSERT INTO certifications (id, engineer_id, name, date_earned, expiry_date) VALUES ($1, $2, $3, $4, $5)',
+            [cert.id, cert.engineer_id || cert.engineerId, cert.name, cert.date_earned || cert.dateEarned, cert.expiry_date || cert.expiryDate || null]
           );
         }
       }
