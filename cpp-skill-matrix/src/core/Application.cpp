@@ -5,6 +5,7 @@
 #include "../ui/LoginDialog.h"
 #include "../database/DatabaseManager.h"
 #include "../utils/Logger.h"
+#include "../utils/Config.h"
 
 #include <QMessageBox>
 #include <QFile>
@@ -76,12 +77,24 @@ bool Application::initialize(int argc, char* argv[])
     // Initialize database
     DatabaseManager& dbManager = DatabaseManager::instance();
 
-    // Try to connect with saved settings
-    QString lastServer = settings_->value(Constants::SETTING_LAST_DB_SERVER, "localhost").toString();
-    QString lastDatabase = settings_->value(Constants::SETTING_LAST_DB_NAME, "training_matrix").toString();
-    QString lastUser = settings_->value(Constants::SETTING_LAST_DB_USER, "sa").toString();
+    // Load database configuration from config file
+    Config& config = Config::instance();
+    config.load();
 
-    // Note: Password should never be saved - will prompt on startup
+    // Connect to database using config
+    if (config.has("database.server")) {
+        QString server = config.databaseServer();
+        QString database = config.databaseName();
+        QString user = config.databaseUser();
+        QString password = config.databasePassword();
+        int port = config.databasePort();
+
+        if (!dbManager.connect(server, database, user, password, port)) {
+            Logger::instance().warning("Application", "Failed to connect to database on startup");
+        }
+    } else {
+        Logger::instance().warning("Application", "No database configuration found");
+    }
 
     Logger::instance().info("Application", "Initialization complete");
     return true;
