@@ -1,0 +1,68 @@
+/* Dark Theme for Skill Matrix */
+
+QMainWindow {
+    background-color: #1f2937;
+}
+
+QMenuBar {
+    background-color: #111827;
+    color: #f9fafb;
+    border-bottom: 1px solid #374151;
+}
+
+QMenuBar::item:selected {
+    background-color: #374151;
+}
+
+QListWidget {
+    background-color: #111827;
+    color: #f9fafb;
+    border: 1px solid #374151;
+}
+
+QListWidget::item:selected {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+
+QListWidget::item:hover {
+    background-color: #374151;
+}
+
+QPushButton {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+QPushButton:hover {
+    background-color: #1d4ed8;
+}
+
+QPushButton:pressed {
+    background-color: #1e40af;
+}
+
+QLineEdit {
+    padding: 8px;
+    border: 1px solid #374151;
+    border-radius: 4px;
+    background-color: #111827;
+    color: #f9fafb;
+}
+
+QLineEdit:focus {
+    border-color: #2563eb;
+}
+
+QLabel {
+    color: #f9fafb;
+}
+
+QStatusBar {
+    background-color: #111827;
+    color: #f9fafb;
+    border-top: 1px solid #374151;
+}
