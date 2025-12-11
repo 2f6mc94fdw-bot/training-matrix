@@ -2,6 +2,7 @@
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../database/DatabaseManager.h"
+#include "../database/UserRepository.h"
 #include "../utils/Config.h"
 #include "../utils/Crypto.h"
 #include "../utils/Logger.h"
@@ -157,14 +158,28 @@ bool LoginDialog::attemptLogin()
     QString username = usernameEdit_->text().trimmed();
     QString password = passwordEdit_->text();
 
-    // TODO: Implement actual authentication via UserRepository
-    // For now, hardcoded admin login
-    if (username == "admin" && password == "admin123") {
+    // Check database connection
+    if (!DatabaseManager::instance().isConnected()) {
+        statusLabel_->setText("Database not connected. Please check connection settings.");
+        statusLabel_->setStyleSheet("QLabel { color: red; }");
+        loginButton_->setEnabled(true);
+        Logger::instance().error("LoginDialog", "Database not connected");
+        return false;
+    }
+
+    // Hash the password
+    QString passwordHash = Crypto::hashPassword(password);
+
+    // Authenticate via UserRepository
+    UserRepository userRepo;
+    User user = userRepo.authenticate(username, passwordHash);
+
+    if (user.isValid()) {
         // Success
         Logger::instance().info("LoginDialog", "Login successful for user: " + username);
 
         // Set session
-        Application::instance().onUserLogin("admin_id", username, Constants::ROLE_ADMIN);
+        Application::instance().onUserLogin(user.id(), user.username(), user.role());
 
         statusLabel_->setText("Login successful!");
         statusLabel_->setStyleSheet("QLabel { color: green; }");
