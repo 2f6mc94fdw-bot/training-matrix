@@ -2,6 +2,9 @@
 #define AUDITLOGWIDGET_H
 
 #include <QWidget>
+#include <QTableWidget>
+#include <QPushButton>
+#include "../database/AuditLogRepository.h"
 
 class AuditLogWidget : public QWidget
 {
@@ -10,6 +13,19 @@ class AuditLogWidget : public QWidget
 public:
     explicit AuditLogWidget(QWidget* parent = nullptr);
     ~AuditLogWidget();
+
+private slots:
+    void onRefreshClicked();
+
+private:
+    void setupUI();
+    void loadAuditLogs();
+
+private:
+    QTableWidget* auditTable_;
+    QPushButton* refreshButton_;
+
+    AuditLogRepository auditLogRepo_;
 };
 
 #endif // AUDITLOGWIDGET_H
