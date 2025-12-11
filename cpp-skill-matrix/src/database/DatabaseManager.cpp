@@ -42,7 +42,7 @@ bool DatabaseManager::connect(const QString& server, const QString& database,
 
     // Build connection string for SQL Server
     QString connectionString = QString(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "DRIVER={ODBC Driver 18 for SQL Server};"
         "SERVER=%1,%2;"
         "DATABASE=%3;"
         "UID=%4;"
