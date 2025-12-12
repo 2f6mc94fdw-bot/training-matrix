@@ -28,7 +28,7 @@ Application::Application(QObject* parent)
     , mainWindow_(nullptr)
     , settings_(nullptr)
     , debugMode_(false)
-    , currentTheme_(Constants::THEME_LIGHT)
+    , currentTheme_(Constants::THEME_DARK)
 {
 }
 
@@ -261,8 +261,8 @@ void Application::applyTheme(const QString& theme)
 
 void Application::loadSettings()
 {
-    // Load theme
-    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_LIGHT).toString();
+    // Load theme - default to dark theme
+    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_DARK).toString();
 
     // Load other settings as needed
     bool autoSave = settings_->value(Constants::SETTING_AUTO_SAVE, true).toBool();
