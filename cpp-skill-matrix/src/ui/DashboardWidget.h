@@ -14,7 +14,9 @@
 #include <QtCharts/QBarSeries>
 #include <QtCharts/QPieSeries>
 
-using namespace QtCharts;
+QT_BEGIN_NAMESPACE
+namespace Ui { class DashboardWidget; }
+QT_END_NAMESPACE
 
 class DashboardWidget : public QWidget
 {
@@ -44,8 +46,8 @@ private:
     QLabel* lastLoginLabel_;
 
     // Charts
-    QChartView* skillChartView_;
-    QChart* skillChart_;
+    QtCharts::QChartView* skillChartView_;
+    QtCharts::QChart* skillChart_;
 
     // Recent activity
     QListWidget* recentActivityList_;
