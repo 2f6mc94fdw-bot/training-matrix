@@ -197,14 +197,15 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %4; "
         "    color: white; "
         "    border: none; "
-        "    border-radius: 6px; "  // Increased from 4px
-        "    padding: 12px 24px; "  // Increased from 8px 16px
-        "    font-weight: 600; "  // Slightly bolder
+        "    border-radius: 8px; "  // Rounded-lg style
+        "    padding: 12px 24px; "
+        "    font-weight: 600; "
         "    font-size: 13pt; "
-        "    min-width: 100px; "  // Increased from 80px
-        "    min-height: 36px; "  // Added minimum height
+        "    min-width: 100px; "
+        "    min-height: 36px; "
         "} "
         "QPushButton:hover {"
+        "    opacity: 0.9; "  // Subtle fade on hover
         "    background-color: %5; "
         "} "
         "QPushButton:pressed {"
@@ -224,12 +225,12 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "/* Tables */ "
         "QTableWidget {"
         "    gridline-color: %9; "
-        "    background-color: white; "
+        "    background-color: %2; "  // Use background color
         "    alternate-background-color: %10; "
         "    selection-background-color: %11; "
         "    selection-color: white; "
         "    border: 1px solid %12; "
-        "    border-radius: 6px; "  // Increased from 4px
+        "    border-radius: 12px; "  // Rounded-xl style
         "    font-size: 13pt; "
         "} "
         "QTableWidget::item {"
@@ -258,11 +259,11 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QGroupBox {"
         "    background-color: %18; "
         "    border: 1px solid %19; "
-        "    border-radius: 10px; "  // Increased from 8px
-        "    margin-top: 20px; "  // Increased from 16px
-        "    padding: 24px; "  // Increased from 16px
+        "    border-radius: 12px; "  // Rounded-xl style
+        "    margin-top: 20px; "
+        "    padding: 24px; "
         "    font-weight: 600; "
-        "    font-size: 15pt; "  // Increased from 11pt
+        "    font-size: 15pt; "
         "} "
         "QGroupBox::title {"
         "    subcontrol-origin: margin; "
@@ -274,19 +275,19 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Input Fields */ "
         "QLineEdit, QTextEdit, QPlainTextEdit {"
-        "    background-color: white; "
+        "    background-color: %2; "  // Use darker background (slate-900)
         "    border: 1px solid %21; "
-        "    border-radius: 6px; "  // Increased from 4px
-        "    padding: 10px 12px; "  // Increased from 8px
+        "    border-radius: 8px; "  // Rounded-lg style
+        "    padding: 10px 12px; "
         "    color: %22; "
         "    font-size: 13pt; "
-        "    min-height: 32px; "  // Added minimum height
+        "    min-height: 32px; "
         "    selection-background-color: %23; "
         "    selection-color: white; "
         "} "
         "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {"
-        "    border: 2px solid %24; "
-        "    padding: 9px 11px; "  // Adjust padding to account for thicker border
+        "    border: 2px solid #06b6d4; "  // Cyan-500 focus ring
+        "    padding: 9px 11px; "
         "} "
         "QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {"
         "    background-color: %25; "
@@ -295,20 +296,21 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Combo Boxes */ "
         "QComboBox {"
-        "    background-color: white; "
+        "    background-color: %2; "  // Use darker background (slate-900)
         "    border: 1px solid %27; "
-        "    border-radius: 6px; "  // Increased from 4px
-        "    padding: 10px 12px; "  // Increased from 6px 12px
+        "    border-radius: 8px; "  // Rounded-lg style
+        "    padding: 10px 12px; "
         "    font-size: 13pt; "
-        "    min-width: 120px; "  // Increased from 100px
-        "    min-height: 32px; "  // Added minimum height
+        "    min-width: 120px; "
+        "    min-height: 32px; "
+        "    color: %1; "
         "} "
         "QComboBox:hover {"
         "    border: 1px solid %28; "
         "} "
         "QComboBox:focus {"
-        "    border: 2px solid %29; "
-        "    padding: 9px 11px; "  // Adjust for thicker border
+        "    border: 2px solid #06b6d4; "  // Cyan-500 focus ring
+        "    padding: 9px 11px; "
         "} "
         "QComboBox::drop-down {"
         "    border: none; "
@@ -322,28 +324,31 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    margin-right: 8px; "
         "} "
         "QComboBox QAbstractItemView {"
-        "    background-color: white; "
+        "    background-color: %18; "  // Use card background (slate-800)
         "    border: 1px solid %31; "
+        "    border-radius: 8px; "
         "    selection-background-color: %32; "
         "    selection-color: white; "
-        "    padding: 6px; "  // Increased from 4px
+        "    padding: 6px; "
+        "    color: %1; "
         "} "
         "QComboBox QAbstractItemView::item {"
-        "    padding: 8px 12px; "  // Added padding to items
+        "    padding: 8px 12px; "
         "    min-height: 28px; "
         "} "
         ""
         "/* Spin Boxes */ "
         "QSpinBox, QDoubleSpinBox {"
-        "    background-color: white; "
+        "    background-color: %2; "  // Use darker background (slate-900)
         "    border: 1px solid %33; "
-        "    border-radius: 6px; "  // Increased from 4px
-        "    padding: 10px 12px; "  // Increased from 6px
+        "    border-radius: 8px; "  // Rounded-lg style
+        "    padding: 10px 12px; "
         "    font-size: 13pt; "
-        "    min-height: 32px; "  // Added minimum height
+        "    min-height: 32px; "
+        "    color: %1; "
         "} "
         "QSpinBox:focus, QDoubleSpinBox:focus {"
-        "    border: 2px solid %33; "
+        "    border: 2px solid #06b6d4; "  // Cyan-500 focus ring
         "} "
         ""
         "/* Labels */ "
@@ -375,11 +380,12 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Menus */ "
         "QMenu {"
-        "    background-color: white; "
+        "    background-color: %18; "  // Use card background (slate-800)
         "    border: 1px solid %40; "
-        "    border-radius: 8px; "  // Added border radius
-        "    padding: 8px; "  // Increased from 4px
+        "    border-radius: 12px; "  // Rounded-xl style
+        "    padding: 8px; "
         "    font-size: 13pt; "
+        "    color: %1; "
         "} "
         "QMenu::item {"
         "    padding: 10px 32px; "  // Increased from 6px 24px
@@ -487,9 +493,9 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "/* Tab Widget */ "
         "QTabWidget::pane {"
         "    border: 1px solid %58; "
-        "    border-radius: 8px; "  // Increased from 4px
-        "    background-color: white; "
-        "    padding: 8px; "  // Added padding
+        "    border-radius: 12px; "  // Rounded-xl style
+        "    background-color: %18; "  // Use card background (slate-800)
+        "    padding: 8px; "
         "} "
         "QTabBar::tab {"
         "    background-color: %59; "
@@ -505,9 +511,9 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    font-weight: 500; "
         "} "
         "QTabBar::tab:selected {"
-        "    background-color: white; "
+        "    background-color: %18; "  // Use card background (slate-800)
         "    color: %62; "
-        "    border-bottom: 3px solid %63; "  // Increased from 2px
+        "    border-bottom: 3px solid %63; "
         "    font-weight: 600; "
         "} "
         "QTabBar::tab:hover:!selected {"
@@ -525,13 +531,14 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Tree Widget */ "
         "QTreeWidget {"
-        "    background-color: white; "
+        "    background-color: %2; "  // Use main background (slate-900)
         "    border: 1px solid %67; "
-        "    border-radius: 6px; "  // Increased from 4px
+        "    border-radius: 12px; "  // Rounded-xl style
         "    alternate-background-color: %68; "
         "    selection-background-color: %69; "
         "    selection-color: white; "
         "    font-size: 13pt; "
+        "    color: %1; "
         "} "
         "QTreeWidget::item {"
         "    padding: 10px 8px; "  // Increased from 4px
@@ -546,13 +553,14 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* List Widget */ "
         "QListWidget {"
-        "    background-color: white; "
+        "    background-color: %2; "  // Use main background (slate-900)
         "    border: 1px solid %67; "
-        "    border-radius: 6px; "
+        "    border-radius: 12px; "  // Rounded-xl style
         "    alternate-background-color: %68; "
         "    selection-background-color: %69; "
         "    selection-color: white; "
         "    font-size: 13pt; "
+        "    color: %1; "
         "} "
         "QListWidget::item {"
         "    padding: 10px 12px; "  // Good spacing for list items
@@ -728,59 +736,47 @@ void StyleManager::initializeColors()
     lightColors_["tabBackground"] = QColor("#F5F5F5");    // Tab bg
     lightColors_["tabText"] = QColor("#757575");          // Tab text
 
-    // Dark Theme Colors - Following 6-3-1 Rule
-    // 60% - Dominant: Deep navy background
-    // 30% - Secondary: Medium panels and cards
-    // 10% - Accent: Bright highlights
+    // Dark Theme Colors - Slate Professional Design System
+    // Inspired by Tailwind Slate palette with Cyan accents
 
-    // Accent colors (10% - highlights, CTAs, important elements)
-    darkColors_["primary"] = QColor("#7AA2F7");           // Bright blue accent
-    darkColors_["accent"] = QColor("#2AC3DE");            // Cyan accent
-    darkColors_["success"] = QColor("#9ECE6A");           // Green accent
-    darkColors_["danger"] = QColor("#F7768E");            // Red accent
-    darkColors_["warning"] = QColor("#E0AF68");           // Orange accent
-    darkColors_["secondary"] = QColor("#565F89");         // Muted purple
+    // Accent colors (buttons, highlights, interactive elements)
+    darkColors_["primary"] = QColor("#0891b2");           // Cyan-600 - primary buttons/accents
+    darkColors_["accent"] = QColor("#22d3ee");            // Cyan-400 - accent text/highlights
+    darkColors_["success"] = QColor("#059669");           // Emerald-600 - success states
+    darkColors_["danger"] = QColor("#dc2626");            // Red-600 - danger/error states
+    darkColors_["warning"] = QColor("#d97706");           // Amber-600 - warning states
+    darkColors_["secondary"] = QColor("#64748b");         // Slate-500 - secondary elements
 
-    // Dominant colors (60% - main backgrounds)
-    darkColors_["background"] = QColor("#1A1B26");        // Deep navy - main bg
-    darkColors_["windowBackground"] = QColor("#16161E");  // Darker navy - window bg
-    darkColors_["toolbarBackground"] = QColor("#1A1B26"); // Toolbar matches main
-    darkColors_["statusBarBackground"] = QColor("#16161E"); // Status bar darker
-    darkColors_["menuBackground"] = QColor("#1A1B26");    // Menu matches main
-    darkColors_["tabBackground"] = QColor("#1A1B26");     // Tab inactive
-
-    // Secondary colors (30% - panels, cards, elevated surfaces)
-    darkColors_["cardBackground"] = QColor("#24283B");    // Medium navy - cards
-    darkColors_["headerBackground"] = QColor("#1F2335");  // Header slightly lighter
-    darkColors_["inputBackground"] = QColor("#1F2335");   // Input fields
-    darkColors_["alternateBackground"] = QColor("#1F2335"); // Alternate row
-    darkColors_["hoverBackground"] = QColor("#2D3450");   // Hover state
-    darkColors_["disabledBackground"] = QColor("#1F2335"); // Disabled bg
+    // Background colors (slate palette)
+    darkColors_["background"] = QColor("#0f172a");        // Slate-900 - main background
+    darkColors_["windowBackground"] = QColor("#0f172a");  // Slate-900 - window bg
+    darkColors_["cardBackground"] = QColor("#1e293b");    // Slate-800 - cards/panels
+    darkColors_["inputBackground"] = QColor("#0f172a");   // Slate-900 - input fields
+    darkColors_["alternateBackground"] = QColor("#1e293b"); // Slate-800 - alternate rows
+    darkColors_["headerBackground"] = QColor("#1e293b");  // Slate-800 - headers
+    darkColors_["hoverBackground"] = QColor("#334155");   // Slate-700 - hover state
+    darkColors_["disabledBackground"] = QColor("#1e293b"); // Slate-800 - disabled bg
+    darkColors_["toolbarBackground"] = QColor("#1e293b"); // Slate-800 - toolbar
+    darkColors_["statusBarBackground"] = QColor("#0f172a"); // Slate-900 - status bar
+    darkColors_["menuBackground"] = QColor("#1e293b");    // Slate-800 - menus
+    darkColors_["tabBackground"] = QColor("#1e293b");     // Slate-800 - tabs
 
     // Text colors
-    darkColors_["text"] = QColor("#C0CAF5");              // Soft white
-    darkColors_["textSecondary"] = QColor("#9AA5CE");     // Muted blue-gray
-    darkColors_["headerText"] = QColor("#C0CAF5");        // Header text
-    darkColors_["menuText"] = QColor("#C0CAF5");          // Menu text
-    darkColors_["statusBarText"] = QColor("#9AA5CE");     // Status bar text
-    darkColors_["tabText"] = QColor("#9AA5CE");           // Tab text
-    darkColors_["disabledText"] = QColor("#565F89");      // Disabled text
+    darkColors_["text"] = QColor("#f1f5f9");              // Slate-100 - primary text
+    darkColors_["textSecondary"] = QColor("#94a3b8");     // Slate-400 - muted text
+    darkColors_["headerText"] = QColor("#f1f5f9");        // Slate-100 - header text
+    darkColors_["menuText"] = QColor("#f1f5f9");          // Slate-100 - menu text
+    darkColors_["statusBarText"] = QColor("#94a3b8");     // Slate-400 - status text
+    darkColors_["tabText"] = QColor("#94a3b8");           // Slate-400 - tab text
+    darkColors_["disabledText"] = QColor("#64748b");      // Slate-500 - disabled text
 
     // Borders and separators
-    darkColors_["border"] = QColor("#292E42");            // Subtle borders
+    darkColors_["border"] = QColor("#334155");            // Slate-700 - borders
 
     // UI elements
-    darkColors_["progressBackground"] = QColor("#1F2335"); // Progress bg
-    darkColors_["scrollBarBackground"] = QColor("#16161E"); // Scrollbar bg
-    darkColors_["scrollBarHandle"] = QColor("#3B4261");   // Scrollbar handle
-    darkColors_["toolbarBackground"] = QColor("#2C2C2C"); // Toolbar bg
-    darkColors_["statusBarBackground"] = QColor("#1E1E1E"); // Status bar bg
-    darkColors_["statusBarText"] = QColor("#B0B0B0");     // Status bar text
-    darkColors_["progressBackground"] = QColor("#424242"); // Progress bg
-    darkColors_["scrollBarBackground"] = QColor("#2C2C2C"); // Scrollbar bg
-    darkColors_["scrollBarHandle"] = QColor("#616161");   // Scrollbar handle
-    darkColors_["tabBackground"] = QColor("#2C2C2C");     // Tab bg
-    darkColors_["tabText"] = QColor("#B0B0B0");           // Tab text
+    darkColors_["progressBackground"] = QColor("#334155"); // Slate-700 - progress bg
+    darkColors_["scrollBarBackground"] = QColor("#1e293b"); // Slate-800 - scrollbar bg
+    darkColors_["scrollBarHandle"] = QColor("#475569");   // Slate-600 - scrollbar handle
 }
 
 QMap<QString, QColor> StyleManager::getThemeColors(Theme theme) const
