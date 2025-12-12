@@ -179,10 +179,10 @@ QString StyleManager::buildStylesheet(Theme theme) const
     QMap<QString, QColor> colors = getThemeColors(theme);
 
     QString stylesheet = QString(
-        "/* Global Styles */ "
+        "/* Global Styles - Improved spacing and typography */ "
         "QWidget {"
         "    font-family: 'Segoe UI', 'San Francisco', 'Helvetica Neue', Arial, sans-serif; "
-        "    font-size: 10pt; "
+        "    font-size: 13pt; "  // Increased from 10pt
         "    color: %1; "
         "    background-color: %2; "
         "} "
@@ -197,10 +197,12 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %4; "
         "    color: white; "
         "    border: none; "
-        "    border-radius: 4px; "
-        "    padding: 8px 16px; "
-        "    font-weight: bold; "
-        "    min-width: 80px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    padding: 12px 24px; "  // Increased from 8px 16px
+        "    font-weight: 600; "  // Slightly bolder
+        "    font-size: 13pt; "
+        "    min-width: 100px; "  // Increased from 80px
+        "    min-height: 36px; "  // Added minimum height
         "} "
         "QPushButton:hover {"
         "    background-color: %5; "
@@ -213,6 +215,12 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    color: %8; "
         "} "
         ""
+        "/* Labels */ "
+        "QLabel {"
+        "    font-size: 13pt; "
+        "    padding: 2px; "
+        "} "
+        ""
         "/* Tables */ "
         "QTableWidget {"
         "    gridline-color: %9; "
@@ -221,10 +229,12 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    selection-background-color: %11; "
         "    selection-color: white; "
         "    border: 1px solid %12; "
-        "    border-radius: 4px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    font-size: 13pt; "
         "} "
         "QTableWidget::item {"
-        "    padding: 6px; "
+        "    padding: 12px; "  // Increased from 6px
+        "    min-height: 32px; "  // Added minimum height
         "} "
         "QTableWidget::item:hover {"
         "    background-color: %13; "
@@ -232,11 +242,13 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QHeaderView::section {"
         "    background-color: %14; "
         "    color: %15; "
-        "    padding: 10px; "
+        "    padding: 14px 12px; "  // Increased from 10px
         "    border: none; "
         "    border-bottom: 2px solid %16; "
-        "    font-weight: bold; "
+        "    font-weight: 600; "
+        "    font-size: 13pt; "
         "    text-align: left; "
+        "    min-height: 40px; "  // Added minimum height
         "} "
         "QHeaderView::section:hover {"
         "    background-color: %17; "
@@ -246,11 +258,11 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QGroupBox {"
         "    background-color: %18; "
         "    border: 1px solid %19; "
-        "    border-radius: 8px; "
-        "    margin-top: 16px; "
-        "    padding: 16px; "
-        "    font-weight: bold; "
-        "    font-size: 11pt; "
+        "    border-radius: 10px; "  // Increased from 8px
+        "    margin-top: 20px; "  // Increased from 16px
+        "    padding: 24px; "  // Increased from 16px
+        "    font-weight: 600; "
+        "    font-size: 15pt; "  // Increased from 11pt
         "} "
         "QGroupBox::title {"
         "    subcontrol-origin: margin; "
@@ -264,14 +276,17 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QLineEdit, QTextEdit, QPlainTextEdit {"
         "    background-color: white; "
         "    border: 1px solid %21; "
-        "    border-radius: 4px; "
-        "    padding: 8px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    padding: 10px 12px; "  // Increased from 8px
         "    color: %22; "
+        "    font-size: 13pt; "
+        "    min-height: 32px; "  // Added minimum height
         "    selection-background-color: %23; "
         "    selection-color: white; "
         "} "
         "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {"
         "    border: 2px solid %24; "
+        "    padding: 9px 11px; "  // Adjust padding to account for thicker border
         "} "
         "QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {"
         "    background-color: %25; "
@@ -282,41 +297,53 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QComboBox {"
         "    background-color: white; "
         "    border: 1px solid %27; "
-        "    border-radius: 4px; "
-        "    padding: 6px 12px; "
-        "    min-width: 100px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    padding: 10px 12px; "  // Increased from 6px 12px
+        "    font-size: 13pt; "
+        "    min-width: 120px; "  // Increased from 100px
+        "    min-height: 32px; "  // Added minimum height
         "} "
         "QComboBox:hover {"
         "    border: 1px solid %28; "
         "} "
         "QComboBox:focus {"
         "    border: 2px solid %29; "
+        "    padding: 9px 11px; "  // Adjust for thicker border
         "} "
         "QComboBox::drop-down {"
         "    border: none; "
-        "    width: 20px; "
+        "    width: 24px; "  // Slightly wider
         "} "
         "QComboBox::down-arrow {"
         "    image: none; "
-        "    border-left: 4px solid transparent; "
-        "    border-right: 4px solid transparent; "
-        "    border-top: 6px solid %30; "
-        "    margin-right: 6px; "
+        "    border-left: 5px solid transparent; "
+        "    border-right: 5px solid transparent; "
+        "    border-top: 7px solid %30; "
+        "    margin-right: 8px; "
         "} "
         "QComboBox QAbstractItemView {"
         "    background-color: white; "
         "    border: 1px solid %31; "
         "    selection-background-color: %32; "
         "    selection-color: white; "
-        "    padding: 4px; "
+        "    padding: 6px; "  // Increased from 4px
+        "} "
+        "QComboBox QAbstractItemView::item {"
+        "    padding: 8px 12px; "  // Added padding to items
+        "    min-height: 28px; "
         "} "
         ""
         "/* Spin Boxes */ "
         "QSpinBox, QDoubleSpinBox {"
         "    background-color: white; "
         "    border: 1px solid %33; "
-        "    border-radius: 4px; "
-        "    padding: 6px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    padding: 10px 12px; "  // Increased from 6px
+        "    font-size: 13pt; "
+        "    min-height: 32px; "  // Added minimum height
+        "} "
+        "QSpinBox:focus, QDoubleSpinBox:focus {"
+        "    border: 2px solid %33; "
         "} "
         ""
         "/* Labels */ "
@@ -330,12 +357,14 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %35; "
         "    color: %36; "
         "    border-bottom: 1px solid %37; "
-        "    padding: 4px; "
+        "    padding: 6px; "  // Increased from 4px
+        "    font-size: 13pt; "
         "} "
         "QMenuBar::item {"
         "    background-color: transparent; "
-        "    padding: 6px 12px; "
-        "    border-radius: 4px; "
+        "    padding: 8px 16px; "  // Increased from 6px 12px
+        "    border-radius: 6px; "  // Increased from 4px
+        "    margin: 2px; "
         "} "
         "QMenuBar::item:selected {"
         "    background-color: %38; "
@@ -348,36 +377,46 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QMenu {"
         "    background-color: white; "
         "    border: 1px solid %40; "
-        "    padding: 4px; "
+        "    border-radius: 8px; "  // Added border radius
+        "    padding: 8px; "  // Increased from 4px
+        "    font-size: 13pt; "
         "} "
         "QMenu::item {"
-        "    padding: 6px 24px; "
-        "    border-radius: 4px; "
+        "    padding: 10px 32px; "  // Increased from 6px 24px
+        "    border-radius: 6px; "  // Increased from 4px
+        "    min-height: 28px; "  // Added minimum height
         "} "
         "QMenu::item:selected {"
         "    background-color: %41; "
         "    color: white; "
+        "} "
+        "QMenu::separator {"
+        "    height: 1px; "
+        "    background-color: %40; "
+        "    margin: 6px 0px; "
         "} "
         ""
         "/* Tool Bar */ "
         "QToolBar {"
         "    background-color: %42; "
         "    border: none; "
-        "    spacing: 4px; "
-        "    padding: 4px; "
+        "    spacing: 8px; "  // Increased from 4px
+        "    padding: 8px; "  // Increased from 4px
         "} "
         "QToolBar::separator {"
         "    background-color: %43; "
         "    width: 1px; "
-        "    margin: 4px 8px; "
+        "    margin: 6px 12px; "  // Increased from 4px 8px
         "} "
         ""
         "/* Tool Buttons */ "
         "QToolButton {"
         "    background-color: transparent; "
         "    border: none; "
-        "    border-radius: 4px; "
-        "    padding: 6px; "
+        "    border-radius: 6px; "  // Increased from 4px
+        "    padding: 10px; "  // Increased from 6px
+        "    min-width: 32px; "
+        "    min-height: 32px; "
         "} "
         "QToolButton:hover {"
         "    background-color: %44; "
@@ -391,43 +430,51 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %46; "
         "    color: %47; "
         "    border-top: 1px solid %48; "
+        "    padding: 6px 12px; "  // Added padding
+        "    font-size: 12pt; "  // Slightly smaller for status
         "} "
         ""
         "/* Progress Bar */ "
         "QProgressBar {"
         "    border: 1px solid %49; "
-        "    border-radius: 4px; "
+        "    border-radius: 6px; "  // Increased from 4px
         "    text-align: center; "
         "    background-color: %50; "
+        "    min-height: 24px; "  // Added minimum height
+        "    font-size: 12pt; "
         "} "
         "QProgressBar::chunk {"
         "    background-color: %51; "
-        "    border-radius: 3px; "
+        "    border-radius: 5px; "  // Increased from 3px
         "} "
         ""
         "/* Scroll Bars */ "
         "QScrollBar:vertical {"
         "    background-color: %52; "
-        "    width: 12px; "
-        "    border-radius: 6px; "
+        "    width: 14px; "  // Increased from 12px
+        "    border-radius: 7px; "
+        "    margin: 0px; "
         "} "
         "QScrollBar::handle:vertical {"
         "    background-color: %53; "
-        "    border-radius: 6px; "
-        "    min-height: 20px; "
+        "    border-radius: 7px; "
+        "    min-height: 30px; "  // Increased from 20px
+        "    margin: 2px; "
         "} "
         "QScrollBar::handle:vertical:hover {"
         "    background-color: %54; "
         "} "
         "QScrollBar:horizontal {"
         "    background-color: %55; "
-        "    height: 12px; "
-        "    border-radius: 6px; "
+        "    height: 14px; "  // Increased from 12px
+        "    border-radius: 7px; "
+        "    margin: 0px; "
         "} "
         "QScrollBar::handle:horizontal {"
         "    background-color: %56; "
-        "    border-radius: 6px; "
-        "    min-width: 20px; "
+        "    border-radius: 7px; "
+        "    min-width: 30px; "  // Increased from 20px
+        "    margin: 2px; "
         "} "
         "QScrollBar::handle:horizontal:hover {"
         "    background-color: %57; "
@@ -440,23 +487,28 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "/* Tab Widget */ "
         "QTabWidget::pane {"
         "    border: 1px solid %58; "
-        "    border-radius: 4px; "
+        "    border-radius: 8px; "  // Increased from 4px
         "    background-color: white; "
+        "    padding: 8px; "  // Added padding
         "} "
         "QTabBar::tab {"
         "    background-color: %59; "
         "    color: %60; "
-        "    padding: 8px 16px; "
+        "    padding: 12px 24px; "  // Increased from 8px 16px
         "    border: 1px solid %61; "
         "    border-bottom: none; "
-        "    border-top-left-radius: 4px; "
-        "    border-top-right-radius: 4px; "
-        "    margin-right: 2px; "
+        "    border-top-left-radius: 8px; "  // Increased from 4px
+        "    border-top-right-radius: 8px; "  // Increased from 4px
+        "    margin-right: 4px; "  // Increased from 2px
+        "    min-width: 80px; "  // Added minimum width
+        "    font-size: 13pt; "
+        "    font-weight: 500; "
         "} "
         "QTabBar::tab:selected {"
         "    background-color: white; "
         "    color: %62; "
-        "    border-bottom: 2px solid %63; "
+        "    border-bottom: 3px solid %63; "  // Increased from 2px
+        "    font-weight: 600; "
         "} "
         "QTabBar::tab:hover:!selected {"
         "    background-color: %64; "
@@ -465,6 +517,7 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "/* Splitter */ "
         "QSplitter::handle {"
         "    background-color: %65; "
+        "    width: 2px; "  // Added explicit width
         "} "
         "QSplitter::handle:hover {"
         "    background-color: %66; "
@@ -474,48 +527,91 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QTreeWidget {"
         "    background-color: white; "
         "    border: 1px solid %67; "
-        "    border-radius: 4px; "
+        "    border-radius: 6px; "  // Increased from 4px
         "    alternate-background-color: %68; "
         "    selection-background-color: %69; "
         "    selection-color: white; "
+        "    font-size: 13pt; "
         "} "
         "QTreeWidget::item {"
-        "    padding: 4px; "
+        "    padding: 10px 8px; "  // Increased from 4px
+        "    min-height: 32px; "  // Added minimum height
         "} "
         "QTreeWidget::item:hover {"
+        "    background-color: %70; "
+        "} "
+        "QTreeWidget::branch {"
+        "    background-color: transparent; "
+        "} "
+        ""
+        "/* List Widget */ "
+        "QListWidget {"
+        "    background-color: white; "
+        "    border: 1px solid %67; "
+        "    border-radius: 6px; "
+        "    alternate-background-color: %68; "
+        "    selection-background-color: %69; "
+        "    selection-color: white; "
+        "    font-size: 13pt; "
+        "} "
+        "QListWidget::item {"
+        "    padding: 10px 12px; "  // Good spacing for list items
+        "    min-height: 32px; "
+        "} "
+        "QListWidget::item:hover {"
         "    background-color: %70; "
         "} "
         ""
         "/* Check Box */ "
         "QCheckBox {"
-        "    spacing: 8px; "
+        "    spacing: 10px; "  // Increased from 8px
+        "    font-size: 13pt; "
+        "    padding: 4px; "
         "} "
         "QCheckBox::indicator {"
-        "    width: 18px; "
-        "    height: 18px; "
+        "    width: 20px; "  // Increased from 18px
+        "    height: 20px; "  // Increased from 18px
         "    border: 2px solid %71; "
-        "    border-radius: 3px; "
+        "    border-radius: 4px; "  // Increased from 3px
         "    background-color: white; "
         "} "
         "QCheckBox::indicator:checked {"
         "    background-color: %72; "
         "    border-color: %73; "
         "} "
+        "QCheckBox::indicator:hover {"
+        "    border-color: %72; "
+        "} "
         ""
         "/* Radio Button */ "
         "QRadioButton {"
-        "    spacing: 8px; "
+        "    spacing: 10px; "  // Increased from 8px
+        "    font-size: 13pt; "
+        "    padding: 4px; "
         "} "
         "QRadioButton::indicator {"
-        "    width: 18px; "
-        "    height: 18px; "
+        "    width: 20px; "  // Increased from 18px
+        "    height: 20px; "  // Increased from 18px
         "    border: 2px solid %74; "
-        "    border-radius: 9px; "
+        "    border-radius: 10px; "  // Increased from 9px
         "    background-color: white; "
         "} "
         "QRadioButton::indicator:checked {"
         "    background-color: %75; "
         "    border-color: %76; "
+        "} "
+        "QRadioButton::indicator:hover {"
+        "    border-color: %75; "
+        "} "
+        ""
+        "/* Tooltips */ "
+        "QToolTip {"
+        "    background-color: %72; "
+        "    color: white; "
+        "    border: none; "
+        "    border-radius: 6px; "
+        "    padding: 8px 12px; "
+        "    font-size: 12pt; "
         "} "
     ).arg(
         colors["text"].name(),                      // 1

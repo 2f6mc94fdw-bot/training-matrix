@@ -47,15 +47,16 @@ DashboardWidget::~DashboardWidget()
 void DashboardWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(16);
+    mainLayout->setSpacing(24);  // Increased from 16
+    mainLayout->setContentsMargins(20, 20, 20, 20);  // Added margins
 
     // Title and Welcome Section
     QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(24);
+    titleFont.setPointSize(26);  // Increased from 24
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + ";");
+    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin-bottom: 8px;");
     mainLayout->addWidget(titleLabel);
 
     // Welcome message with user info
@@ -65,7 +66,7 @@ void DashboardWidget::setupUI()
     );
     QLabel* welcomeLabel = new QLabel(welcomeText, this);
     QFont welcomeFont = welcomeLabel->font();
-    welcomeFont.setPointSize(12);
+    welcomeFont.setPointSize(14);  // Increased from 12
     welcomeLabel->setFont(welcomeFont);
     mainLayout->addWidget(welcomeLabel);
 
@@ -75,72 +76,90 @@ void DashboardWidget::setupUI()
         this
     );
     lastLoginLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+    QFont lastLoginFont = lastLoginLabel_->font();
+    lastLoginFont.setPointSize(12);  // Added explicit font size
+    lastLoginLabel_->setFont(lastLoginFont);
     mainLayout->addWidget(lastLoginLabel_);
 
-    mainLayout->addSpacing(10);
+    mainLayout->addSpacing(20);  // Increased from 10
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(16);
+    statsGrid->setSpacing(20);  // Increased from 16
+    statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
     QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
     QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
+    engineersLayout->setSpacing(12);  // Added spacing
+    engineersLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
     engineerCountLabel_ = new QLabel("0", this);
     QFont countFont = engineerCountLabel_->font();
-    countFont.setPointSize(36);
+    countFont.setPointSize(40);  // Increased from 36
     countFont.setBold(true);
     engineerCountLabel_->setFont(countFont);
     engineerCountLabel_->setAlignment(Qt::AlignCenter);
-    engineerCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + ";");
+    engineerCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin: 8px 0;");
     engineersLayout->addWidget(engineerCountLabel_);
     QLabel* engineersSubtext = new QLabel("Active workforce", this);
     engineersSubtext->setAlignment(Qt::AlignCenter);
+    QFont subtextFont = engineersSubtext->font();
+    subtextFont.setPointSize(12);  // Added explicit font size
+    engineersSubtext->setFont(subtextFont);
     engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     engineersLayout->addWidget(engineersSubtext);
-    engineersBox->setMinimumHeight(140);
+    engineersBox->setMinimumHeight(180);  // Increased from 140
 
     // Production Areas Card
     QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
     QVBoxLayout* areasLayout = new QVBoxLayout(areasBox);
+    areasLayout->setSpacing(12);  // Added spacing
+    areasLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
     productionAreaCountLabel_ = new QLabel("0", this);
     productionAreaCountLabel_->setFont(countFont);
     productionAreaCountLabel_->setAlignment(Qt::AlignCenter);
-    productionAreaCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("accent").name() + ";");
+    productionAreaCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("accent").name() + "; margin: 8px 0;");
     areasLayout->addWidget(productionAreaCountLabel_);
     QLabel* areasSubtext = new QLabel("Defined work areas", this);
+    areasSubtext->setFont(subtextFont);
     areasSubtext->setAlignment(Qt::AlignCenter);
     areasSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     areasLayout->addWidget(areasSubtext);
-    areasBox->setMinimumHeight(140);
+    areasBox->setMinimumHeight(180);  // Increased from 140
 
     // Assessments Card
     QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
     QVBoxLayout* assessmentsLayout = new QVBoxLayout(assessmentsBox);
+    assessmentsLayout->setSpacing(12);  // Added spacing
+    assessmentsLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
     assessmentCountLabel_ = new QLabel("0", this);
     assessmentCountLabel_->setFont(countFont);
     assessmentCountLabel_->setAlignment(Qt::AlignCenter);
-    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("warning").name() + ";");
+    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("warning").name() + "; margin: 8px 0;");
     assessmentsLayout->addWidget(assessmentCountLabel_);
     QLabel* assessmentsSubtext = new QLabel("Competency evaluations", this);
+    assessmentsSubtext->setFont(subtextFont);
     assessmentsSubtext->setAlignment(Qt::AlignCenter);
     assessmentsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     assessmentsLayout->addWidget(assessmentsSubtext);
-    assessmentsBox->setMinimumHeight(140);
+    assessmentsBox->setMinimumHeight(180);  // Increased from 140
 
     // Core Skills Card
     QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
     QVBoxLayout* coreSkillsLayout = new QVBoxLayout(coreSkillsBox);
+    coreSkillsLayout->setSpacing(12);  // Added spacing
+    coreSkillsLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
     coreSkillCountLabel_ = new QLabel("0", this);
     coreSkillCountLabel_->setFont(countFont);
     coreSkillCountLabel_->setAlignment(Qt::AlignCenter);
-    coreSkillCountLabel_->setStyleSheet("color: #E91E63;");
+    coreSkillCountLabel_->setStyleSheet("color: #E91E63; margin: 8px 0;");
     coreSkillsLayout->addWidget(coreSkillCountLabel_);
     QLabel* coreSkillsSubtext = new QLabel("Fundamental competencies", this);
+    coreSkillsSubtext->setFont(subtextFont);
     coreSkillsSubtext->setAlignment(Qt::AlignCenter);
     coreSkillsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     coreSkillsLayout->addWidget(coreSkillsSubtext);
-    coreSkillsBox->setMinimumHeight(140);
+    coreSkillsBox->setMinimumHeight(180);  // Increased from 140
 
     statsGrid->addWidget(engineersBox, 0, 0);
     statsGrid->addWidget(areasBox, 0, 1);
@@ -149,66 +168,83 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(statsGrid);
 
+    mainLayout->addSpacing(12);  // Added spacing before charts section
+
     // Charts and Activity Section
     QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(16);
+    chartsLayout->setSpacing(20);  // Increased from 16
 
     // Skill Distribution Chart
     QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
     QVBoxLayout* chartLayout = new QVBoxLayout(chartBox);
+    chartLayout->setContentsMargins(12, 16, 12, 12);  // Added margins
 
     skillChart_ = new QChart();
     skillChart_->setTitle("");
     skillChart_->setAnimationOptions(QChart::SeriesAnimations);
     skillChart_->legend()->setAlignment(Qt::AlignBottom);
+    skillChart_->setMargins(QMargins(12, 12, 12, 12));  // Added chart margins
 
     skillChartView_ = new QChartView(skillChart_, this);
     skillChartView_->setRenderHint(QPainter::Antialiasing);
-    skillChartView_->setMinimumHeight(300);
+    skillChartView_->setMinimumHeight(350);  // Increased from 300
 
     chartLayout->addWidget(skillChartView_);
-    chartBox->setMinimumWidth(400);
+    chartBox->setMinimumWidth(450);  // Increased from 400
 
     // Recent Activity Feed
     QGroupBox* activityBox = new QGroupBox("📝 Recent Activity", this);
     QVBoxLayout* activityLayout = new QVBoxLayout(activityBox);
+    activityLayout->setContentsMargins(12, 16, 12, 12);  // Added margins
 
     recentActivityList_ = new QListWidget(this);
-    recentActivityList_->setMinimumHeight(300);
+    recentActivityList_->setMinimumHeight(350);  // Increased from 300
     recentActivityList_->setAlternatingRowColors(true);
 
     activityLayout->addWidget(recentActivityList_);
-    activityBox->setMinimumWidth(350);
+    activityBox->setMinimumWidth(400);  // Increased from 350
 
     chartsLayout->addWidget(chartBox, 6);
     chartsLayout->addWidget(activityBox, 4);
 
     mainLayout->addLayout(chartsLayout);
 
+    mainLayout->addSpacing(12);  // Added spacing before actions section
+
     // Quick Actions Guide
     QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
     QVBoxLayout* actionsLayout = new QVBoxLayout(actionsBox);
+    actionsLayout->setContentsMargins(16, 20, 16, 16);  // Added margins
 
     QLabel* actionsLabel = new QLabel(
-        "<ul style='line-height: 1.6;'>"
-        "<li><b>Engineers:</b> Manage engineer profiles and information</li>"
-        "<li><b>Production Areas:</b> Define areas, machines, and competencies</li>"
-        "<li><b>Assessments:</b> Perform and track competency evaluations</li>"
-        "<li><b>Reports:</b> Generate detailed skill matrix reports</li>"
-        "<li><b>Analytics:</b> View charts and insights</li>"
-        "<li><b>Import/Export:</b> Transfer data to/from external systems</li>"
+        "<ul style='line-height: 2.0;'>"  // Increased from 1.6
+        "<li style='margin-bottom: 8px;'><b>Engineers:</b> Manage engineer profiles and information</li>"
+        "<li style='margin-bottom: 8px;'><b>Production Areas:</b> Define areas, machines, and competencies</li>"
+        "<li style='margin-bottom: 8px;'><b>Assessments:</b> Perform and track competency evaluations</li>"
+        "<li style='margin-bottom: 8px;'><b>Reports:</b> Generate detailed skill matrix reports</li>"
+        "<li style='margin-bottom: 8px;'><b>Analytics:</b> View charts and insights</li>"
+        "<li style='margin-bottom: 8px;'><b>Import/Export:</b> Transfer data to/from external systems</li>"
         "</ul>", this);
     actionsLabel->setTextFormat(Qt::RichText);
     actionsLabel->setWordWrap(true);
+    QFont actionsFont = actionsLabel->font();
+    actionsFont.setPointSize(13);  // Added explicit font size
+    actionsLabel->setFont(actionsFont);
 
     actionsLayout->addWidget(actionsLabel);
     mainLayout->addWidget(actionsBox);
 
+    mainLayout->addSpacing(16);  // Added spacing before footer
+
     // Footer with last update and refresh button
     QHBoxLayout* footerLayout = new QHBoxLayout();
+    footerLayout->setContentsMargins(0, 12, 0, 0);  // Added top margin
 
     lastUpdateLabel_ = new QLabel("Last updated: Never", this);
     lastUpdateLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+    QFont footerFont = lastUpdateLabel_->font();
+    footerFont.setPointSize(12);  // Added explicit font size
+    lastUpdateLabel_->setFont(footerFont);
     footerLayout->addWidget(lastUpdateLabel_);
 
     footerLayout->addStretch();
