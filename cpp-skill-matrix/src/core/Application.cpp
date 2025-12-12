@@ -42,6 +42,14 @@ bool Application::initialize(int argc, char* argv[])
     // Create Qt application
     qApp_ = new QApplication(argc, argv);
 
+    // Add Qt plugin paths for SQL drivers
+    // This is needed when app is launched from Dock/Finder
+    QCoreApplication::addLibraryPath("/opt/homebrew/Cellar/qtbase/6.9.3_1/share/qt/plugins");
+    QCoreApplication::addLibraryPath("/opt/homebrew/opt/qtbase/share/qt/plugins");
+
+    Logger::instance().info("Application", QString("Qt plugin paths: %1").arg(
+        QCoreApplication::libraryPaths().join(", ")));
+
     // Setup application metadata
     setupApplication();
 
