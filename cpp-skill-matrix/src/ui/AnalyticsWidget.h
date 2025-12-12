@@ -2,6 +2,7 @@
 #define ANALYTICSWIDGET_H
 
 #include <QWidget>
+#include <QLabel>
 
 class AnalyticsWidget : public QWidget
 {
@@ -10,6 +11,9 @@ class AnalyticsWidget : public QWidget
 public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
+
+private:
+    void setupUI();
 };
 
 #endif // ANALYTICSWIDGET_H

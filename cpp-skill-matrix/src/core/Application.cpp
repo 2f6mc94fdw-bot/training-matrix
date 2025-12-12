@@ -3,9 +3,11 @@
 #include "Session.h"
 #include "../ui/MainWindow.h"
 #include "../ui/LoginDialog.h"
+#include "../ui/StyleManager.h"
 #include "../database/DatabaseManager.h"
 #include "../utils/Logger.h"
 #include "../utils/Config.h"
+#include "../utils/IconProvider.h"
 
 #include <QMessageBox>
 #include <QFile>
@@ -71,8 +73,14 @@ bool Application::initialize(int argc, char* argv[])
         }
     }
 
-    // Apply theme
-    applyTheme(currentTheme_);
+    // Initialize StyleManager and IconProvider
+    StyleManager::instance().initialize();
+    IconProvider::instance().initialize();
+
+    // Apply theme through StyleManager
+    StyleManager::Theme theme = (currentTheme_ == Constants::THEME_DARK) ?
+        StyleManager::Dark : StyleManager::Light;
+    StyleManager::instance().applyTheme(theme);
 
     // Initialize database
     DatabaseManager& dbManager = DatabaseManager::instance();
@@ -234,7 +242,12 @@ void Application::onUserLogout()
 void Application::applyTheme(const QString& theme)
 {
     currentTheme_ = theme;
-    loadStylesheet(theme);
+
+    // Use StyleManager for theming
+    StyleManager::Theme styleTheme = (theme == Constants::THEME_DARK) ?
+        StyleManager::Dark : StyleManager::Light;
+    StyleManager::instance().applyTheme(styleTheme);
+
     emit themeChanged(theme);
 }
 
