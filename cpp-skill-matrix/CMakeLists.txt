@@ -93,6 +93,7 @@ set(SOURCES
     src/ui/AuditLogWidget.cpp
     src/ui/SettingsDialog.cpp
     src/ui/ImportExportDialog.cpp
+    src/ui/StyleManager.cpp
 
     # UI Widgets
     src/ui/widgets/ChartWidget.cpp
@@ -109,6 +110,7 @@ set(SOURCES
     src/utils/JsonHelper.cpp
     src/utils/DateTimeHelper.cpp
     src/utils/ValidationHelper.cpp
+    src/utils/IconProvider.cpp
 )
 
 set(HEADERS
@@ -169,6 +171,7 @@ set(HEADERS
     src/ui/AuditLogWidget.h
     src/ui/SettingsDialog.h
     src/ui/ImportExportDialog.h
+    src/ui/StyleManager.h
 
     # UI Widgets
     src/ui/widgets/ChartWidget.h
@@ -185,6 +188,7 @@ set(HEADERS
     src/utils/JsonHelper.h
     src/utils/DateTimeHelper.h
     src/utils/ValidationHelper.h
+    src/utils/IconProvider.h
 )
 
 # Resources
