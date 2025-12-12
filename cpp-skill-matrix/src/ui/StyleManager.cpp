@@ -21,8 +21,8 @@ StyleManager::~StyleManager()
 void StyleManager::initialize()
 {
     initializeColors();
-    applyTheme(Light);
-    Logger::instance().info("StyleManager", "Style manager initialized");
+    applyTheme(Dark);  // Default to dark theme
+    Logger::instance().info("StyleManager", "Style manager initialized with dark theme");
 }
 
 void StyleManager::applyTheme(Theme theme)
@@ -632,28 +632,51 @@ void StyleManager::initializeColors()
     lightColors_["tabBackground"] = QColor("#F5F5F5");    // Tab bg
     lightColors_["tabText"] = QColor("#757575");          // Tab text
 
-    // Dark Theme Colors
-    darkColors_["primary"] = QColor("#42A5F5");           // Lighter Blue
-    darkColors_["secondary"] = QColor("#90A4AE");         // Blue gray
-    darkColors_["accent"] = QColor("#66BB6A");            // Light green
-    darkColors_["danger"] = QColor("#EF5350");            // Light red
-    darkColors_["warning"] = QColor("#FFA726");           // Light orange
-    darkColors_["success"] = QColor("#66BB6A");           // Light green
-    darkColors_["background"] = QColor("#1E1E1E");        // Very dark gray
-    darkColors_["windowBackground"] = QColor("#212121");  // Dark gray
-    darkColors_["cardBackground"] = QColor("#2C2C2C");    // Card background
-    darkColors_["text"] = QColor("#FFFFFF");              // White
-    darkColors_["textSecondary"] = QColor("#B0B0B0");     // Light gray
-    darkColors_["border"] = QColor("#424242");            // Dark border
-    darkColors_["alternateBackground"] = QColor("#2C2C2C"); // Alternate row
-    darkColors_["hoverBackground"] = QColor("#1565C0");   // Dark blue hover
-    darkColors_["headerBackground"] = QColor("#2C2C2C");  // Header background
-    darkColors_["headerText"] = QColor("#E0E0E0");        // Header text
-    darkColors_["inputBackground"] = QColor("#303030");   // Input bg
-    darkColors_["disabledBackground"] = QColor("#2C2C2C"); // Disabled bg
-    darkColors_["disabledText"] = QColor("#616161");      // Disabled text
-    darkColors_["menuBackground"] = QColor("#2C2C2C");    // Menu bg
-    darkColors_["menuText"] = QColor("#FFFFFF");          // Menu text
+    // Dark Theme Colors - Following 6-3-1 Rule
+    // 60% - Dominant: Deep navy background
+    // 30% - Secondary: Medium panels and cards
+    // 10% - Accent: Bright highlights
+
+    // Accent colors (10% - highlights, CTAs, important elements)
+    darkColors_["primary"] = QColor("#7AA2F7");           // Bright blue accent
+    darkColors_["accent"] = QColor("#2AC3DE");            // Cyan accent
+    darkColors_["success"] = QColor("#9ECE6A");           // Green accent
+    darkColors_["danger"] = QColor("#F7768E");            // Red accent
+    darkColors_["warning"] = QColor("#E0AF68");           // Orange accent
+    darkColors_["secondary"] = QColor("#565F89");         // Muted purple
+
+    // Dominant colors (60% - main backgrounds)
+    darkColors_["background"] = QColor("#1A1B26");        // Deep navy - main bg
+    darkColors_["windowBackground"] = QColor("#16161E");  // Darker navy - window bg
+    darkColors_["toolbarBackground"] = QColor("#1A1B26"); // Toolbar matches main
+    darkColors_["statusBarBackground"] = QColor("#16161E"); // Status bar darker
+    darkColors_["menuBackground"] = QColor("#1A1B26");    // Menu matches main
+    darkColors_["tabBackground"] = QColor("#1A1B26");     // Tab inactive
+
+    // Secondary colors (30% - panels, cards, elevated surfaces)
+    darkColors_["cardBackground"] = QColor("#24283B");    // Medium navy - cards
+    darkColors_["headerBackground"] = QColor("#1F2335");  // Header slightly lighter
+    darkColors_["inputBackground"] = QColor("#1F2335");   // Input fields
+    darkColors_["alternateBackground"] = QColor("#1F2335"); // Alternate row
+    darkColors_["hoverBackground"] = QColor("#2D3450");   // Hover state
+    darkColors_["disabledBackground"] = QColor("#1F2335"); // Disabled bg
+
+    // Text colors
+    darkColors_["text"] = QColor("#C0CAF5");              // Soft white
+    darkColors_["textSecondary"] = QColor("#9AA5CE");     // Muted blue-gray
+    darkColors_["headerText"] = QColor("#C0CAF5");        // Header text
+    darkColors_["menuText"] = QColor("#C0CAF5");          // Menu text
+    darkColors_["statusBarText"] = QColor("#9AA5CE");     // Status bar text
+    darkColors_["tabText"] = QColor("#9AA5CE");           // Tab text
+    darkColors_["disabledText"] = QColor("#565F89");      // Disabled text
+
+    // Borders and separators
+    darkColors_["border"] = QColor("#292E42");            // Subtle borders
+
+    // UI elements
+    darkColors_["progressBackground"] = QColor("#1F2335"); // Progress bg
+    darkColors_["scrollBarBackground"] = QColor("#16161E"); // Scrollbar bg
+    darkColors_["scrollBarHandle"] = QColor("#3B4261");   // Scrollbar handle
     darkColors_["toolbarBackground"] = QColor("#2C2C2C"); // Toolbar bg
     darkColors_["statusBarBackground"] = QColor("#1E1E1E"); // Status bar bg
     darkColors_["statusBarText"] = QColor("#B0B0B0");     // Status bar text
