@@ -6,6 +6,7 @@
 #include <QPixmap>
 #include <QMap>
 #include <QString>
+#include <QStyle>
 
 /**
  * @brief Provides icons for the application
