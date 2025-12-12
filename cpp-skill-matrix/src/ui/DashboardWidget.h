@@ -9,16 +9,10 @@
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
 #include "../database/CoreSkillsRepository.h"
-
-// Forward declarations for QtCharts
-QT_BEGIN_NAMESPACE
-namespace QtCharts {
-    class QChart;
-    class QChartView;
-    class QBarSeries;
-    class QPieSeries;
-}
-QT_END_NAMESPACE
+#include <QtCharts/QChart>
+#include <QtCharts/QChartView>
+#include <QtCharts/QBarSeries>
+#include <QtCharts/QPieSeries>
 
 using namespace QtCharts;
 

@@ -213,7 +213,7 @@ QString ReportsWidget::generateEngineerSkillsReport()
         }
 
         // Group by production area
-        QMap<QString, QList<Assessment>> areaAssessments;
+        QMap<int, QList<Assessment>> areaAssessments;
         for (const Assessment& a : engineerAssessments) {
             areaAssessments[a.productionAreaId()].append(a);
         }
@@ -221,7 +221,7 @@ QString ReportsWidget::generateEngineerSkillsReport()
         stream << "  Production Area Competencies:\n";
         for (auto it = areaAssessments.begin(); it != areaAssessments.end(); ++it) {
             ProductionArea area = productionRepo_.findAreaById(it.key());
-            stream << "    Area: " << (area.name().isEmpty() ? it.key() : area.name()) << "\n";
+            stream << "    Area: " << (area.name().isEmpty() ? QString::number(it.key()) : area.name()) << "\n";
 
             for (const Assessment& a : it.value()) {
                 QString scoreText;
@@ -412,7 +412,7 @@ QString ReportsWidget::generateComplianceReport()
             }
 
             stream << "  - " << cert.name() << "\n";
-            stream << "    Issued: " << cert.issueDate().toString("yyyy-MM-dd") << "\n";
+            stream << "    Issued: " << cert.dateEarned().toString("yyyy-MM-dd") << "\n";
             stream << "    Expires: " << expiryDate.toString("yyyy-MM-dd") << "\n";
             stream << "    Status: " << status << "\n";
         }
