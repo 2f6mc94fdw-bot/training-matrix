@@ -22,8 +22,6 @@
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QPieSlice>
 
-using namespace QtCharts;
-
 DashboardWidget::DashboardWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCountLabel_(nullptr)
