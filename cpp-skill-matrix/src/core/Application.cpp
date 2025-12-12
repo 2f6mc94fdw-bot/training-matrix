@@ -273,6 +273,11 @@ void Application::loadSettings()
 
 void Application::saveSettings()
 {
+    if (!settings_) {
+        Logger::instance().warning("Application", "Cannot save settings - settings object is null");
+        return;
+    }
+
     // Save theme
     settings_->setValue(Constants::SETTING_THEME, currentTheme_);
 
