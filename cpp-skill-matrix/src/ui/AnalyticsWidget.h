@@ -32,8 +32,8 @@ private:
     QLabel* engineersAssessedLabel_;
     QLabel* coverageLabel_;
     QComboBox* productionAreaFilter_;
-    QtCharts::QChartView* skillDistributionChart_;
-    QtCharts::QChartView* productionAreaChart_;
+    QChartView* skillDistributionChart_;
+    QChartView* productionAreaChart_;
 
     // Repositories
     AssessmentRepository assessmentRepo_;
