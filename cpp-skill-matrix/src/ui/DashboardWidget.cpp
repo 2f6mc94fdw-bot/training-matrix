@@ -53,12 +53,12 @@ void DashboardWidget::setupUI()
     mainLayout->setContentsMargins(32, 32, 32, 32);  // p-8 container padding
 
     // Title and Welcome Section
-    QLabel* titleLabel = new QLabel("📊 Dashboard Overview v2", this);
+    QLabel* titleLabel = new QLabel("Dashboard Overview", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(26);  // Increased from 24
-    titleFont.setBold(true);
+    titleFont.setPointSize(28);  // Large, prominent title
+    titleFont.setWeight(QFont::Bold);
     titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin-bottom: 8px;");
+    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
     mainLayout->addWidget(titleLabel);
 
     // Welcome message with user info
@@ -92,36 +92,37 @@ void DashboardWidget::setupUI()
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
-    QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
+    QGroupBox* engineersBox = new QGroupBox("Total Engineers", this);
     QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
     engineersLayout->setSpacing(8);  // gap-2 internal spacing
     engineersLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     engineerCountLabel_ = new QLabel("0", this);
     QFont countFont = engineerCountLabel_->font();
-    countFont.setPointSize(40);  // Increased from 36
-    countFont.setBold(true);
+    countFont.setPointSize(48);  // Large numbers like web app
+    countFont.setWeight(QFont::Bold);
     engineerCountLabel_->setFont(countFont);
     engineerCountLabel_->setAlignment(Qt::AlignCenter);
-    engineerCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin: 8px 0;");
+    engineerCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
     engineersLayout->addWidget(engineerCountLabel_);
     QLabel* engineersSubtext = new QLabel("Active workforce", this);
     engineersSubtext->setAlignment(Qt::AlignCenter);
     QFont subtextFont = engineersSubtext->font();
-    subtextFont.setPointSize(12);  // Added explicit font size
+    subtextFont.setPointSize(11);  // Smaller subtext
+    subtextFont.setWeight(QFont::Normal);
     engineersSubtext->setFont(subtextFont);
     engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     engineersLayout->addWidget(engineersSubtext);
     engineersBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Production Areas Card
-    QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
+    QGroupBox* areasBox = new QGroupBox("Production Areas", this);
     QVBoxLayout* areasLayout = new QVBoxLayout(areasBox);
     areasLayout->setSpacing(8);  // gap-2 internal spacing
     areasLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     productionAreaCountLabel_ = new QLabel("0", this);
     productionAreaCountLabel_->setFont(countFont);
     productionAreaCountLabel_->setAlignment(Qt::AlignCenter);
-    productionAreaCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("accent").name() + "; margin: 8px 0;");
+    productionAreaCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
     areasLayout->addWidget(productionAreaCountLabel_);
     QLabel* areasSubtext = new QLabel("Defined work areas", this);
     areasSubtext->setFont(subtextFont);
@@ -131,14 +132,14 @@ void DashboardWidget::setupUI()
     areasBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Assessments Card
-    QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
+    QGroupBox* assessmentsBox = new QGroupBox("Total Assessments", this);
     QVBoxLayout* assessmentsLayout = new QVBoxLayout(assessmentsBox);
     assessmentsLayout->setSpacing(8);  // gap-2 internal spacing
     assessmentsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     assessmentCountLabel_ = new QLabel("0", this);
     assessmentCountLabel_->setFont(countFont);
     assessmentCountLabel_->setAlignment(Qt::AlignCenter);
-    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("warning").name() + "; margin: 8px 0;");
+    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
     assessmentsLayout->addWidget(assessmentCountLabel_);
     QLabel* assessmentsSubtext = new QLabel("Competency evaluations", this);
     assessmentsSubtext->setFont(subtextFont);
@@ -148,14 +149,14 @@ void DashboardWidget::setupUI()
     assessmentsBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Core Skills Card
-    QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
+    QGroupBox* coreSkillsBox = new QGroupBox("Core Skills Assessed", this);
     QVBoxLayout* coreSkillsLayout = new QVBoxLayout(coreSkillsBox);
     coreSkillsLayout->setSpacing(8);  // gap-2 internal spacing
     coreSkillsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     coreSkillCountLabel_ = new QLabel("0", this);
     coreSkillCountLabel_->setFont(countFont);
     coreSkillCountLabel_->setAlignment(Qt::AlignCenter);
-    coreSkillCountLabel_->setStyleSheet("color: #E91E63; margin: 8px 0;");
+    coreSkillCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
     coreSkillsLayout->addWidget(coreSkillCountLabel_);
     QLabel* coreSkillsSubtext = new QLabel("Fundamental competencies", this);
     coreSkillsSubtext->setFont(subtextFont);
@@ -178,7 +179,7 @@ void DashboardWidget::setupUI()
     chartsLayout->setSpacing(24);  // gap-6 between chart panels
 
     // Skill Distribution Chart
-    QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
+    QGroupBox* chartBox = new QGroupBox("Skill Level Distribution", this);
     QVBoxLayout* chartLayout = new QVBoxLayout(chartBox);
     chartLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
 
@@ -196,7 +197,7 @@ void DashboardWidget::setupUI()
     chartBox->setMinimumWidth(450);  // Increased from 400
 
     // Recent Activity Feed
-    QGroupBox* activityBox = new QGroupBox("📝 Recent Activity", this);
+    QGroupBox* activityBox = new QGroupBox("Recent Activity", this);
     QVBoxLayout* activityLayout = new QVBoxLayout(activityBox);
     activityLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
 
@@ -215,7 +216,7 @@ void DashboardWidget::setupUI()
     mainLayout->addSpacing(32);  // gap-8 before actions section
 
     // Quick Actions Guide
-    QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
+    QGroupBox* actionsBox = new QGroupBox("Quick Actions", this);
     QVBoxLayout* actionsLayout = new QVBoxLayout(actionsBox);
     actionsLayout->setContentsMargins(24, 24, 24, 24);  // p-6 large card padding
 

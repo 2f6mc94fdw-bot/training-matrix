@@ -259,18 +259,24 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QGroupBox {"
         "    background-color: %18; "
         "    border: 1px solid %19; "
-        "    border-radius: 12px; "  // Rounded-xl style
-        "    margin: 0px; "  // Remove margins - let layout spacing control this
-        "    padding: 24px; "
-        "    font-weight: 600; "
-        "    font-size: 15pt; "
+        "    border-radius: 12px; "
+        "    margin: 0px; "
+        "    padding: 20px; "
+        "    padding-top: 32px; "  // Extra top padding for title
+        "    font-weight: 400; "  // Normal weight for content
+        "    font-size: 13pt; "
         "} "
         "QGroupBox::title {"
         "    subcontrol-origin: margin; "
         "    subcontrol-position: top left; "
-        "    padding: 4px 12px; "
+        "    padding: 0px 8px; "
+        "    padding-left: 20px; "  // Align with content padding
         "    color: %20; "
         "    background-color: transparent; "
+        "    font-size: 11pt; "  // Smaller title font
+        "    font-weight: 500; "  // Medium weight
+        "    text-transform: uppercase; "
+        "    letter-spacing: 0.5px; "
         "} "
         ""
         "/* Input Fields */ "
