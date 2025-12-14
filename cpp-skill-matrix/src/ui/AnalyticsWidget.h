@@ -11,7 +11,7 @@
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 
-QT_CHARTS_USE_NAMESPACE
+using namespace QtCharts;
 
 class AnalyticsWidget : public QWidget
 {
