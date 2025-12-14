@@ -11,8 +11,6 @@
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 
-using namespace QtCharts;
-
 class AnalyticsWidget : public QWidget
 {
     Q_OBJECT
@@ -34,8 +32,8 @@ private:
     QLabel* engineersAssessedLabel_;
     QLabel* coverageLabel_;
     QComboBox* productionAreaFilter_;
-    QChartView* skillDistributionChart_;
-    QChartView* productionAreaChart_;
+    QtCharts::QChartView* skillDistributionChart_;
+    QtCharts::QChartView* productionAreaChart_;
 
     // Repositories
     AssessmentRepository assessmentRepo_;

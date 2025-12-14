@@ -118,7 +118,7 @@ void AnalyticsWidget::setupUI()
     // Skill Distribution Chart
     QGroupBox* skillChartGroup = new QGroupBox("Skill Level Distribution", this);
     QVBoxLayout* skillChartLayout = new QVBoxLayout(skillChartGroup);
-    skillDistributionChart_ = new QChartView(this);
+    skillDistributionChart_ = new QtCharts::QChartView(this);
     skillDistributionChart_->setRenderHint(QPainter::Antialiasing);
     skillDistributionChart_->setMinimumHeight(300);
     skillChartLayout->addWidget(skillDistributionChart_);
@@ -127,7 +127,7 @@ void AnalyticsWidget::setupUI()
     // Production Area Chart
     QGroupBox* areaChartGroup = new QGroupBox("Assessments by Production Area", this);
     QVBoxLayout* areaChartLayout = new QVBoxLayout(areaChartGroup);
-    productionAreaChart_ = new QChartView(this);
+    productionAreaChart_ = new QtCharts::QChartView(this);
     productionAreaChart_->setRenderHint(QPainter::Antialiasing);
     productionAreaChart_->setMinimumHeight(300);
     areaChartLayout->addWidget(productionAreaChart_);
@@ -244,26 +244,26 @@ void AnalyticsWidget::updateSkillDistributionChart()
     }
 
     // Create bar chart
-    QBarSet* set = new QBarSet("Assessments");
+    QtCharts::QBarSet* set = new QtCharts::QBarSet("Assessments");
     *set << skillCounts[0] << skillCounts[1] << skillCounts[2] << skillCounts[3];
 
-    QBarSeries* series = new QBarSeries();
+    QtCharts::QBarSeries* series = new QtCharts::QBarSeries();
     series->append(set);
 
-    QChart* chart = new QChart();
+    QtCharts::QChart* chart = new QtCharts::QChart();
     chart->addSeries(series);
     chart->setTitle("Distribution of Skill Levels");
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
 
     QStringList categories;
     categories << "No Skill (0)" << "Basic (1)" << "Intermediate (2)" << "Advanced (3)";
 
-    QBarCategoryAxis* axisX = new QBarCategoryAxis();
+    QtCharts::QBarCategoryAxis* axisX = new QtCharts::QBarCategoryAxis();
     axisX->append(categories);
     chart->addAxis(axisX, Qt::AlignBottom);
     series->attachAxis(axisX);
 
-    QValueAxis* axisY = new QValueAxis();
+    QtCharts::QValueAxis* axisY = new QtCharts::QValueAxis();
     axisY->setTitleText("Number of Assessments");
     chart->addAxis(axisY, Qt::AlignLeft);
     series->attachAxis(axisY);
@@ -294,11 +294,11 @@ void AnalyticsWidget::updateProductionAreaChart()
     }
 
     // Create pie chart
-    QPieSeries* series = new QPieSeries();
+    QtCharts::QPieSeries* series = new QtCharts::QPieSeries();
 
     for (auto it = areaCounts.begin(); it != areaCounts.end(); ++it) {
         if (it.value() > 0) {
-            QPieSlice* slice = series->append(areaNames[it.key()], it.value());
+            QtCharts::QPieSlice* slice = series->append(areaNames[it.key()], it.value());
             slice->setLabelVisible(true);
             slice->setLabel(QString("%1: %2 (%3%)")
                 .arg(areaNames[it.key()])
@@ -307,10 +307,10 @@ void AnalyticsWidget::updateProductionAreaChart()
         }
     }
 
-    QChart* chart = new QChart();
+    QtCharts::QChart* chart = new QtCharts::QChart();
     chart->addSeries(series);
     chart->setTitle("Assessments by Production Area");
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
     chart->legend()->setAlignment(Qt::AlignRight);
 
     productionAreaChart_->setChart(chart);
