@@ -3,9 +3,11 @@
 #include "Session.h"
 #include "../ui/MainWindow.h"
 #include "../ui/LoginDialog.h"
+#include "../ui/StyleManager.h"
 #include "../database/DatabaseManager.h"
 #include "../utils/Logger.h"
 #include "../utils/Config.h"
+#include "../utils/IconProvider.h"
 
 #include <QMessageBox>
 #include <QFile>
@@ -26,7 +28,7 @@ Application::Application(QObject* parent)
     , mainWindow_(nullptr)
     , settings_(nullptr)
     , debugMode_(false)
-    , currentTheme_(Constants::THEME_LIGHT)
+    , currentTheme_(Constants::THEME_DARK)
 {
 }
 
@@ -39,6 +41,14 @@ bool Application::initialize(int argc, char* argv[])
 {
     // Create Qt application
     qApp_ = new QApplication(argc, argv);
+
+    // Add Qt plugin paths for SQL drivers
+    // This is needed when app is launched from Dock/Finder
+    QCoreApplication::addLibraryPath("/opt/homebrew/Cellar/qtbase/6.9.3_1/share/qt/plugins");
+    QCoreApplication::addLibraryPath("/opt/homebrew/opt/qtbase/share/qt/plugins");
+
+    Logger::instance().info("Application", QString("Qt plugin paths: %1").arg(
+        QCoreApplication::libraryPaths().join(", ")));
 
     // Setup application metadata
     setupApplication();
@@ -71,8 +81,14 @@ bool Application::initialize(int argc, char* argv[])
         }
     }
 
-    // Apply theme
-    applyTheme(currentTheme_);
+    // Initialize StyleManager and IconProvider
+    StyleManager::instance().initialize();
+    IconProvider::instance().initialize();
+
+    // Apply theme through StyleManager
+    StyleManager::Theme theme = (currentTheme_ == Constants::THEME_DARK) ?
+        StyleManager::Dark : StyleManager::Light;
+    StyleManager::instance().applyTheme(theme);
 
     // Initialize database
     DatabaseManager& dbManager = DatabaseManager::instance();
@@ -234,14 +250,19 @@ void Application::onUserLogout()
 void Application::applyTheme(const QString& theme)
 {
     currentTheme_ = theme;
-    loadStylesheet(theme);
+
+    // Use StyleManager for theming
+    StyleManager::Theme styleTheme = (theme == Constants::THEME_DARK) ?
+        StyleManager::Dark : StyleManager::Light;
+    StyleManager::instance().applyTheme(styleTheme);
+
     emit themeChanged(theme);
 }
 
 void Application::loadSettings()
 {
-    // Load theme
-    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_LIGHT).toString();
+    // Load theme - default to dark theme
+    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_DARK).toString();
 
     // Load other settings as needed
     bool autoSave = settings_->value(Constants::SETTING_AUTO_SAVE, true).toBool();
@@ -252,6 +273,11 @@ void Application::loadSettings()
 
 void Application::saveSettings()
 {
+    if (!settings_) {
+        Logger::instance().warning("Application", "Cannot save settings - settings object is null");
+        return;
+    }
+
     // Save theme
     settings_->setValue(Constants::SETTING_THEME, currentTheme_);
 

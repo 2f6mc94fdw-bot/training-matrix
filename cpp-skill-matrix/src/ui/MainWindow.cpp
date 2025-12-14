@@ -3,6 +3,19 @@
 #include "../core/Constants.h"
 #include "../utils/Logger.h"
 
+// Widget includes
+#include "DashboardWidget.h"
+#include "EngineersWidget.h"
+#include "ProductionAreasWidget.h"
+#include "AssessmentWidget.h"
+#include "CoreSkillsWidget.h"
+#include "ReportsWidget.h"
+#include "AnalyticsWidget.h"
+#include "CertificationsWidget.h"
+#include "SnapshotsWidget.h"
+#include "AuditLogWidget.h"
+#include "ImportExportDialog.h"
+
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QToolBar>
@@ -98,18 +111,18 @@ void MainWindow::setupCentralWidget()
     // Setup content stack
     contentStack_ = new QStackedWidget(this);
 
-    // Create placeholder widgets
-    dashboardWidget_ = new QLabel("Dashboard (Coming Soon)", this);
-    engineersWidget_ = new QLabel("Engineers Management (Coming Soon)", this);
-    productionAreasWidget_ = new QLabel("Production Areas (Coming Soon)", this);
-    assessmentWidget_ = new QLabel("Assessments (Coming Soon)", this);
-    coreSkillsWidget_ = new QLabel("Core Skills (Coming Soon)", this);
-    reportsWidget_ = new QLabel("Reports (Coming Soon)", this);
-    analyticsWidget_ = new QLabel("Analytics (Coming Soon)", this);
-    certificationsWidget_ = new QLabel("Certifications (Coming Soon)", this);
-    snapshotsWidget_ = new QLabel("Snapshots (Coming Soon)", this);
-    auditLogWidget_ = new QLabel("Audit Log (Coming Soon)", this);
-    importExportWidget_ = new QLabel("Import/Export (Coming Soon)", this);
+    // Create real widgets
+    dashboardWidget_ = new DashboardWidget(this);
+    engineersWidget_ = new EngineersWidget(this);
+    productionAreasWidget_ = new ProductionAreasWidget(this);
+    assessmentWidget_ = new AssessmentWidget(this);
+    coreSkillsWidget_ = new CoreSkillsWidget(this);
+    reportsWidget_ = new ReportsWidget(this);
+    analyticsWidget_ = new AnalyticsWidget(this);
+    certificationsWidget_ = new CertificationsWidget(this);
+    snapshotsWidget_ = new SnapshotsWidget(this);
+    auditLogWidget_ = new AuditLogWidget(this);
+    importExportWidget_ = new ImportExportDialog(this);
 
     // Add widgets to stack
     contentStack_->addWidget(dashboardWidget_);
