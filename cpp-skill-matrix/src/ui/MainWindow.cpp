@@ -104,6 +104,8 @@ void MainWindow::setupCentralWidget()
 {
     QWidget* centralWidget = new QWidget(this);
     QHBoxLayout* mainLayout = new QHBoxLayout(centralWidget);
+    mainLayout->setSpacing(0);  // No spacing between sidebar and content (they have their own padding)
+    mainLayout->setContentsMargins(0, 0, 0, 0);  // No margins on main layout - widgets control their own spacing
 
     // Setup navigation
     setupNavigationSidebar();

@@ -495,7 +495,8 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    border: 1px solid %58; "
         "    border-radius: 12px; "  // Rounded-xl style
         "    background-color: %18; "  // Use card background (slate-800)
-        "    padding: 8px; "
+        "    padding: 24px; "  // Increased from 8px for less congestion
+        "    margin: 0px; "  // Remove margins
         "} "
         "QTabBar::tab {"
         "    background-color: %59; "
