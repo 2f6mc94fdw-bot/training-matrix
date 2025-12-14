@@ -111,7 +111,8 @@ void DashboardWidget::setupUI()
     engineersSubtext->setFont(subtextFont);
     engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     engineersLayout->addWidget(engineersSubtext);
-    engineersBox->setMinimumHeight(180);  // Increased from 140
+    engineersBox->setFixedHeight(200);  // Fixed height to prevent compression
+    engineersBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Production Areas Card
     QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
@@ -128,7 +129,8 @@ void DashboardWidget::setupUI()
     areasSubtext->setAlignment(Qt::AlignCenter);
     areasSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     areasLayout->addWidget(areasSubtext);
-    areasBox->setMinimumHeight(180);  // Increased from 140
+    areasBox->setFixedHeight(200);  // Fixed height to prevent compression
+    areasBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Assessments Card
     QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
@@ -145,7 +147,8 @@ void DashboardWidget::setupUI()
     assessmentsSubtext->setAlignment(Qt::AlignCenter);
     assessmentsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     assessmentsLayout->addWidget(assessmentsSubtext);
-    assessmentsBox->setMinimumHeight(180);  // Increased from 140
+    assessmentsBox->setFixedHeight(200);  // Fixed height to prevent compression
+    assessmentsBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Core Skills Card
     QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
@@ -162,7 +165,8 @@ void DashboardWidget::setupUI()
     coreSkillsSubtext->setAlignment(Qt::AlignCenter);
     coreSkillsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     coreSkillsLayout->addWidget(coreSkillsSubtext);
-    coreSkillsBox->setMinimumHeight(180);  // Increased from 140
+    coreSkillsBox->setFixedHeight(200);  // Fixed height to prevent compression
+    coreSkillsBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     statsGrid->addWidget(engineersBox, 0, 0);
     statsGrid->addWidget(areasBox, 0, 1);
