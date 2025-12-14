@@ -86,8 +86,10 @@ void DashboardWidget::setupUI()
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
     statsGrid->setHorizontalSpacing(40);  // Horizontal spacing between columns
-    statsGrid->setVerticalSpacing(60);    // VERY LARGE vertical spacing between rows
+    statsGrid->setVerticalSpacing(100);   // EXTREMELY LARGE vertical spacing between rows - should be very obvious
     statsGrid->setContentsMargins(0, 0, 0, 0);
+    statsGrid->setRowMinimumHeight(0, 200);  // Minimum height for first row
+    statsGrid->setRowMinimumHeight(1, 200);  // Minimum height for second row
 
     // Engineers Card
     QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
