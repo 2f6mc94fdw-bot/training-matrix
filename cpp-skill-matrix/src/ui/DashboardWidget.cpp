@@ -85,7 +85,8 @@ void DashboardWidget::setupUI()
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(32);  // Much larger spacing between stat cards
+    statsGrid->setHorizontalSpacing(32);  // Horizontal spacing between columns
+    statsGrid->setVerticalSpacing(40);    // Even more vertical spacing between rows
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
