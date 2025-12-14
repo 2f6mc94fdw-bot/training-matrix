@@ -47,8 +47,8 @@ DashboardWidget::~DashboardWidget()
 void DashboardWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(24);  // gap-6 between major sections
-    mainLayout->setContentsMargins(24, 24, 24, 24);  // p-6 main container padding
+    mainLayout->setSpacing(32);  // gap-8 between major sections - increased for less congestion
+    mainLayout->setContentsMargins(32, 32, 32, 32);  // p-8 main container padding - more breathing room
 
     // Title and Welcome Section
     QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
@@ -81,11 +81,11 @@ void DashboardWidget::setupUI()
     lastLoginLabel_->setFont(lastLoginFont);
     mainLayout->addWidget(lastLoginLabel_);
 
-    mainLayout->addSpacing(20);  // Increased from 10
+    mainLayout->addSpacing(32);  // gap-8 after welcome section
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(16);  // gap-4 stat cards grid
+    statsGrid->setSpacing(24);  // gap-6 stat cards grid - increased from gap-4
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
@@ -168,7 +168,7 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(statsGrid);
 
-    mainLayout->addSpacing(12);  // Added spacing before charts section
+    mainLayout->addSpacing(24);  // gap-6 before charts section - increased spacing
 
     // Charts and Activity Section
     QHBoxLayout* chartsLayout = new QHBoxLayout();
@@ -209,7 +209,7 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(chartsLayout);
 
-    mainLayout->addSpacing(12);  // Added spacing before actions section
+    mainLayout->addSpacing(24);  // gap-6 before actions section - increased spacing
 
     // Quick Actions Guide
     QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
@@ -234,7 +234,7 @@ void DashboardWidget::setupUI()
     actionsLayout->addWidget(actionsLabel);
     mainLayout->addWidget(actionsBox);
 
-    mainLayout->addSpacing(16);  // Added spacing before footer
+    mainLayout->addSpacing(24);  // gap-6 before footer - increased spacing
 
     // Footer with last update and refresh button
     QHBoxLayout* footerLayout = new QHBoxLayout();
