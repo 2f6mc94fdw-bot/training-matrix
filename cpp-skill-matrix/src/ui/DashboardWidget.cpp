@@ -46,7 +46,9 @@ DashboardWidget::~DashboardWidget()
 
 void DashboardWidget::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    // Create a container widget for all the dashboard content
+    QWidget* contentWidget = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
     mainLayout->setSpacing(48);  // Much larger spacing between sections
     mainLayout->setContentsMargins(48, 48, 48, 48);  // Much larger container padding
 
@@ -265,7 +267,22 @@ void DashboardWidget::setupUI()
     mainLayout->addLayout(footerLayout);
     mainLayout->addStretch();
 
-    setLayout(mainLayout);
+    contentWidget->setLayout(mainLayout);
+
+    // Wrap everything in a scroll area so spacing isn't compressed
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidget(contentWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    // Set the scroll area as the main layout
+    QVBoxLayout* outerLayout = new QVBoxLayout(this);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+    outerLayout->addWidget(scrollArea);
+    setLayout(outerLayout);
 }
 
 void DashboardWidget::loadStatistics()
