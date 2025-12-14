@@ -47,8 +47,8 @@ DashboardWidget::~DashboardWidget()
 void DashboardWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(24);  // Increased from 16
-    mainLayout->setContentsMargins(20, 20, 20, 20);  // Added margins
+    mainLayout->setSpacing(24);  // gap-6 between major sections
+    mainLayout->setContentsMargins(24, 24, 24, 24);  // p-6 main container padding
 
     // Title and Welcome Section
     QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
@@ -85,14 +85,14 @@ void DashboardWidget::setupUI()
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(20);  // Increased from 16
+    statsGrid->setSpacing(16);  // gap-4 stat cards grid
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
     QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
     QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
-    engineersLayout->setSpacing(12);  // Added spacing
-    engineersLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
+    engineersLayout->setSpacing(8);  // gap-2 internal spacing
+    engineersLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     engineerCountLabel_ = new QLabel("0", this);
     QFont countFont = engineerCountLabel_->font();
     countFont.setPointSize(40);  // Increased from 36
@@ -113,8 +113,8 @@ void DashboardWidget::setupUI()
     // Production Areas Card
     QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
     QVBoxLayout* areasLayout = new QVBoxLayout(areasBox);
-    areasLayout->setSpacing(12);  // Added spacing
-    areasLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
+    areasLayout->setSpacing(8);  // gap-2 internal spacing
+    areasLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     productionAreaCountLabel_ = new QLabel("0", this);
     productionAreaCountLabel_->setFont(countFont);
     productionAreaCountLabel_->setAlignment(Qt::AlignCenter);
@@ -130,8 +130,8 @@ void DashboardWidget::setupUI()
     // Assessments Card
     QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
     QVBoxLayout* assessmentsLayout = new QVBoxLayout(assessmentsBox);
-    assessmentsLayout->setSpacing(12);  // Added spacing
-    assessmentsLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
+    assessmentsLayout->setSpacing(8);  // gap-2 internal spacing
+    assessmentsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     assessmentCountLabel_ = new QLabel("0", this);
     assessmentCountLabel_->setFont(countFont);
     assessmentCountLabel_->setAlignment(Qt::AlignCenter);
@@ -147,8 +147,8 @@ void DashboardWidget::setupUI()
     // Core Skills Card
     QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
     QVBoxLayout* coreSkillsLayout = new QVBoxLayout(coreSkillsBox);
-    coreSkillsLayout->setSpacing(12);  // Added spacing
-    coreSkillsLayout->setContentsMargins(16, 20, 16, 20);  // Added margins
+    coreSkillsLayout->setSpacing(8);  // gap-2 internal spacing
+    coreSkillsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
     coreSkillCountLabel_ = new QLabel("0", this);
     coreSkillCountLabel_->setFont(countFont);
     coreSkillCountLabel_->setAlignment(Qt::AlignCenter);
@@ -172,12 +172,12 @@ void DashboardWidget::setupUI()
 
     // Charts and Activity Section
     QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(20);  // Increased from 16
+    chartsLayout->setSpacing(24);  // gap-6 between large panels
 
     // Skill Distribution Chart
     QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
     QVBoxLayout* chartLayout = new QVBoxLayout(chartBox);
-    chartLayout->setContentsMargins(12, 16, 12, 12);  // Added margins
+    chartLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
 
     skillChart_ = new QChart();
     skillChart_->setTitle("");
@@ -195,7 +195,7 @@ void DashboardWidget::setupUI()
     // Recent Activity Feed
     QGroupBox* activityBox = new QGroupBox("📝 Recent Activity", this);
     QVBoxLayout* activityLayout = new QVBoxLayout(activityBox);
-    activityLayout->setContentsMargins(12, 16, 12, 12);  // Added margins
+    activityLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
 
     recentActivityList_ = new QListWidget(this);
     recentActivityList_->setMinimumHeight(350);  // Increased from 300
@@ -214,7 +214,7 @@ void DashboardWidget::setupUI()
     // Quick Actions Guide
     QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
     QVBoxLayout* actionsLayout = new QVBoxLayout(actionsBox);
-    actionsLayout->setContentsMargins(16, 20, 16, 16);  // Added margins
+    actionsLayout->setContentsMargins(24, 24, 24, 24);  // p-6 large card padding
 
     QLabel* actionsLabel = new QLabel(
         "<ul style='line-height: 2.0;'>"  // Increased from 1.6

@@ -234,8 +234,8 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    font-size: 13pt; "
         "} "
         "QTableWidget::item {"
-        "    padding: 12px; "  // Increased from 6px
-        "    min-height: 32px; "  // Added minimum height
+        "    padding: 16px; "  // p-4 table cells
+        "    min-height: 32px; "
         "} "
         "QTableWidget::item:hover {"
         "    background-color: %13; "
