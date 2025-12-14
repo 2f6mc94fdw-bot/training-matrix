@@ -85,20 +85,19 @@ void DashboardWidget::setupUI()
 
     mainLayout->addSpacing(24);  // gap-6 after welcome section
 
-    // Quick Statistics Grid (2x2 cards)
-    QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setHorizontalSpacing(24);  // gap-6 horizontal spacing
-    statsGrid->setVerticalSpacing(24);    // gap-6 vertical spacing between rows
-    statsGrid->setContentsMargins(0, 0, 0, 0);
+    // Quick Statistics Grid (compact 2 cards)
+    QHBoxLayout* statsLayout = new QHBoxLayout();
+    statsLayout->setSpacing(24);
+    statsLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Engineers Card
+    // Engineers Card - Compact
     QGroupBox* engineersBox = new QGroupBox("Total Engineers", this);
     QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
-    engineersLayout->setSpacing(8);  // gap-2 internal spacing
-    engineersLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
+    engineersLayout->setSpacing(4);
+    engineersLayout->setContentsMargins(16, 12, 16, 12);
     engineerCountLabel_ = new QLabel("0", this);
     QFont countFont = engineerCountLabel_->font();
-    countFont.setPointSize(48);  // Large numbers like web app
+    countFont.setPointSize(32);  // Reduced from 48
     countFont.setWeight(QFont::Bold);
     engineerCountLabel_->setFont(countFont);
     engineerCountLabel_->setAlignment(Qt::AlignCenter);
@@ -107,18 +106,19 @@ void DashboardWidget::setupUI()
     QLabel* engineersSubtext = new QLabel("Active workforce", this);
     engineersSubtext->setAlignment(Qt::AlignCenter);
     QFont subtextFont = engineersSubtext->font();
-    subtextFont.setPointSize(11);  // Smaller subtext
+    subtextFont.setPointSize(10);  // Reduced from 11
     subtextFont.setWeight(QFont::Normal);
     engineersSubtext->setFont(subtextFont);
     engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     engineersLayout->addWidget(engineersSubtext);
-    engineersBox->setMinimumHeight(160);  // Minimum height for stat cards
+    engineersBox->setMinimumHeight(100);  // Reduced from 160
+    engineersBox->setMaximumWidth(250);
 
-    // Production Areas Card
+    // Production Areas Card - Compact
     QGroupBox* areasBox = new QGroupBox("Production Areas", this);
     QVBoxLayout* areasLayout = new QVBoxLayout(areasBox);
-    areasLayout->setSpacing(8);  // gap-2 internal spacing
-    areasLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
+    areasLayout->setSpacing(4);
+    areasLayout->setContentsMargins(16, 12, 16, 12);
     productionAreaCountLabel_ = new QLabel("0", this);
     productionAreaCountLabel_->setFont(countFont);
     productionAreaCountLabel_->setAlignment(Qt::AlignCenter);
@@ -129,48 +129,14 @@ void DashboardWidget::setupUI()
     areasSubtext->setAlignment(Qt::AlignCenter);
     areasSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     areasLayout->addWidget(areasSubtext);
-    areasBox->setMinimumHeight(160);  // Minimum height for stat cards
+    areasBox->setMinimumHeight(100);  // Reduced from 160
+    areasBox->setMaximumWidth(250);
 
-    // Assessments Card
-    QGroupBox* assessmentsBox = new QGroupBox("Total Assessments", this);
-    QVBoxLayout* assessmentsLayout = new QVBoxLayout(assessmentsBox);
-    assessmentsLayout->setSpacing(8);  // gap-2 internal spacing
-    assessmentsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    assessmentCountLabel_ = new QLabel("0", this);
-    assessmentCountLabel_->setFont(countFont);
-    assessmentCountLabel_->setAlignment(Qt::AlignCenter);
-    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
-    assessmentsLayout->addWidget(assessmentCountLabel_);
-    QLabel* assessmentsSubtext = new QLabel("Competency evaluations", this);
-    assessmentsSubtext->setFont(subtextFont);
-    assessmentsSubtext->setAlignment(Qt::AlignCenter);
-    assessmentsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    assessmentsLayout->addWidget(assessmentsSubtext);
-    assessmentsBox->setMinimumHeight(160);  // Minimum height for stat cards
+    statsLayout->addWidget(engineersBox);
+    statsLayout->addWidget(areasBox);
+    statsLayout->addStretch();
 
-    // Core Skills Card
-    QGroupBox* coreSkillsBox = new QGroupBox("Core Skills Assessed", this);
-    QVBoxLayout* coreSkillsLayout = new QVBoxLayout(coreSkillsBox);
-    coreSkillsLayout->setSpacing(8);  // gap-2 internal spacing
-    coreSkillsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    coreSkillCountLabel_ = new QLabel("0", this);
-    coreSkillCountLabel_->setFont(countFont);
-    coreSkillCountLabel_->setAlignment(Qt::AlignCenter);
-    coreSkillCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
-    coreSkillsLayout->addWidget(coreSkillCountLabel_);
-    QLabel* coreSkillsSubtext = new QLabel("Fundamental competencies", this);
-    coreSkillsSubtext->setFont(subtextFont);
-    coreSkillsSubtext->setAlignment(Qt::AlignCenter);
-    coreSkillsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    coreSkillsLayout->addWidget(coreSkillsSubtext);
-    coreSkillsBox->setMinimumHeight(160);  // Minimum height for stat cards
-
-    statsGrid->addWidget(engineersBox, 0, 0);
-    statsGrid->addWidget(areasBox, 0, 1);
-    statsGrid->addWidget(assessmentsBox, 1, 0);
-    statsGrid->addWidget(coreSkillsBox, 1, 1);
-
-    mainLayout->addLayout(statsGrid);
+    mainLayout->addLayout(statsLayout);
 
     mainLayout->addSpacing(32);  // gap-8 before charts section
 
