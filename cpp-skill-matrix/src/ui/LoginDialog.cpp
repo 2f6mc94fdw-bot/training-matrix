@@ -35,9 +35,11 @@ void LoginDialog::setupUI()
 {
     setWindowTitle("Login - Skill Matrix");
     setModal(true);
-    setFixedSize(400, 300);
+    setFixedSize(500, 400);  // Larger dialog for better spacing
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(32);  // Add spacing between elements
+    mainLayout->setContentsMargins(48, 48, 48, 48);  // Add generous margins
 
     // Title
     QLabel* titleLabel = new QLabel("Skill Matrix", this);
@@ -50,6 +52,10 @@ void LoginDialog::setupUI()
     // Login form
     QGroupBox* formGroup = new QGroupBox("Please login to continue", this);
     QFormLayout* formLayout = new QFormLayout(formGroup);
+    formLayout->setSpacing(20);  // Add spacing between form rows
+    formLayout->setContentsMargins(24, 24, 24, 24);  // Add padding inside form group
+    formLayout->setVerticalSpacing(20);  // Vertical spacing between rows
+    formLayout->setHorizontalSpacing(16);  // Horizontal spacing between labels and fields
 
     usernameEdit_ = new QLineEdit(this);
     usernameEdit_->setPlaceholderText("Username");
@@ -70,9 +76,12 @@ void LoginDialog::setupUI()
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(16);  // Add spacing between buttons
     loginButton_ = new QPushButton("Login", this);
     loginButton_->setDefault(true);
+    loginButton_->setMinimumHeight(40);  // Larger button height
     cancelButton_ = new QPushButton("Cancel", this);
+    cancelButton_->setMinimumHeight(40);  // Larger button height
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(loginButton_);
@@ -80,8 +89,9 @@ void LoginDialog::setupUI()
 
     // Main layout
     mainLayout->addWidget(titleLabel);
-    mainLayout->addSpacing(20);
+    mainLayout->addSpacing(32);  // Increased spacing after title
     mainLayout->addWidget(formGroup);
+    mainLayout->addSpacing(16);  // Add spacing before status label
     mainLayout->addWidget(statusLabel_);
     mainLayout->addStretch();
     mainLayout->addLayout(buttonLayout);
