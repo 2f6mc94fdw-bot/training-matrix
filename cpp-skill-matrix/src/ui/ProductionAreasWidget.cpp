@@ -31,20 +31,30 @@ ProductionAreasWidget::~ProductionAreasWidget()
 void ProductionAreasWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(16);
+    mainLayout->setContentsMargins(24, 24, 24, 24);
 
     // Title
     QLabel* titleLabel = new QLabel("Production Areas Management", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
+    titleFont.setPointSize(20);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
     mainLayout->addWidget(titleLabel);
+    mainLayout->addSpacing(8);
 
     // Tree
     treeWidget_ = new QTreeWidget(this);
     treeWidget_->setHeaderLabels({"Name", "Type", "ID"});
     treeWidget_->setAlternatingRowColors(true);
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
+    treeWidget_->setIndentation(24);
+
+    // Set proper column widths
+    treeWidget_->header()->setStretchLastSection(false);
+    treeWidget_->header()->setSectionResizeMode(0, QHeaderView::Stretch); // Name takes remaining space
+    treeWidget_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Type fits content
+    treeWidget_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents); // ID fits content
 
     connect(treeWidget_, &QTreeWidget::itemDoubleClicked, this, &ProductionAreasWidget::onTreeItemDoubleClicked);
 
@@ -52,11 +62,18 @@ void ProductionAreasWidget::setupUI()
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(12);
 
     addButton_ = new QPushButton("Add", this);
     editButton_ = new QPushButton("Edit", this);
     deleteButton_ = new QPushButton("Delete", this);
     refreshButton_ = new QPushButton("Refresh", this);
+
+    // Set minimum button widths for better UX
+    addButton_->setMinimumWidth(100);
+    editButton_->setMinimumWidth(100);
+    deleteButton_->setMinimumWidth(100);
+    refreshButton_->setMinimumWidth(100);
 
     connect(addButton_, &QPushButton::clicked, this, &ProductionAreasWidget::onAddClicked);
     connect(editButton_, &QPushButton::clicked, this, &ProductionAreasWidget::onEditClicked);

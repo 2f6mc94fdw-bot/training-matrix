@@ -30,18 +30,23 @@ AssessmentWidget::~AssessmentWidget()
 void AssessmentWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(16);
+    mainLayout->setContentsMargins(24, 24, 24, 24);
 
     // Title
     QLabel* titleLabel = new QLabel("Competency Assessment", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
+    titleFont.setPointSize(20);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
     mainLayout->addWidget(titleLabel);
+    mainLayout->addSpacing(8);
 
     // Selection Group
     QGroupBox* selectionGroup = new QGroupBox("Select Engineer and Production Area", this);
     QFormLayout* formLayout = new QFormLayout(selectionGroup);
+    formLayout->setSpacing(12);
+    formLayout->setContentsMargins(20, 20, 20, 20);
 
     engineerCombo_ = new QComboBox(this);
     productionAreaCombo_ = new QComboBox(this);
@@ -55,25 +60,47 @@ void AssessmentWidget::setupUI()
     formLayout->addRow("Production Area:", productionAreaCombo_);
 
     mainLayout->addWidget(selectionGroup);
+    mainLayout->addSpacing(8);
 
     // Assessment Table
     QLabel* tableLabel = new QLabel("Competencies (0 = No skill, 1 = Basic, 2 = Intermediate, 3 = Advanced)", this);
+    QFont labelFont = tableLabel->font();
+    labelFont.setPointSize(11);
+    tableLabel->setFont(labelFont);
     mainLayout->addWidget(tableLabel);
 
     assessmentTable_ = new QTableWidget(this);
     assessmentTable_->setColumnCount(4);
     assessmentTable_->setHorizontalHeaderLabels({"Machine", "Competency", "Score", "IDs"});
-    assessmentTable_->horizontalHeader()->setStretchLastSection(true);
     assessmentTable_->setAlternatingRowColors(true);
     assessmentTable_->hideColumn(3); // Hide IDs column
+
+    // Set proper column widths for readability
+    assessmentTable_->horizontalHeader()->setStretchLastSection(false);
+    assessmentTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+    assessmentTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    assessmentTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
+
+    // Set initial column widths
+    assessmentTable_->setColumnWidth(0, 200); // Machine column
+    assessmentTable_->setColumnWidth(2, 100); // Score column
+
+    // Enable word wrap for better text display
+    assessmentTable_->setWordWrap(true);
+    assessmentTable_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     mainLayout->addWidget(assessmentTable_);
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(12);
 
     loadButton_ = new QPushButton("Load Existing Assessments", this);
     saveButton_ = new QPushButton("Save Assessments", this);
+
+    // Set minimum button widths for better UX
+    loadButton_->setMinimumWidth(180);
+    saveButton_->setMinimumWidth(180);
 
     connect(loadButton_, &QPushButton::clicked, this, &AssessmentWidget::onLoadClicked);
     connect(saveButton_, &QPushButton::clicked, this, &AssessmentWidget::onSaveClicked);
