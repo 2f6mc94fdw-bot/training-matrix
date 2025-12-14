@@ -19,21 +19,44 @@ public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
 
+    enum ViewMode {
+        OverallView,
+        ByProductionArea,
+        ByEngineer
+    };
+
+    enum ChartType {
+        BarChart,
+        PieChart,
+        RadarChart
+    };
+
 private:
     void setupUI();
     void loadAnalytics();
     void updateSkillDistributionChart();
-    void updateProductionAreaChart();
+    void updateBreakdownChart();
     void updateStatistics();
+    void createBarChart(QChartView* chartView, const QMap<QString, int>& data, const QString& title);
+    void createPieChart(QChartView* chartView, const QMap<QString, int>& data, const QString& title);
+    void createRadarChart(QChartView* chartView, const QMap<QString, double>& data, const QString& title);
 
-    // UI Components
+    // UI Components - Filters and Controls
+    QComboBox* viewModeCombo_;
+    QComboBox* productionAreaFilter_;
+    QComboBox* engineerFilter_;
+    QComboBox* skillChartTypeCombo_;
+    QComboBox* breakdownChartTypeCombo_;
+
+    // UI Components - Statistics
     QLabel* totalAssessmentsLabel_;
     QLabel* avgSkillLevelLabel_;
     QLabel* engineersAssessedLabel_;
     QLabel* coverageLabel_;
-    QComboBox* productionAreaFilter_;
+
+    // UI Components - Charts
     QChartView* skillDistributionChart_;
-    QChartView* productionAreaChart_;
+    QChartView* breakdownChart_;
 
     // Repositories
     AssessmentRepository assessmentRepo_;
@@ -41,7 +64,11 @@ private:
     ProductionRepository productionRepo_;
 
 private slots:
+    void onViewModeChanged(int index);
     void onProductionAreaFilterChanged(int index);
+    void onEngineerFilterChanged(int index);
+    void onSkillChartTypeChanged(int index);
+    void onBreakdownChartTypeChanged(int index);
     void onRefreshClicked();
 };
 
