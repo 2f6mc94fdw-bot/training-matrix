@@ -49,8 +49,8 @@ void DashboardWidget::setupUI()
     // Create a container widget for all the dashboard content
     QWidget* contentWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setSpacing(48);  // Much larger spacing between sections
-    mainLayout->setContentsMargins(48, 48, 48, 48);  // Much larger container padding
+    mainLayout->setSpacing(32);  // gap-8 between major sections
+    mainLayout->setContentsMargins(32, 32, 32, 32);  // p-8 container padding
 
     // Title and Welcome Section
     QLabel* titleLabel = new QLabel("📊 Dashboard Overview v2", this);
@@ -83,15 +83,13 @@ void DashboardWidget::setupUI()
     lastLoginLabel_->setFont(lastLoginFont);
     mainLayout->addWidget(lastLoginLabel_);
 
-    mainLayout->addSpacing(48);  // Much larger gap after welcome section
+    mainLayout->addSpacing(24);  // gap-6 after welcome section
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setHorizontalSpacing(40);  // Horizontal spacing between columns
-    statsGrid->setVerticalSpacing(100);   // EXTREMELY LARGE vertical spacing between rows - should be very obvious
+    statsGrid->setHorizontalSpacing(24);  // gap-6 horizontal spacing
+    statsGrid->setVerticalSpacing(24);    // gap-6 vertical spacing between rows
     statsGrid->setContentsMargins(0, 0, 0, 0);
-    statsGrid->setRowMinimumHeight(0, 200);  // Minimum height for first row
-    statsGrid->setRowMinimumHeight(1, 200);  // Minimum height for second row
 
     // Engineers Card
     QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
@@ -113,8 +111,7 @@ void DashboardWidget::setupUI()
     engineersSubtext->setFont(subtextFont);
     engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     engineersLayout->addWidget(engineersSubtext);
-    engineersBox->setFixedHeight(200);  // Fixed height to prevent compression
-    engineersBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    engineersBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Production Areas Card
     QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
@@ -131,8 +128,7 @@ void DashboardWidget::setupUI()
     areasSubtext->setAlignment(Qt::AlignCenter);
     areasSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     areasLayout->addWidget(areasSubtext);
-    areasBox->setFixedHeight(200);  // Fixed height to prevent compression
-    areasBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    areasBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Assessments Card
     QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
@@ -149,8 +145,7 @@ void DashboardWidget::setupUI()
     assessmentsSubtext->setAlignment(Qt::AlignCenter);
     assessmentsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     assessmentsLayout->addWidget(assessmentsSubtext);
-    assessmentsBox->setFixedHeight(200);  // Fixed height to prevent compression
-    assessmentsBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    assessmentsBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     // Core Skills Card
     QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
@@ -167,8 +162,7 @@ void DashboardWidget::setupUI()
     coreSkillsSubtext->setAlignment(Qt::AlignCenter);
     coreSkillsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     coreSkillsLayout->addWidget(coreSkillsSubtext);
-    coreSkillsBox->setFixedHeight(200);  // Fixed height to prevent compression
-    coreSkillsBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    coreSkillsBox->setMinimumHeight(160);  // Minimum height for stat cards
 
     statsGrid->addWidget(engineersBox, 0, 0);
     statsGrid->addWidget(areasBox, 0, 1);
@@ -177,11 +171,11 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(statsGrid);
 
-    mainLayout->addSpacing(48);  // Much larger spacing before charts
+    mainLayout->addSpacing(32);  // gap-8 before charts section
 
     // Charts and Activity Section
     QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(32);  // Much larger spacing between chart panels
+    chartsLayout->setSpacing(24);  // gap-6 between chart panels
 
     // Skill Distribution Chart
     QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
@@ -218,7 +212,7 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(chartsLayout);
 
-    mainLayout->addSpacing(48);  // Much larger spacing before actions
+    mainLayout->addSpacing(32);  // gap-8 before actions section
 
     // Quick Actions Guide
     QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
@@ -243,7 +237,7 @@ void DashboardWidget::setupUI()
     actionsLayout->addWidget(actionsLabel);
     mainLayout->addWidget(actionsBox);
 
-    mainLayout->addSpacing(32);  // Larger spacing before footer
+    mainLayout->addSpacing(24);  // gap-6 before footer
 
     // Footer with last update and refresh button
     QHBoxLayout* footerLayout = new QHBoxLayout();

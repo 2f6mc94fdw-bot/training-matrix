@@ -35,11 +35,11 @@ void LoginDialog::setupUI()
 {
     setWindowTitle("Login - Skill Matrix");
     setModal(true);
-    setFixedSize(500, 400);  // Larger dialog for better spacing
+    setFixedSize(450, 350);  // Comfortable size
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(32);  // Add spacing between elements
-    mainLayout->setContentsMargins(48, 48, 48, 48);  // Add generous margins
+    mainLayout->setSpacing(20);  // Spacing between elements
+    mainLayout->setContentsMargins(32, 32, 32, 32);  // Container margins
 
     // Title
     QLabel* titleLabel = new QLabel("Skill Matrix", this);
@@ -52,10 +52,10 @@ void LoginDialog::setupUI()
     // Login form
     QGroupBox* formGroup = new QGroupBox("Please login to continue", this);
     QFormLayout* formLayout = new QFormLayout(formGroup);
-    formLayout->setSpacing(20);  // Add spacing between form rows
-    formLayout->setContentsMargins(24, 24, 24, 24);  // Add padding inside form group
-    formLayout->setVerticalSpacing(20);  // Vertical spacing between rows
-    formLayout->setHorizontalSpacing(16);  // Horizontal spacing between labels and fields
+    formLayout->setSpacing(16);  // Spacing between form rows
+    formLayout->setContentsMargins(20, 20, 20, 20);  // Padding inside form group
+    formLayout->setVerticalSpacing(16);  // Vertical spacing between rows
+    formLayout->setHorizontalSpacing(12);  // Horizontal spacing between labels and fields
 
     usernameEdit_ = new QLineEdit(this);
     usernameEdit_->setPlaceholderText("Username");
@@ -76,12 +76,12 @@ void LoginDialog::setupUI()
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(16);  // Add spacing between buttons
+    buttonLayout->setSpacing(12);  // Spacing between buttons
     loginButton_ = new QPushButton("Login", this);
     loginButton_->setDefault(true);
-    loginButton_->setMinimumHeight(40);  // Larger button height
+    loginButton_->setMinimumHeight(36);  // Button height
     cancelButton_ = new QPushButton("Cancel", this);
-    cancelButton_->setMinimumHeight(40);  // Larger button height
+    cancelButton_->setMinimumHeight(36);  // Button height
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(loginButton_);
@@ -89,9 +89,9 @@ void LoginDialog::setupUI()
 
     // Main layout
     mainLayout->addWidget(titleLabel);
-    mainLayout->addSpacing(32);  // Increased spacing after title
+    mainLayout->addSpacing(20);  // Spacing after title
     mainLayout->addWidget(formGroup);
-    mainLayout->addSpacing(16);  // Add spacing before status label
+    mainLayout->addSpacing(12);  // Spacing before status label
     mainLayout->addWidget(statusLabel_);
     mainLayout->addStretch();
     mainLayout->addLayout(buttonLayout);
