@@ -51,7 +51,7 @@ void DashboardWidget::setupUI()
     mainLayout->setContentsMargins(48, 48, 48, 48);  // Much larger container padding
 
     // Title and Welcome Section
-    QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
+    QLabel* titleLabel = new QLabel("📊 Dashboard Overview v2", this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(26);  // Increased from 24
     titleFont.setBold(true);
@@ -85,8 +85,8 @@ void DashboardWidget::setupUI()
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setHorizontalSpacing(32);  // Horizontal spacing between columns
-    statsGrid->setVerticalSpacing(40);    // Even more vertical spacing between rows
+    statsGrid->setHorizontalSpacing(40);  // Horizontal spacing between columns
+    statsGrid->setVerticalSpacing(60);    // VERY LARGE vertical spacing between rows
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
