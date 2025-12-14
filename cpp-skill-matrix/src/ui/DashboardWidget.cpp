@@ -47,8 +47,8 @@ DashboardWidget::~DashboardWidget()
 void DashboardWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(32);  // gap-8 between major sections - increased for less congestion
-    mainLayout->setContentsMargins(32, 32, 32, 32);  // p-8 main container padding - more breathing room
+    mainLayout->setSpacing(48);  // Much larger spacing between sections
+    mainLayout->setContentsMargins(48, 48, 48, 48);  // Much larger container padding
 
     // Title and Welcome Section
     QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
@@ -81,11 +81,11 @@ void DashboardWidget::setupUI()
     lastLoginLabel_->setFont(lastLoginFont);
     mainLayout->addWidget(lastLoginLabel_);
 
-    mainLayout->addSpacing(32);  // gap-8 after welcome section
+    mainLayout->addSpacing(48);  // Much larger gap after welcome section
 
     // Quick Statistics Grid (2x2 cards)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(24);  // gap-6 stat cards grid - increased from gap-4
+    statsGrid->setSpacing(32);  // Much larger spacing between stat cards
     statsGrid->setContentsMargins(0, 0, 0, 0);
 
     // Engineers Card
@@ -168,11 +168,11 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(statsGrid);
 
-    mainLayout->addSpacing(24);  // gap-6 before charts section - increased spacing
+    mainLayout->addSpacing(48);  // Much larger spacing before charts
 
     // Charts and Activity Section
     QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(24);  // gap-6 between large panels
+    chartsLayout->setSpacing(32);  // Much larger spacing between chart panels
 
     // Skill Distribution Chart
     QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
@@ -209,7 +209,7 @@ void DashboardWidget::setupUI()
 
     mainLayout->addLayout(chartsLayout);
 
-    mainLayout->addSpacing(24);  // gap-6 before actions section - increased spacing
+    mainLayout->addSpacing(48);  // Much larger spacing before actions
 
     // Quick Actions Guide
     QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
@@ -234,7 +234,7 @@ void DashboardWidget::setupUI()
     actionsLayout->addWidget(actionsLabel);
     mainLayout->addWidget(actionsBox);
 
-    mainLayout->addSpacing(24);  // gap-6 before footer - increased spacing
+    mainLayout->addSpacing(32);  // Larger spacing before footer
 
     // Footer with last update and refresh button
     QHBoxLayout* footerLayout = new QHBoxLayout();
