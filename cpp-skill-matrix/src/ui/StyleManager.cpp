@@ -260,7 +260,7 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %18; "
         "    border: 1px solid %19; "
         "    border-radius: 12px; "  // Rounded-xl style
-        "    margin-top: 20px; "
+        "    margin: 0px; "  // Remove margins - let layout spacing control this
         "    padding: 24px; "
         "    font-weight: 600; "
         "    font-size: 15pt; "
