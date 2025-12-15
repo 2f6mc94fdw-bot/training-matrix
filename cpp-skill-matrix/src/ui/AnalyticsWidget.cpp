@@ -50,25 +50,31 @@ void AnalyticsWidget::setupUI()
 
     QWidget* contentWidget = new QWidget();
     QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setSpacing(24);
-    mainLayout->setContentsMargins(24, 24, 24, 24);
+    mainLayout->setSpacing(32);  // 8px grid: 32px between sections
+    mainLayout->setContentsMargins(40, 40, 40, 40);  // 8px grid: 40px container padding
 
     // Header with title and controls
     QVBoxLayout* headerLayout = new QVBoxLayout();
+    headerLayout->setSpacing(24);  // 8px grid: 24px spacing
 
     // Title row
     QHBoxLayout* titleRow = new QHBoxLayout();
     QLabel* titleLabel = new QLabel("Analytics & Insights", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(20);
-    titleFont.setBold(true);
+    titleFont.setPointSize(32);  // Typography scale: 32pt for main title
+    titleFont.setWeight(QFont::Bold);
     titleLabel->setFont(titleFont);
     titleRow->addWidget(titleLabel);
     titleRow->addStretch();
 
     // Refresh button
     QPushButton* refreshButton = new QPushButton("Refresh", this);
-    refreshButton->setMinimumWidth(100);
+    QFont buttonFont = refreshButton->font();
+    buttonFont.setPointSize(14);  // Typography scale: 14pt for buttons
+    buttonFont.setWeight(QFont::DemiBold);
+    refreshButton->setFont(buttonFont);
+    refreshButton->setMinimumHeight(40);  // 8px grid: 40px button height
+    refreshButton->setMinimumWidth(120);  // 8px grid: 120px button width
     connect(refreshButton, &QPushButton::clicked, this, &AnalyticsWidget::onRefreshClicked);
     titleRow->addWidget(refreshButton);
 
@@ -76,37 +82,52 @@ void AnalyticsWidget::setupUI()
 
     // Filters row
     QHBoxLayout* filtersRow = new QHBoxLayout();
-    filtersRow->setSpacing(12);
+    filtersRow->setSpacing(16);  // 8px grid: 16px between filter controls
 
     // View mode
     QLabel* viewLabel = new QLabel("View:", this);
+    QFont labelFont;
+    labelFont.setPointSize(14);  // Typography scale: 14pt for labels
+    labelFont.setWeight(QFont::DemiBold);
+    viewLabel->setFont(labelFont);
+
     viewModeCombo_ = new QComboBox(this);
     viewModeCombo_->addItem("Overall", OverallView);
     viewModeCombo_->addItem("By Production Area", ByProductionArea);
     viewModeCombo_->addItem("By Engineer", ByEngineer);
-    viewModeCombo_->setMinimumWidth(180);
+    viewModeCombo_->setMinimumWidth(200);  // 8px grid: 200px width
+    viewModeCombo_->setMinimumHeight(40);  // 8px grid: 40px height
+    QFont comboFont;
+    comboFont.setPointSize(14);  // Typography scale: 14pt for combo boxes
+    viewModeCombo_->setFont(comboFont);
     connect(viewModeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onViewModeChanged);
     filtersRow->addWidget(viewLabel);
     filtersRow->addWidget(viewModeCombo_);
 
-    filtersRow->addSpacing(20);
+    filtersRow->addSpacing(24);  // 8px grid: 24px between filter groups
 
     // Production area filter
     QLabel* areaLabel = new QLabel("Filter Area:", this);
+    areaLabel->setFont(labelFont);
     productionAreaFilter_ = new QComboBox(this);
-    productionAreaFilter_->setMinimumWidth(200);
+    productionAreaFilter_->setMinimumWidth(200);  // 8px grid: 200px width
+    productionAreaFilter_->setMinimumHeight(40);  // 8px grid: 40px height
+    productionAreaFilter_->setFont(comboFont);
     connect(productionAreaFilter_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onProductionAreaFilterChanged);
     filtersRow->addWidget(areaLabel);
     filtersRow->addWidget(productionAreaFilter_);
 
-    filtersRow->addSpacing(20);
+    filtersRow->addSpacing(24);  // 8px grid: 24px between filter groups
 
     // Engineer filter
     QLabel* engineerLabel = new QLabel("Filter Engineer:", this);
+    engineerLabel->setFont(labelFont);
     engineerFilter_ = new QComboBox(this);
-    engineerFilter_->setMinimumWidth(200);
+    engineerFilter_->setMinimumWidth(200);  // 8px grid: 200px width
+    engineerFilter_->setMinimumHeight(40);  // 8px grid: 40px height
+    engineerFilter_->setFont(comboFont);
     connect(engineerFilter_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerFilterChanged);
     filtersRow->addWidget(engineerLabel);
@@ -119,32 +140,41 @@ void AnalyticsWidget::setupUI()
 
     // Statistics Cards
     QGroupBox* statsGroup = new QGroupBox("Summary Statistics", this);
-    QGridLayout* statsGrid = new QGridLayout(statsGroup);
-    statsGrid->setSpacing(24);
-    statsGrid->setContentsMargins(20, 20, 20, 20);
+    QFont statsGroupFont;
+    statsGroupFont.setPointSize(20);  // Typography scale: 20pt for section headings
+    statsGroupFont.setWeight(QFont::DemiBold);
+    statsGroup->setFont(statsGroupFont);
 
-    // Create stat cards
+    QGridLayout* statsGrid = new QGridLayout(statsGroup);
+    statsGrid->setSpacing(24);  // 8px grid: 24px between cards
+    statsGrid->setContentsMargins(32, 32, 32, 32);  // 8px grid: 32px padding
+
+    // Create stat cards with improved typography and spacing
     auto createStatCard = [](QGridLayout* grid, int row, int col, const QString& label, QLabel*& valueLabel) {
         QVBoxLayout* cardLayout = new QVBoxLayout();
-
-        QLabel* titleLabel = new QLabel(label);
-        QFont titleFont = titleLabel->font();
-        titleFont.setPointSize(11);
-        titleFont.setWeight(QFont::Normal);
-        titleLabel->setFont(titleFont);
-        titleLabel->setStyleSheet("color: #94a3b8;");
+        cardLayout->setSpacing(8);  // 8px grid: 8px between value and label
 
         valueLabel = new QLabel("0");
         QFont valueFont = valueLabel->font();
-        valueFont.setPointSize(36);
+        valueFont.setPointSize(40);  // Typography scale: 40pt for large numbers
         valueFont.setWeight(QFont::Bold);
         valueLabel->setFont(valueFont);
+        valueLabel->setAlignment(Qt::AlignCenter);
+
+        QLabel* titleLabel = new QLabel(label);
+        QFont titleFont = titleLabel->font();
+        titleFont.setPointSize(12);  // Typography scale: 12pt for card labels
+        titleFont.setWeight(QFont::Normal);
+        titleLabel->setFont(titleFont);
+        titleLabel->setAlignment(Qt::AlignCenter);
+        titleLabel->setStyleSheet("color: #94a3b8;");
 
         cardLayout->addWidget(valueLabel);
         cardLayout->addWidget(titleLabel);
         cardLayout->addStretch();
 
         QWidget* card = new QWidget();
+        card->setMinimumHeight(120);  // 8px grid: 120px minimum height
         card->setLayout(cardLayout);
         grid->addWidget(card, row, col);
     };
@@ -158,19 +188,29 @@ void AnalyticsWidget::setupUI()
 
     // Charts Row
     QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(24);
+    chartsLayout->setSpacing(24);  // 8px grid: 24px between charts
 
     // Skill Distribution Chart
     QGroupBox* skillChartGroup = new QGroupBox("Skill Level Distribution", this);
+    QFont chartGroupFont;
+    chartGroupFont.setPointSize(16);  // Typography scale: 16pt for chart titles
+    chartGroupFont.setWeight(QFont::DemiBold);
+    skillChartGroup->setFont(chartGroupFont);
+
     QVBoxLayout* skillChartLayout = new QVBoxLayout(skillChartGroup);
+    skillChartLayout->setSpacing(16);  // 8px grid: 16px spacing
+    skillChartLayout->setContentsMargins(24, 24, 24, 24);  // 8px grid: 24px padding
 
     // Chart type selector for skill distribution
     QHBoxLayout* skillControlLayout = new QHBoxLayout();
     QLabel* skillChartLabel = new QLabel("Chart Type:", this);
+    skillChartLabel->setFont(labelFont);
     skillChartTypeCombo_ = new QComboBox(this);
     skillChartTypeCombo_->addItem("Bar Chart", BarChart);
     skillChartTypeCombo_->addItem("Pie Chart", PieChart);
-    skillChartTypeCombo_->setMinimumWidth(120);
+    skillChartTypeCombo_->setMinimumWidth(120);  // 8px grid: 120px width
+    skillChartTypeCombo_->setMinimumHeight(32);  // 8px grid: 32px height
+    skillChartTypeCombo_->setFont(comboFont);
     connect(skillChartTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onSkillChartTypeChanged);
     skillControlLayout->addWidget(skillChartLabel);
@@ -180,22 +220,29 @@ void AnalyticsWidget::setupUI()
 
     skillDistributionChart_ = new QChartView(this);
     skillDistributionChart_->setRenderHint(QPainter::Antialiasing);
-    skillDistributionChart_->setMinimumHeight(350);
+    skillDistributionChart_->setMinimumHeight(400);  // 8px grid: 400px height
     skillChartLayout->addWidget(skillDistributionChart_);
     chartsLayout->addWidget(skillChartGroup);
 
     // Breakdown Chart (Production Areas / Engineers)
     QGroupBox* breakdownChartGroup = new QGroupBox("Breakdown Analysis", this);
+    breakdownChartGroup->setFont(chartGroupFont);
+
     QVBoxLayout* breakdownChartLayout = new QVBoxLayout(breakdownChartGroup);
+    breakdownChartLayout->setSpacing(16);  // 8px grid: 16px spacing
+    breakdownChartLayout->setContentsMargins(24, 24, 24, 24);  // 8px grid: 24px padding
 
     // Chart type selector for breakdown
     QHBoxLayout* breakdownControlLayout = new QHBoxLayout();
     QLabel* breakdownChartLabel = new QLabel("Chart Type:", this);
+    breakdownChartLabel->setFont(labelFont);
     breakdownChartTypeCombo_ = new QComboBox(this);
     breakdownChartTypeCombo_->addItem("Bar Chart", BarChart);
     breakdownChartTypeCombo_->addItem("Pie Chart", PieChart);
     breakdownChartTypeCombo_->addItem("Radar Chart", RadarChart);
-    breakdownChartTypeCombo_->setMinimumWidth(120);
+    breakdownChartTypeCombo_->setMinimumWidth(120);  // 8px grid: 120px width
+    breakdownChartTypeCombo_->setMinimumHeight(32);  // 8px grid: 32px height
+    breakdownChartTypeCombo_->setFont(comboFont);
     connect(breakdownChartTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onBreakdownChartTypeChanged);
     breakdownControlLayout->addWidget(breakdownChartLabel);
@@ -205,7 +252,7 @@ void AnalyticsWidget::setupUI()
 
     breakdownChart_ = new QChartView(this);
     breakdownChart_->setRenderHint(QPainter::Antialiasing);
-    breakdownChart_->setMinimumHeight(350);
+    breakdownChart_->setMinimumHeight(400);  // 8px grid: 400px height
     breakdownChartLayout->addWidget(breakdownChart_);
     chartsLayout->addWidget(breakdownChartGroup);
 
