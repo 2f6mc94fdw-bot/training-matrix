@@ -2,6 +2,7 @@
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../utils/Logger.h"
+#include "StyleManager.h"
 
 // Widget includes
 #include "DashboardWidget.h"
@@ -162,8 +163,30 @@ void MainWindow::onNavigationItemClicked(int index)
 
 void MainWindow::onThemeToggled()
 {
-    // TODO: Implement theme toggle
-    Logger::instance().debug("MainWindow", "Theme toggle requested");
+    StyleManager& styleManager = StyleManager::instance();
+
+    // Toggle between Light and Dark themes
+    StyleManager::Theme newTheme = (styleManager.currentTheme() == StyleManager::Light)
+        ? StyleManager::Dark
+        : StyleManager::Light;
+
+    styleManager.applyTheme(newTheme);
+
+    QString themeName = (newTheme == StyleManager::Light) ? "Light" : "Dark";
+    Logger::instance().info("MainWindow", QString("Theme switched to: %1").arg(themeName));
+
+    // Save theme preference immediately
+    QSettings* settings = Application::instance().settings();
+    if (settings) {
+        QString themeSetting = (newTheme == StyleManager::Light)
+            ? Constants::THEME_LIGHT
+            : Constants::THEME_DARK;
+        settings->setValue(Constants::SETTING_THEME, themeSetting);
+        settings->sync();
+    }
+
+    // Show a brief message in the status bar
+    statusBar()->showMessage(QString("Theme changed to %1 mode").arg(themeName), 3000);
 }
 
 void MainWindow::onLogoutClicked()
@@ -203,6 +226,8 @@ void MainWindow::restoreSettings()
     if (settings) {
         restoreGeometry(settings->value(Constants::SETTING_WINDOW_GEOMETRY).toByteArray());
         restoreState(settings->value(Constants::SETTING_WINDOW_STATE).toByteArray());
+
+        // Note: Theme is already restored and applied by Application::initialize()
     }
 }
 
@@ -212,6 +237,14 @@ void MainWindow::saveSettings()
     if (settings) {
         settings->setValue(Constants::SETTING_WINDOW_GEOMETRY, saveGeometry());
         settings->setValue(Constants::SETTING_WINDOW_STATE, saveState());
+
+        // Save theme preference
+        QString themeSetting = (StyleManager::instance().currentTheme() == StyleManager::Light)
+            ? Constants::THEME_LIGHT
+            : Constants::THEME_DARK;
+        settings->setValue(Constants::SETTING_THEME, themeSetting);
+
         settings->sync();
+        Logger::instance().debug("MainWindow", QString("Saved theme: %1").arg(themeSetting));
     }
 }
