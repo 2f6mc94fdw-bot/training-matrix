@@ -26,8 +26,6 @@ DashboardWidget::DashboardWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCountLabel_(nullptr)
     , productionAreaCountLabel_(nullptr)
-    , assessmentCountLabel_(nullptr)
-    , coreSkillCountLabel_(nullptr)
     , lastUpdateLabel_(nullptr)
     , lastLoginLabel_(nullptr)
     , skillChartView_(nullptr)
@@ -260,17 +258,13 @@ void DashboardWidget::updateQuickStats()
 {
     int engineerCount = engineerRepo_.findAll().size();
     int areaCount = productionRepo_.findAllAreas().size();
-    int assessmentCount = assessmentRepo_.findAll().size();
-    int coreSkillCount = coreSkillsRepo_.findAllAssessments().size();
 
     engineerCountLabel_->setText(QString::number(engineerCount));
     productionAreaCountLabel_->setText(QString::number(areaCount));
-    assessmentCountLabel_->setText(QString::number(assessmentCount));
-    coreSkillCountLabel_->setText(QString::number(coreSkillCount));
 
     Logger::instance().info("DashboardWidget",
-        QString("Statistics: %1 engineers, %2 areas, %3 assessments, %4 core skills")
-        .arg(engineerCount).arg(areaCount).arg(assessmentCount).arg(coreSkillCount));
+        QString("Statistics: %1 engineers, %2 areas")
+        .arg(engineerCount).arg(areaCount));
 }
 
 void DashboardWidget::createSkillDistributionChart()

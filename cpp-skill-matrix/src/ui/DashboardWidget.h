@@ -36,8 +36,6 @@ private:
     // Stat labels
     QLabel* engineerCountLabel_;
     QLabel* productionAreaCountLabel_;
-    QLabel* assessmentCountLabel_;
-    QLabel* coreSkillCountLabel_;
     QLabel* lastUpdateLabel_;
     QLabel* lastLoginLabel_;
 
