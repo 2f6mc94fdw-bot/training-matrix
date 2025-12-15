@@ -28,23 +28,34 @@ private slots:
 private:
     void setupUI();
     void loadStatistics();
-    void createSkillDistributionChart();
-    void createRecentActivityFeed();
+    void createScoreDistributionCharts();
+    void createPerformanceLists();
     void updateQuickStats();
+    void updateKeyInsights();
 
 private:
-    // Stat labels
+    // Stat labels - 4 cards matching web app
     QLabel* engineerCountLabel_;
-    QLabel* productionAreaCountLabel_;
+    QLabel* competencyCountLabel_;
+    QLabel* avgSkillLevelLabel_;
+    QLabel* completionRateLabel_;
+
     QLabel* lastUpdateLabel_;
-    QLabel* lastLoginLabel_;
 
-    // Charts
-    QChartView* skillChartView_;
-    QChart* skillChart_;
+    // Charts - Pie + Bar charts side by side
+    QChartView* pieChartView_;
+    QChart* pieChart_;
+    QChartView* barChartView_;
+    QChart* barChart_;
 
-    // Recent activity
-    QListWidget* recentActivityList_;
+    // Performance lists - Top Performers + Needs Attention
+    QListWidget* topPerformersList_;
+    QListWidget* needsAttentionList_;
+
+    // Key Insights labels
+    QLabel* totalAssessmentsLabel_;
+    QLabel* fullyTrainedLabel_;
+    QLabel* needTrainingLabel_;
 
     // Buttons
     QPushButton* refreshButton_;
