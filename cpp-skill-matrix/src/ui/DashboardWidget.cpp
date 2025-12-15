@@ -25,17 +25,24 @@
 DashboardWidget::DashboardWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCountLabel_(nullptr)
-    , productionAreaCountLabel_(nullptr)
+    , competencyCountLabel_(nullptr)
+    , avgSkillLevelLabel_(nullptr)
+    , completionRateLabel_(nullptr)
     , lastUpdateLabel_(nullptr)
-    , lastLoginLabel_(nullptr)
-    , skillChartView_(nullptr)
-    , skillChart_(nullptr)
-    , recentActivityList_(nullptr)
+    , pieChartView_(nullptr)
+    , pieChart_(nullptr)
+    , barChartView_(nullptr)
+    , barChart_(nullptr)
+    , topPerformersList_(nullptr)
+    , needsAttentionList_(nullptr)
+    , totalAssessmentsLabel_(nullptr)
+    , fullyTrainedLabel_(nullptr)
+    , needTrainingLabel_(nullptr)
     , refreshButton_(nullptr)
 {
     setupUI();
     loadStatistics();
-    Logger::instance().info("DashboardWidget", "Dashboard widget initialized with enhanced features");
+    Logger::instance().info("DashboardWidget", "Dashboard widget initialized (web app style)");
 }
 
 DashboardWidget::~DashboardWidget()
@@ -44,58 +51,94 @@ DashboardWidget::~DashboardWidget()
 
 void DashboardWidget::setupUI()
 {
-    // Create a container widget for all the dashboard content
-    QWidget* contentWidget = new QWidget(this);
+    // Main scroll area
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    QWidget* contentWidget = new QWidget();
     QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setSpacing(40);  // 8px grid: 40px between major sections
+    mainLayout->setSpacing(32);  // 8px grid: 32px between sections
     mainLayout->setContentsMargins(40, 40, 40, 40);  // 8px grid: 40px container padding
 
-    // Title and Welcome Section
-    QLabel* titleLabel = new QLabel("Dashboard Overview", this);
+    // Header Section
+    QLabel* titleLabel = new QLabel("Dashboard", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(32);  // Typography scale: 32pt for main title
+    titleFont.setPointSize(32);  // Web app style: large title
     titleFont.setWeight(QFont::Bold);
     titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + "; margin-bottom: 8px;");
     mainLayout->addWidget(titleLabel);
 
-    // Welcome message with user info
-    Session* session = Application::instance().session();
-    QString welcomeText = QString("Welcome back, %1!").arg(
-        session && !session->username().isEmpty() ? session->username() : "User"
-    );
-    QLabel* welcomeLabel = new QLabel(welcomeText, this);
-    QFont welcomeFont = welcomeLabel->font();
-    welcomeFont.setPointSize(16);  // Typography scale: 16pt for emphasized text
-    welcomeFont.setWeight(QFont::Normal);
-    welcomeLabel->setFont(welcomeFont);
-    welcomeLabel->setStyleSheet("margin-bottom: 4px;");
-    mainLayout->addWidget(welcomeLabel);
+    QLabel* subtitleLabel = new QLabel("Team performance overview and key metrics", this);
+    QFont subtitleFont = subtitleLabel->font();
+    subtitleFont.setPointSize(14);
+    subtitleLabel->setFont(subtitleFont);
+    subtitleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+    mainLayout->addWidget(subtitleLabel);
 
-    // Last login time
-    lastLoginLabel_ = new QLabel(
-        QString("Last login: %1").arg(QDateTime::currentDateTime().toString("dddd, MMMM d, yyyy h:mm AP")),
-        this
-    );
-    lastLoginLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    QFont lastLoginFont = lastLoginLabel_->font();
-    lastLoginFont.setPointSize(14);  // Typography scale: 14pt for body text
-    lastLoginLabel_->setFont(lastLoginFont);
-    mainLayout->addWidget(lastLoginLabel_);
+    mainLayout->addSpacing(24);  // Space after header
 
-    mainLayout->addSpacing(32);  // 8px grid: 32px after welcome section
+    // Quick Stats Cards (4 cards matching web app)
+    QGridLayout* statsGrid = new QGridLayout();
+    statsGrid->setSpacing(24);  // 8px grid: 24px between cards
 
-    // Quick Statistics Grid (compact 2 cards)
-    QHBoxLayout* statsLayout = new QHBoxLayout();
-    statsLayout->setSpacing(24);  // 8px grid: 24px between cards
-    statsLayout->setContentsMargins(0, 0, 0, 0);
+    // Helper lambda to create stat cards
+    auto createStatCard = [this](const QString& title, QLabel*& valueLabel, const QString& iconName, const QString& borderColor) -> QWidget* {
+        QGroupBox* card = new QGroupBox(title, this);
+        card->setMinimumHeight(140);  // Web app card height
 
-    // Engineers Card - Compact & Refined
-    QGroupBox* engineersBox = new QGroupBox("Total Engineers", this);
-    QFont cardTitleFont;
-    cardTitleFont.setPointSize(14);  // Typography scale: 14pt for card titles
-    cardTitleFont.setWeight(QFont::DemiBold);
-    engineersBox->setFont(cardTitleFont);
+        // Set left border accent (simulating web app's colored left border)
+        QString cardStyle = QString(
+            "QGroupBox {"
+            "    border-left: 4px solid %1;"
+            "    padding: 20px;"
+            "}"
+        ).arg(borderColor);
+        card->setStyleSheet(cardStyle);
+
+        QVBoxLayout* cardLayout = new QVBoxLayout(card);
+        cardLayout->setSpacing(8);
+
+        // Large number (web app style: text-4xl)
+        valueLabel = new QLabel("0", this);
+        QFont numberFont = valueLabel->font();
+        numberFont.setPointSize(48);  // Very large like web app
+        numberFont.setWeight(QFont::Bold);
+        valueLabel->setFont(numberFont);
+        valueLabel->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
+        cardLayout->addWidget(valueLabel);
+
+        // Descriptive label
+        QLabel* descLabel = new QLabel(title, this);
+        QFont descFont = descLabel->font();
+        descFont.setPointSize(12);
+        descLabel->setFont(descFont);
+        descLabel->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+        cardLayout->addWidget(descLabel);
+
+        cardLayout->addStretch();
+
+        return card;
+    };
+
+    // Card 1: Total Engineers (gray border like web app)
+    QWidget* engineersCard = createStatCard("Total Engineers", engineerCountLabel_, "users", "#64748b");
+    statsGrid->addWidget(engineersCard, 0, 0);
+
+    // Card 2: Total Competencies (red/accent border)
+    QWidget* competenciesCard = createStatCard("Total Competencies", competencyCountLabel_, "target", "#ff6b6b");
+    statsGrid->addWidget(competenciesCard, 0, 1);
+
+    // Card 3: Average Skill Level (green/success border)
+    QWidget* avgSkillCard = createStatCard("Average Skill Level", avgSkillLevelLabel_, "trending-up", "#10b981");
+    statsGrid->addWidget(avgSkillCard, 0, 2);
+
+    // Card 4: Completion Rate (yellow/warning border)
+    QWidget* completionCard = createStatCard("Completion Rate", completionRateLabel_, "award", "#f59e0b");
+    statsGrid->addWidget(completionCard, 0, 3);
+
+    mainLayout->addLayout(statsGrid);
 
     QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
     engineersLayout->setSpacing(8);  // 8px grid: 8px between elements
