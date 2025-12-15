@@ -712,35 +712,35 @@ QString StyleManager::buildStylesheet(Theme theme) const
 
 void StyleManager::initializeColors()
 {
-    // Light Theme Colors
+    // Light Theme Colors - Very Pale Grey Scheme
     lightColors_["primary"] = QColor("#2196F3");          // Blue
-    lightColors_["secondary"] = QColor("#757575");        // Gray
+    lightColors_["secondary"] = QColor("#9E9E9E");        // Light gray
     lightColors_["accent"] = QColor("#4CAF50");           // Green
     lightColors_["danger"] = QColor("#F44336");           // Red
     lightColors_["warning"] = QColor("#FF9800");          // Orange
     lightColors_["success"] = QColor("#4CAF50");          // Green
-    lightColors_["background"] = QColor("#FAFAFA");       // Very light gray
-    lightColors_["windowBackground"] = QColor("#F5F5F5"); // Light gray
-    lightColors_["cardBackground"] = QColor("#FFFFFF");   // White
+    lightColors_["background"] = QColor("#FEFEFE");       // Extremely pale gray (almost white)
+    lightColors_["windowBackground"] = QColor("#FCFCFC"); // Very very pale gray
+    lightColors_["cardBackground"] = QColor("#FFFFFF");   // Pure white
     lightColors_["text"] = QColor("#212121");             // Dark gray
     lightColors_["textSecondary"] = QColor("#757575");    // Medium gray
-    lightColors_["border"] = QColor("#E0E0E0");           // Light border
-    lightColors_["alternateBackground"] = QColor("#F5F5F5"); // Alternate row
+    lightColors_["border"] = QColor("#F0F0F0");           // Very pale border
+    lightColors_["alternateBackground"] = QColor("#FBFBFB"); // Very pale alternate row
     lightColors_["hoverBackground"] = QColor("#E3F2FD");  // Light blue hover
-    lightColors_["headerBackground"] = QColor("#FAFAFA"); // Header background
+    lightColors_["headerBackground"] = QColor("#FDFDFD"); // Very pale header background
     lightColors_["headerText"] = QColor("#424242");       // Header text
-    lightColors_["inputBackground"] = QColor("#FFFFFF");  // Input bg
-    lightColors_["disabledBackground"] = QColor("#F5F5F5"); // Disabled bg
+    lightColors_["inputBackground"] = QColor("#FFFFFF");  // Pure white input bg
+    lightColors_["disabledBackground"] = QColor("#F8F8F8"); // Very pale disabled bg
     lightColors_["disabledText"] = QColor("#BDBDBD");     // Disabled text
-    lightColors_["menuBackground"] = QColor("#FFFFFF");   // Menu bg
+    lightColors_["menuBackground"] = QColor("#FFFFFF");   // Pure white menu bg
     lightColors_["menuText"] = QColor("#212121");         // Menu text
-    lightColors_["toolbarBackground"] = QColor("#FAFAFA"); // Toolbar bg
-    lightColors_["statusBarBackground"] = QColor("#F5F5F5"); // Status bar bg
+    lightColors_["toolbarBackground"] = QColor("#FDFDFD"); // Very pale toolbar bg
+    lightColors_["statusBarBackground"] = QColor("#FCFCFC"); // Very pale status bar bg
     lightColors_["statusBarText"] = QColor("#616161");    // Status bar text
-    lightColors_["progressBackground"] = QColor("#E0E0E0"); // Progress bg
-    lightColors_["scrollBarBackground"] = QColor("#F5F5F5"); // Scrollbar bg
-    lightColors_["scrollBarHandle"] = QColor("#BDBDBD"); // Scrollbar handle
-    lightColors_["tabBackground"] = QColor("#F5F5F5");    // Tab bg
+    lightColors_["progressBackground"] = QColor("#F0F0F0"); // Very pale progress bg
+    lightColors_["scrollBarBackground"] = QColor("#F8F8F8"); // Very pale scrollbar bg
+    lightColors_["scrollBarHandle"] = QColor("#D0D0D0"); // Light scrollbar handle
+    lightColors_["tabBackground"] = QColor("#FBFBFB");    // Very pale tab bg
     lightColors_["tabText"] = QColor("#757575");          // Tab text
 
     // Dark Theme Colors - Slate Professional Design System
