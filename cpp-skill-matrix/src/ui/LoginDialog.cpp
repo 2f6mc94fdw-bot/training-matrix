@@ -44,65 +44,64 @@ void LoginDialog::setupUI()
     // Title
     QLabel* titleLabel = new QLabel("Skill Matrix", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(18);
+    titleFont.setPointSize(20);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Login form - using VBoxLayout for better control
-    QGroupBox* formGroup = new QGroupBox("Please login to continue", this);
-    formGroup->setMinimumHeight(160);
-    QVBoxLayout* formLayout = new QVBoxLayout(formGroup);
-    formLayout->setSpacing(16);
-    formLayout->setContentsMargins(24, 24, 24, 24);
+    // Subtitle
+    QLabel* subtitleLabel = new QLabel("Please login to continue", this);
+    subtitleLabel->setAlignment(Qt::AlignCenter);
 
     // Username field
-    QLabel* usernameLabel = new QLabel("Username:", formGroup);
-    usernameEdit_ = new QLineEdit(formGroup);
-    usernameEdit_->setPlaceholderText("Username");
+    QLabel* usernameLabel = new QLabel("Username:", this);
+    usernameEdit_ = new QLineEdit(this);
+    usernameEdit_->setPlaceholderText("Enter username");
     usernameEdit_->setText("admin"); // Default for testing
-    usernameEdit_->setMinimumWidth(300);
-    usernameEdit_->setMinimumHeight(36);
-
-    formLayout->addWidget(usernameLabel);
-    formLayout->addWidget(usernameEdit_);
-    formLayout->addSpacing(8);  // Extra spacing between fields
+    usernameEdit_->setMinimumHeight(40);
+    usernameEdit_->setMaximumWidth(400);
 
     // Password field
-    QLabel* passwordLabel = new QLabel("Password:", formGroup);
-    passwordEdit_ = new QLineEdit(formGroup);
+    QLabel* passwordLabel = new QLabel("Password:", this);
+    passwordEdit_ = new QLineEdit(this);
     passwordEdit_->setEchoMode(QLineEdit::Password);
-    passwordEdit_->setPlaceholderText("Password");
+    passwordEdit_->setPlaceholderText("Enter password");
     passwordEdit_->setText("admin123"); // Default for testing
-    passwordEdit_->setMinimumWidth(300);
-    passwordEdit_->setMinimumHeight(36);
-
-    formLayout->addWidget(passwordLabel);
-    formLayout->addWidget(passwordEdit_);
+    passwordEdit_->setMinimumHeight(40);
+    passwordEdit_->setMaximumWidth(400);
 
     // Status label
     statusLabel_ = new QLabel(this);
     statusLabel_->setStyleSheet("QLabel { color: red; }");
     statusLabel_->setWordWrap(true);
+    statusLabel_->setMinimumHeight(20);
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(12);  // Spacing between buttons
+    buttonLayout->setSpacing(12);
     loginButton_ = new QPushButton("Login", this);
     loginButton_->setDefault(true);
-    loginButton_->setMinimumHeight(36);  // Button height
+    loginButton_->setMinimumHeight(40);
+    loginButton_->setMinimumWidth(120);
     cancelButton_ = new QPushButton("Cancel", this);
-    cancelButton_->setMinimumHeight(36);  // Button height
+    cancelButton_->setMinimumHeight(40);
+    cancelButton_->setMinimumWidth(120);
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(loginButton_);
     buttonLayout->addWidget(cancelButton_);
 
-    // Main layout
+    // Main layout - add everything directly
     mainLayout->addWidget(titleLabel);
-    mainLayout->addSpacing(20);  // Spacing after title
-    mainLayout->addWidget(formGroup);
-    mainLayout->addSpacing(12);  // Spacing before status label
+    mainLayout->addSpacing(10);
+    mainLayout->addWidget(subtitleLabel);
+    mainLayout->addSpacing(30);
+    mainLayout->addWidget(usernameLabel);
+    mainLayout->addWidget(usernameEdit_);
+    mainLayout->addSpacing(20);  // Space between username and password
+    mainLayout->addWidget(passwordLabel);
+    mainLayout->addWidget(passwordEdit_);
+    mainLayout->addSpacing(20);
     mainLayout->addWidget(statusLabel_);
     mainLayout->addStretch();
     mainLayout->addLayout(buttonLayout);
