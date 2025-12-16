@@ -85,18 +85,31 @@ void MainWindow::setupNavigationSidebar()
     navigationList_->setMaximumWidth(Constants::SIDEBAR_WIDTH);
     navigationList_->setMinimumWidth(Constants::SIDEBAR_WIDTH);
 
-    // Add navigation items
-    navigationList_->addItem("Dashboard");
-    navigationList_->addItem("Engineers");
-    navigationList_->addItem("Production Areas");
-    navigationList_->addItem("Assessments");
-    navigationList_->addItem("Core Skills");
-    navigationList_->addItem("Reports");
-    navigationList_->addItem("Analytics");
-    navigationList_->addItem("Certifications");
-    navigationList_->addItem("Snapshots");
-    navigationList_->addItem("Audit Log");
-    navigationList_->addItem("Import/Export");
+    // Get current user's role from session
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
+
+    if (isAdmin) {
+        // Admin navigation - full access to all features
+        navigationList_->addItem("Dashboard");
+        navigationList_->addItem("Engineers");
+        navigationList_->addItem("Production Areas");
+        navigationList_->addItem("Assessments");
+        navigationList_->addItem("Core Skills");
+        navigationList_->addItem("Reports");
+        navigationList_->addItem("Analytics");
+        navigationList_->addItem("Certifications");
+        navigationList_->addItem("Snapshots");
+        navigationList_->addItem("Audit Log");
+        navigationList_->addItem("Import/Export");
+    } else {
+        // Engineer navigation - personal view only
+        navigationList_->addItem("My Dashboard");
+        navigationList_->addItem("My Assessments");
+        navigationList_->addItem("My Core Skills");
+        navigationList_->addItem("My Certifications");
+        navigationList_->addItem("My Progress");
+    }
 
     connect(navigationList_, &QListWidget::currentRowChanged, this, &MainWindow::onNavigationItemClicked);
 }
@@ -114,31 +127,61 @@ void MainWindow::setupCentralWidget()
     // Setup content stack
     contentStack_ = new QStackedWidget(this);
 
-    // Create real widgets
-    dashboardWidget_ = new DashboardWidget(this);
-    engineersWidget_ = new EngineersWidget(this);
-    productionAreasWidget_ = new ProductionAreasWidget(this);
-    assessmentWidget_ = new AssessmentWidget(this);
-    coreSkillsWidget_ = new CoreSkillsWidget(this);
-    reportsWidget_ = new ReportsWidget(this);
-    analyticsWidget_ = new AnalyticsWidget(this);
-    certificationsWidget_ = new CertificationsWidget(this);
-    snapshotsWidget_ = new SnapshotsWidget(this);
-    auditLogWidget_ = new AuditLogWidget(this);
-    importExportWidget_ = new ImportExportDialog(this);
+    // Get current user's role from session
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
 
-    // Add widgets to stack
-    contentStack_->addWidget(dashboardWidget_);
-    contentStack_->addWidget(engineersWidget_);
-    contentStack_->addWidget(productionAreasWidget_);
-    contentStack_->addWidget(assessmentWidget_);
-    contentStack_->addWidget(coreSkillsWidget_);
-    contentStack_->addWidget(reportsWidget_);
-    contentStack_->addWidget(analyticsWidget_);
-    contentStack_->addWidget(certificationsWidget_);
-    contentStack_->addWidget(snapshotsWidget_);
-    contentStack_->addWidget(auditLogWidget_);
-    contentStack_->addWidget(importExportWidget_);
+    if (isAdmin) {
+        // Admin widgets - full featured management interface
+        dashboardWidget_ = new DashboardWidget(this);
+        engineersWidget_ = new EngineersWidget(this);
+        productionAreasWidget_ = new ProductionAreasWidget(this);
+        assessmentWidget_ = new AssessmentWidget(this);
+        coreSkillsWidget_ = new CoreSkillsWidget(this);
+        reportsWidget_ = new ReportsWidget(this);
+        analyticsWidget_ = new AnalyticsWidget(this);
+        certificationsWidget_ = new CertificationsWidget(this);
+        snapshotsWidget_ = new SnapshotsWidget(this);
+        auditLogWidget_ = new AuditLogWidget(this);
+        importExportWidget_ = new ImportExportDialog(this);
+
+        // Add admin widgets to stack
+        contentStack_->addWidget(dashboardWidget_);
+        contentStack_->addWidget(engineersWidget_);
+        contentStack_->addWidget(productionAreasWidget_);
+        contentStack_->addWidget(assessmentWidget_);
+        contentStack_->addWidget(coreSkillsWidget_);
+        contentStack_->addWidget(reportsWidget_);
+        contentStack_->addWidget(analyticsWidget_);
+        contentStack_->addWidget(certificationsWidget_);
+        contentStack_->addWidget(snapshotsWidget_);
+        contentStack_->addWidget(auditLogWidget_);
+        contentStack_->addWidget(importExportWidget_);
+    } else {
+        // Engineer widgets - personal view filtered by engineerId
+        // For now, create placeholder widgets - will be replaced with engineer-specific widgets
+        QString engineerId = session->engineerId();
+
+        // My Dashboard - shows personal overview
+        QWidget* myDashboard = new QLabel(QString("Welcome! Your Engineer ID: %1\n\nYour personal dashboard will show your skills, assessments, and targets here.").arg(engineerId), this);
+        contentStack_->addWidget(myDashboard);
+
+        // My Assessments - shows only their assessments
+        QWidget* myAssessments = new QLabel("Your machine competency assessments will appear here.", this);
+        contentStack_->addWidget(myAssessments);
+
+        // My Core Skills - shows only their core skills
+        QWidget* myCoreSkills = new QLabel("Your core skill assessments will appear here.", this);
+        contentStack_->addWidget(myCoreSkills);
+
+        // My Certifications - shows only their certifications
+        QWidget* myCerts = new QLabel("Your certifications will appear here.", this);
+        contentStack_->addWidget(myCerts);
+
+        // My Progress - shows progress over time with targets
+        QWidget* myProgress = new QLabel("Your progress history and targets will appear here.", this);
+        contentStack_->addWidget(myProgress);
+    }
 
     // Layout
     mainLayout->addWidget(navigationList_);
