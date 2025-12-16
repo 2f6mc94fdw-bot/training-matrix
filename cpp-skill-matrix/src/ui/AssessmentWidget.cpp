@@ -212,10 +212,12 @@ void AssessmentWidget::loadEngineerCards()
                     // Competency name
                     QLabel* compLabel = new QLabel(competency.name(), this);
                     QFont compFont = compLabel->font();
-                    compFont.setPointSize(14);
+                    compFont.setPointSize(13);
                     compLabel->setFont(compFont);
-                    compLabel->setMinimumWidth(300);
-                    compLayout->addWidget(compLabel);
+                    compLabel->setWordWrap(true);
+                    compLabel->setMinimumWidth(250);
+                    compLabel->setMaximumWidth(500);
+                    compLayout->addWidget(compLabel, 1);  // Stretch factor of 1
 
                     compLayout->addStretch();
 
@@ -277,7 +279,7 @@ void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
 
     for (int score = 0; score < 4; score++) {
         QPushButton* button = new QPushButton(scoreInfos[score].label, this);
-        button->setFixedSize(40, 40);
+        button->setFixedSize(32, 32);
         button->setCursor(Qt::PointingHandCursor);
 
         // Store metadata
@@ -298,9 +300,9 @@ void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
                 "    background-color: %1;"
                 "    color: white;"
                 "    border: 2px solid %1;"
-                "    border-radius: 20px;"
+                "    border-radius: 16px;"
                 "    font-weight: bold;"
-                "    font-size: 14px;"
+                "    font-size: 12px;"
                 "}"
                 "QPushButton:hover {"
                 "    opacity: 0.9;"
@@ -313,8 +315,8 @@ void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
                 "    background-color: white;"
                 "    color: #64748b;"
                 "    border: 2px solid #e2e8f0;"
-                "    border-radius: 20px;"
-                "    font-size: 14px;"
+                "    border-radius: 16px;"
+                "    font-size: 12px;"
                 "}"
                 "QPushButton:hover {"
                 "    border-color: %1;"
@@ -391,9 +393,9 @@ void AssessmentWidget::onScoreButtonClicked()
                             "    background-color: %1;"
                             "    color: white;"
                             "    border: 2px solid %1;"
-                            "    border-radius: 20px;"
+                            "    border-radius: 16px;"
                             "    font-weight: bold;"
-                            "    font-size: 14px;"
+                            "    font-size: 12px;"
                             "}"
                             "QPushButton:hover {"
                             "    opacity: 0.9;"
@@ -405,8 +407,8 @@ void AssessmentWidget::onScoreButtonClicked()
                             "    background-color: white;"
                             "    color: #64748b;"
                             "    border: 2px solid #e2e8f0;"
-                            "    border-radius: 20px;"
-                            "    font-size: 14px;"
+                            "    border-radius: 16px;"
+                            "    font-size: 12px;"
                             "}"
                             "QPushButton:hover {"
                             "    border-color: %1;"
