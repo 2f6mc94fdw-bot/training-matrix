@@ -201,25 +201,12 @@ bool LoginDialog::attemptLogin()
         return false;
     }
 
-    // Hash the password
-    QString passwordHash = Crypto::hashPassword(password);
-
-    // Authenticate via UserRepository
+    // Fetch user from database
     UserRepository userRepo;
-    User user = userRepo.authenticate(username, passwordHash);
+    User user = userRepo.findByUsername(username);
 
-    if (user.isValid()) {
-        // Success
-        Logger::instance().info("LoginDialog", "Login successful for user: " + username);
-
-        // Set session with engineerId
-        Application::instance().onUserLogin(user.id(), user.username(), user.role(), user.engineerId());
-
-        statusLabel_->setText("Login successful!");
-        statusLabel_->setStyleSheet("QLabel { color: green; }");
-        loginButton_->setEnabled(true);
-        return true;
-    } else {
+    // Verify user exists and password matches using Crypto::verifyPassword
+    if (!user.isValid() || !Crypto::verifyPassword(password, user.password())) {
         // Failure
         Logger::instance().warning("LoginDialog", "Login failed for user: " + username);
 
@@ -230,4 +217,15 @@ bool LoginDialog::attemptLogin()
         loginButton_->setEnabled(true);
         return false;
     }
+
+    // Success
+    Logger::instance().info("LoginDialog", "Login successful for user: " + username);
+
+    // Set session with engineerId
+    Application::instance().onUserLogin(user.id(), user.username(), user.role(), user.engineerId());
+
+    statusLabel_->setText("Login successful!");
+    statusLabel_->setStyleSheet("QLabel { color: green; }");
+    loginButton_->setEnabled(true);
+    return true;
 }

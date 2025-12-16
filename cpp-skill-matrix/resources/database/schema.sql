@@ -206,11 +206,18 @@ CREATE NONCLUSTERED INDEX [IX_certifications_engineer] ON [dbo].[certifications]
 CREATE NONCLUSTERED INDEX [IX_audit_logs_timestamp] ON [dbo].[audit_logs]([timestamp] DESC);
 GO
 
--- Insert default admin user (password: admin123 - hashed with bcrypt)
+-- Insert default admin user
+-- IMPORTANT: After running this schema, you MUST update the admin password hash
+-- The password hash must be generated using the app's Crypto::hashPassword function
+--
+-- To set the admin password, run this SQL AFTER computing the hash:
+-- UPDATE users SET password = '<hash_from_app>' WHERE username = 'admin';
+--
+-- Or create the admin user manually through the application
 IF NOT EXISTS (SELECT * FROM [dbo].[users] WHERE [id] = 'admin')
 BEGIN
     INSERT INTO [dbo].[users] ([id], [username], [password], [role], [engineer_id])
-    VALUES ('admin', 'admin', '$2a$10$XQK9X.xjKZv4PqGqxdpN0OYjQz5Z8rCqH9VB0KpXKNH0qUqKjKqKq', 'admin', NULL);
+    VALUES ('admin', 'admin', 'temporary_hash_change_me', 'admin', NULL);
 END
 GO
 
