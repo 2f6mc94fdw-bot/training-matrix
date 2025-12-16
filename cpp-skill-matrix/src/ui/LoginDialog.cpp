@@ -188,8 +188,8 @@ bool LoginDialog::attemptLogin()
         // Success
         Logger::instance().info("LoginDialog", "Login successful for user: " + username);
 
-        // Set session
-        Application::instance().onUserLogin(user.id(), user.username(), user.role());
+        // Set session with engineerId
+        Application::instance().onUserLogin(user.id(), user.username(), user.role(), user.engineerId());
 
         statusLabel_->setText("Login successful!");
         statusLabel_->setStyleSheet("QLabel { color: green; }");

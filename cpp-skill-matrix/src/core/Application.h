@@ -146,8 +146,9 @@ public slots:
      * @param userId User ID
      * @param username Username
      * @param role User role
+     * @param engineerId Engineer ID (for engineer users)
      */
-    void onUserLogin(const QString& userId, const QString& username, const QString& role);
+    void onUserLogin(const QString& userId, const QString& username, const QString& role, const QString& engineerId = QString());
 
     /**
      * @brief Handle user logout
