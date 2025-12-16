@@ -49,29 +49,36 @@ void LoginDialog::setupUI()
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Login form
+    // Login form - using VBoxLayout for better control
     QGroupBox* formGroup = new QGroupBox("Please login to continue", this);
-    QFormLayout* formLayout = new QFormLayout(formGroup);
-    formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
-    formLayout->setVerticalSpacing(20);  // More vertical spacing between rows
-    formLayout->setHorizontalSpacing(16);  // More horizontal spacing between labels and fields
-    formLayout->setContentsMargins(24, 24, 24, 24);  // Padding inside form group
+    formGroup->setMinimumHeight(160);
+    QVBoxLayout* formLayout = new QVBoxLayout(formGroup);
+    formLayout->setSpacing(16);
+    formLayout->setContentsMargins(24, 24, 24, 24);
 
-    usernameEdit_ = new QLineEdit(this);
+    // Username field
+    QLabel* usernameLabel = new QLabel("Username:", formGroup);
+    usernameEdit_ = new QLineEdit(formGroup);
     usernameEdit_->setPlaceholderText("Username");
     usernameEdit_->setText("admin"); // Default for testing
-    usernameEdit_->setMinimumWidth(250);
-    usernameEdit_->setMinimumHeight(32);
+    usernameEdit_->setMinimumWidth(300);
+    usernameEdit_->setMinimumHeight(36);
 
-    passwordEdit_ = new QLineEdit(this);
+    formLayout->addWidget(usernameLabel);
+    formLayout->addWidget(usernameEdit_);
+    formLayout->addSpacing(8);  // Extra spacing between fields
+
+    // Password field
+    QLabel* passwordLabel = new QLabel("Password:", formGroup);
+    passwordEdit_ = new QLineEdit(formGroup);
     passwordEdit_->setEchoMode(QLineEdit::Password);
     passwordEdit_->setPlaceholderText("Password");
     passwordEdit_->setText("admin123"); // Default for testing
-    passwordEdit_->setMinimumWidth(250);
-    passwordEdit_->setMinimumHeight(32);
+    passwordEdit_->setMinimumWidth(300);
+    passwordEdit_->setMinimumHeight(36);
 
-    formLayout->addRow("Username:", usernameEdit_);
-    formLayout->addRow("Password:", passwordEdit_);
+    formLayout->addWidget(passwordLabel);
+    formLayout->addWidget(passwordEdit_);
 
     // Status label
     statusLabel_ = new QLabel(this);
