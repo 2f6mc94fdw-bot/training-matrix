@@ -429,7 +429,7 @@ void DashboardWidget::createScoreDistributionCharts()
 
     for (const Engineer& engineer : engineers) {
         // Calculate average score for this engineer
-        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineerId(engineer.id());
+        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineer(engineer.id());
         double totalScore = 0;
         int count = 0;
         for (const Assessment& assessment : engineerAssessments) {
@@ -476,7 +476,7 @@ void DashboardWidget::createPerformanceLists()
     QList<Engineer> engineers = engineerRepo_.findAll();
 
     for (const Engineer& engineer : engineers) {
-        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineerId(engineer.id());
+        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineer(engineer.id());
         if (engineerAssessments.isEmpty()) continue;
 
         double totalScore = 0;
@@ -485,7 +485,7 @@ void DashboardWidget::createPerformanceLists()
         }
         double avgScore = totalScore / engineerAssessments.size();
 
-        performances.append({engineer.name(), engineerAssessments.size(), avgScore});
+        performances.append({engineer.name(), static_cast<int>(engineerAssessments.size()), avgScore});
     }
 
     // Sort by average score

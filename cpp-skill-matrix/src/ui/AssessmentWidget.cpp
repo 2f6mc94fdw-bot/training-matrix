@@ -220,7 +220,7 @@ void AssessmentWidget::loadEngineerCards()
                     compLayout->addStretch();
 
                     // Get current score
-                    QList<Assessment> assessments = assessmentRepo_.findByEngineerId(engineer.id());
+                    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineer.id());
                     int currentScore = -1;
                     for (const Assessment& assessment : assessments) {
                         if (assessment.productionAreaId() == area.id() &&
@@ -458,7 +458,7 @@ void AssessmentWidget::onScoreButtonClicked()
 
 void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* summaryLabel)
 {
-    QList<Assessment> assessments = assessmentRepo_.findByEngineerId(engineerId);
+    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
 
     int filterAreaId = areaFilterCombo_->currentData().toInt();
 

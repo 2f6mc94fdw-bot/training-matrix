@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <QLabel>
 #include <QMap>
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
