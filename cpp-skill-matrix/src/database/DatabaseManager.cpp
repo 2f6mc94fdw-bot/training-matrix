@@ -86,7 +86,10 @@ bool DatabaseManager::connect(const QString& server, const QString& database,
 
 void DatabaseManager::disconnect()
 {
-    if (db_.isOpen()) {
+    // Check if database is valid before accessing it
+    // This prevents crashes during application shutdown when Qt's
+    // database driver may have already been destroyed
+    if (db_.isValid() && db_.isOpen()) {
         db_.close();
         Logger::instance().info("DatabaseManager", "Disconnected from database");
     }
@@ -99,7 +102,7 @@ void DatabaseManager::disconnect()
 
 bool DatabaseManager::testConnection()
 {
-    if (!db_.isOpen()) {
+    if (!db_.isValid() || !db_.isOpen()) {
         return false;
     }
 
