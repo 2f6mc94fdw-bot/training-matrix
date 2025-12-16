@@ -35,11 +35,11 @@ void LoginDialog::setupUI()
 {
     setWindowTitle("Login - Skill Matrix");
     setModal(true);
-    setFixedSize(450, 350);  // Comfortable size
+    setFixedSize(500, 400);  // Increased size for better layout
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);  // Spacing between elements
-    mainLayout->setContentsMargins(32, 32, 32, 32);  // Container margins
+    mainLayout->setContentsMargins(40, 40, 40, 40);  // Container margins
 
     // Title
     QLabel* titleLabel = new QLabel("Skill Matrix", this);
@@ -52,19 +52,23 @@ void LoginDialog::setupUI()
     // Login form
     QGroupBox* formGroup = new QGroupBox("Please login to continue", this);
     QFormLayout* formLayout = new QFormLayout(formGroup);
-    formLayout->setSpacing(16);  // Spacing between form rows
-    formLayout->setContentsMargins(20, 20, 20, 20);  // Padding inside form group
-    formLayout->setVerticalSpacing(16);  // Vertical spacing between rows
-    formLayout->setHorizontalSpacing(12);  // Horizontal spacing between labels and fields
+    formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    formLayout->setVerticalSpacing(20);  // More vertical spacing between rows
+    formLayout->setHorizontalSpacing(16);  // More horizontal spacing between labels and fields
+    formLayout->setContentsMargins(24, 24, 24, 24);  // Padding inside form group
 
     usernameEdit_ = new QLineEdit(this);
     usernameEdit_->setPlaceholderText("Username");
     usernameEdit_->setText("admin"); // Default for testing
+    usernameEdit_->setMinimumWidth(250);
+    usernameEdit_->setMinimumHeight(32);
 
     passwordEdit_ = new QLineEdit(this);
     passwordEdit_->setEchoMode(QLineEdit::Password);
     passwordEdit_->setPlaceholderText("Password");
     passwordEdit_->setText("admin123"); // Default for testing
+    passwordEdit_->setMinimumWidth(250);
+    passwordEdit_->setMinimumHeight(32);
 
     formLayout->addRow("Username:", usernameEdit_);
     formLayout->addRow("Password:", passwordEdit_);
