@@ -3,10 +3,10 @@
 
 #include <QWidget>
 #include <QLabel>
-#include <QComboBox>
+#include <QPushButton>
+#include <QListWidget>
+#include <QStackedWidget>
 #include <QtCharts/QChartView>
-#include <QtCharts/QBarSeries>
-#include <QtCharts/QPieSeries>
 #include "../database/AssessmentRepository.h"
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
@@ -19,44 +19,65 @@ public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
 
-    enum ViewMode {
-        OverallView,
-        ByProductionArea,
-        ByEngineer
-    };
-
-    enum ChartType {
-        BarChart,
-        PieChart,
-        RadarChart
-    };
-
 private:
     void setupUI();
     void loadAnalytics();
-    void updateSkillDistributionChart();
-    void updateBreakdownChart();
-    void updateStatistics();
-    void createBarChart(QChartView* chartView, const QMap<QString, int>& data, const QString& title);
-    void createPieChart(QChartView* chartView, const QMap<QString, int>& data, const QString& title);
-    void createRadarChart(QChartView* chartView, const QMap<QString, double>& data, const QString& title);
 
-    // UI Components - Filters and Controls
-    QComboBox* viewModeCombo_;
-    QComboBox* productionAreaFilter_;
-    QComboBox* engineerFilter_;
-    QComboBox* skillChartTypeCombo_;
-    QComboBox* breakdownChartTypeCombo_;
+    // Tab setup methods
+    void setupTrendsTab(QWidget* trendsWidget);
+    void setupShiftComparisonTab(QWidget* shiftsWidget);
+    void setupAutomatedInsightsTab(QWidget* insightsWidget);
 
-    // UI Components - Statistics
-    QLabel* totalAssessmentsLabel_;
-    QLabel* avgSkillLevelLabel_;
-    QLabel* engineersAssessedLabel_;
-    QLabel* coverageLabel_;
+    // Data update methods
+    void updateTrendsData();
+    void updateShiftComparisonData();
+    void updateAutomatedInsights();
 
-    // UI Components - Charts
-    QChartView* skillDistributionChart_;
-    QChartView* breakdownChart_;
+    // Helper methods
+    struct PredictionData {
+        double current;
+        double predicted;
+        double change;
+        QString trend;  // "up", "down", "stable"
+    };
+    PredictionData calculatePrediction();
+
+    struct ShiftStats {
+        QString shiftName;
+        double averageCompletion;
+        int engineerCount;
+        int totalScore;
+        int maxScore;
+    };
+    QList<ShiftStats> calculateShiftComparison();
+
+    struct Insight {
+        QString type;  // "positive", "warning", "alert"
+        QString icon;
+        QString title;
+        QString message;
+    };
+    QList<Insight> generateAutomatedInsights();
+
+private:
+    // Navigation
+    QStackedWidget* contentStack_;
+    QPushButton* trendsButton_;
+    QPushButton* shiftsButton_;
+    QPushButton* insightsButton_;
+
+    // Trends Tab Components
+    QLabel* currentCompletionLabel_;
+    QLabel* predictedCompletionLabel_;
+    QLabel* changeLabel_;
+    QChartView* trendChartView_;
+
+    // Shift Comparison Tab Components
+    QWidget* shiftCardsContainer_;
+    QChartView* shiftChartView_;
+
+    // Automated Insights Tab Components
+    QListWidget* insightsList_;
 
     // Repositories
     AssessmentRepository assessmentRepo_;
@@ -64,11 +85,7 @@ private:
     ProductionRepository productionRepo_;
 
 private slots:
-    void onViewModeChanged(int index);
-    void onProductionAreaFilterChanged(int index);
-    void onEngineerFilterChanged(int index);
-    void onSkillChartTypeChanged(int index);
-    void onBreakdownChartTypeChanged(int index);
+    void onTabChanged(int tabIndex);
     void onRefreshClicked();
 };
 
