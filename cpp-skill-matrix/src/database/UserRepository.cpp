@@ -11,15 +11,74 @@ UserRepository::~UserRepository() {}
 QList<User> UserRepository::findAll()
 {
     QList<User> users;
-    // TODO: Implement query
-    Logger::instance().debug("UserRepository", "findAll() - stub implementation");
+    QSqlDatabase& db = DatabaseManager::instance().database();
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("UserRepository", lastError_);
+        return users;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT id, username, password, role, engineer_id, created_at, updated_at "
+                  "FROM users ORDER BY username");
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("UserRepository", "findAll failed: " + lastError_);
+        return users;
+    }
+
+    while (query.next()) {
+        User user;
+        user.setId(query.value(0).toString());
+        user.setUsername(query.value(1).toString());
+        user.setPassword(query.value(2).toString());
+        user.setRole(query.value(3).toString());
+        user.setEngineerId(query.value(4).toString());
+        user.setCreatedAt(query.value(5).toDateTime());
+        user.setUpdatedAt(query.value(6).toDateTime());
+        users.append(user);
+    }
+
+    Logger::instance().debug("UserRepository", QString("Found %1 users").arg(users.size()));
     return users;
 }
 
 User UserRepository::findById(const QString& id)
 {
-    // TODO: Implement query
-    Logger::instance().debug("UserRepository", "findById() - stub implementation");
+    QSqlDatabase& db = DatabaseManager::instance().database();
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("UserRepository", lastError_);
+        return User();
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT id, username, password, role, engineer_id, created_at, updated_at "
+                  "FROM users WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("UserRepository", "findById failed: " + lastError_);
+        return User();
+    }
+
+    if (query.next()) {
+        User user;
+        user.setId(query.value(0).toString());
+        user.setUsername(query.value(1).toString());
+        user.setPassword(query.value(2).toString());
+        user.setRole(query.value(3).toString());
+        user.setEngineerId(query.value(4).toString());
+        user.setCreatedAt(query.value(5).toDateTime());
+        user.setUpdatedAt(query.value(6).toDateTime());
+
+        Logger::instance().debug("UserRepository", "Found user by ID: " + id);
+        return user;
+    }
+
+    Logger::instance().debug("UserRepository", "User not found by ID: " + id);
     return User();
 }
 

@@ -188,7 +188,12 @@ void EngineersWidget::showEngineerDialog(const Engineer* engineer)
 
             if (success) {
                 Logger::instance().info("EngineersWidget", "Created engineer: " + id);
-                QMessageBox::information(this, "Success", "Engineer created successfully.");
+                QMessageBox::information(this, "Success",
+                    QString("Engineer created successfully.\n\n"
+                            "To allow this engineer to login:\n"
+                            "1. Go to the Users page\n"
+                            "2. Click 'Add User'\n"
+                            "3. Assign them to engineer '%1'").arg(name));
             }
         }
 

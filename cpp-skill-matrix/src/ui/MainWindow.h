@@ -19,6 +19,7 @@ protected:
 private slots:
     void onNavigationItemClicked(int index);
     void onThemeToggled();
+    void onChangePasswordClicked();
     void onLogoutClicked();
 
 private:
@@ -37,6 +38,7 @@ private:
     // Widget placeholders
     QWidget* dashboardWidget_;
     QWidget* engineersWidget_;
+    QWidget* usersWidget_;
     QWidget* productionAreasWidget_;
     QWidget* assessmentWidget_;
     QWidget* coreSkillsWidget_;

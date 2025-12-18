@@ -83,6 +83,7 @@ set(SOURCES
     src/ui/LoginDialog.cpp
     src/ui/DashboardWidget.cpp
     src/ui/EngineersWidget.cpp
+    src/ui/UsersWidget.cpp
     src/ui/ProductionAreasWidget.cpp
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
@@ -93,6 +94,7 @@ set(SOURCES
     src/ui/AuditLogWidget.cpp
     src/ui/SettingsDialog.cpp
     src/ui/ImportExportDialog.cpp
+    src/ui/ChangePasswordDialog.cpp
     src/ui/StyleManager.cpp
 
     # UI Widgets
@@ -161,6 +163,7 @@ set(HEADERS
     src/ui/LoginDialog.h
     src/ui/DashboardWidget.h
     src/ui/EngineersWidget.h
+    src/ui/UsersWidget.h
     src/ui/ProductionAreasWidget.h
     src/ui/AssessmentWidget.h
     src/ui/CoreSkillsWidget.h
@@ -171,6 +174,7 @@ set(HEADERS
     src/ui/AuditLogWidget.h
     src/ui/SettingsDialog.h
     src/ui/ImportExportDialog.h
+    src/ui/ChangePasswordDialog.h
     src/ui/StyleManager.h
 
     # UI Widgets

@@ -7,6 +7,7 @@
 // Widget includes
 #include "DashboardWidget.h"
 #include "EngineersWidget.h"
+#include "UsersWidget.h"
 #include "ProductionAreasWidget.h"
 #include "AssessmentWidget.h"
 #include "CoreSkillsWidget.h"
@@ -16,6 +17,9 @@
 #include "SnapshotsWidget.h"
 #include "AuditLogWidget.h"
 #include "ImportExportDialog.h"
+#include "ChangePasswordDialog.h"
+
+#include "../controllers/AuthController.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
@@ -62,6 +66,8 @@ void MainWindow::setupMenuBar()
 
     // File menu
     QMenu* fileMenu = menuBar->addMenu("&File");
+    fileMenu->addAction("Change &Password", this, &MainWindow::onChangePasswordClicked);
+    fileMenu->addSeparator();
     fileMenu->addAction("&Logout", this, &MainWindow::onLogoutClicked);
     fileMenu->addSeparator();
     fileMenu->addAction("E&xit", this, &MainWindow::close);
@@ -93,6 +99,7 @@ void MainWindow::setupNavigationSidebar()
         // Admin navigation - full access to all features
         navigationList_->addItem("Dashboard");
         navigationList_->addItem("Engineers");
+        navigationList_->addItem("Users");
         navigationList_->addItem("Production Areas");
         navigationList_->addItem("Assessments");
         navigationList_->addItem("Core Skills");
@@ -135,6 +142,7 @@ void MainWindow::setupCentralWidget()
         // Admin widgets - full featured management interface
         dashboardWidget_ = new DashboardWidget(this);
         engineersWidget_ = new EngineersWidget(this);
+        usersWidget_ = new UsersWidget(this);
         productionAreasWidget_ = new ProductionAreasWidget(this);
         assessmentWidget_ = new AssessmentWidget(this);
         coreSkillsWidget_ = new CoreSkillsWidget(this);
@@ -148,6 +156,7 @@ void MainWindow::setupCentralWidget()
         // Add admin widgets to stack
         contentStack_->addWidget(dashboardWidget_);
         contentStack_->addWidget(engineersWidget_);
+        contentStack_->addWidget(usersWidget_);
         contentStack_->addWidget(productionAreasWidget_);
         contentStack_->addWidget(assessmentWidget_);
         contentStack_->addWidget(coreSkillsWidget_);
@@ -230,6 +239,29 @@ void MainWindow::onThemeToggled()
 
     // Show a brief message in the status bar
     statusBar()->showMessage(QString("Theme changed to %1 mode").arg(themeName), 3000);
+}
+
+void MainWindow::onChangePasswordClicked()
+{
+    ChangePasswordDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QString oldPassword = dialog.oldPassword();
+        QString newPassword = dialog.newPassword();
+
+        AuthController authController;
+        bool success = authController.changePassword(oldPassword, newPassword);
+
+        if (success) {
+            QMessageBox::information(this, "Success",
+                "Your password has been changed successfully.");
+            Logger::instance().info("MainWindow", "Password changed via menu");
+        } else {
+            QMessageBox::critical(this, "Error",
+                "Failed to change password. Please ensure your current password is correct.");
+            Logger::instance().warning("MainWindow", "Password change failed via menu");
+        }
+    }
 }
 
 void MainWindow::onLogoutClicked()
