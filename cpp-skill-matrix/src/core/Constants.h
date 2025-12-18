@@ -6,10 +6,10 @@
 namespace Constants {
 
 // Application Info
-constexpr const char* APP_NAME = "Skill Matrix";
+constexpr const char* APP_NAME = "Aptitude";
 constexpr const char* APP_VERSION = "1.0.0";
 constexpr const char* APP_ORGANIZATION = "Training Matrix";
-constexpr const char* APP_DOMAIN = "skillmatrix.local";
+constexpr const char* APP_DOMAIN = "aptitude.local";
 
 // Database
 constexpr const char* DB_CONNECTION_NAME = "SkillMatrixDB";
@@ -128,6 +128,16 @@ constexpr const char* CHART_COLOR_3 = "#f59e0b"; // Orange
 constexpr const char* CHART_COLOR_4 = "#8b5cf6"; // Purple
 constexpr const char* CHART_COLOR_5 = "#ef4444"; // Red
 constexpr const char* CHART_COLOR_6 = "#06b6d4"; // Cyan
+
+// Aptitude Brand Colors (from logo)
+constexpr const char* BRAND_PRIMARY_BLUE = "#1E3A8A";   // Dark blue background
+constexpr const char* BRAND_LIGHT_BLUE = "#60A5FA";     // Light blue
+constexpr const char* BRAND_CYAN = "#22D3EE";            // Cyan/Teal
+constexpr const char* BRAND_GREEN = "#10B981";           // Green
+constexpr const char* BRAND_YELLOW = "#FDE047";          // Yellow
+constexpr const char* BRAND_ORANGE = "#FB923C";          // Orange
+constexpr const char* BRAND_RED = "#EF4444";             // Red
+constexpr const char* BRAND_ACCENT = "#60A5FA";          // Accent color for highlights
 
 // Error Messages
 constexpr const char* ERROR_DB_CONNECTION = "Failed to connect to database";

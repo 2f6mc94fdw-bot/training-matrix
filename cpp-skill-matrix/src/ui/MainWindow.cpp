@@ -79,8 +79,8 @@ void MainWindow::setupMenuBar()
     // Help menu
     QMenu* helpMenu = menuBar->addMenu("&Help");
     helpMenu->addAction("&About", []() {
-        QMessageBox::about(nullptr, "About Skill Matrix",
-            QString("Skill Matrix v%1\n\nA comprehensive training and competency management system.")
+        QMessageBox::about(nullptr, "About Aptitude",
+            QString("Aptitude v%1\n\nA comprehensive training and competency management system.\n\nEmpowering organizations to track, develop, and optimize workforce skills.")
             .arg(Constants::APP_VERSION));
     });
 }

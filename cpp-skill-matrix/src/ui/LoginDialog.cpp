@@ -13,6 +13,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
+#include <QPixmap>
 
 LoginDialog::LoginDialog(QWidget* parent)
     : QDialog(parent)
@@ -33,21 +34,40 @@ LoginDialog::~LoginDialog()
 
 void LoginDialog::setupUI()
 {
-    setWindowTitle("Login - Skill Matrix");
+    setWindowTitle("Login - Aptitude");
     setModal(true);
-    setFixedSize(500, 500);  // Taller to fit all content
+    setFixedSize(500, 550);  // Taller to fit logo and content
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(15);
-    mainLayout->setContentsMargins(50, 40, 50, 40);
+    mainLayout->setContentsMargins(50, 30, 50, 40);
 
-    // Title
-    QLabel* titleLabel = new QLabel("Skill Matrix", this);
+    // Logo
+    QLabel* logoLabel = new QLabel(this);
+    QPixmap logo(":/images/aptitude-logo.png");
+    if (!logo.isNull()) {
+        // Scale logo to fit nicely
+        logoLabel->setPixmap(logo.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        logoLabel->setAlignment(Qt::AlignCenter);
+    } else {
+        // Fallback if logo not found - show text title
+        logoLabel->setText("APTITUDE");
+        QFont logoFont = logoLabel->font();
+        logoFont.setPointSize(24);
+        logoFont.setBold(true);
+        logoLabel->setFont(logoFont);
+        logoLabel->setAlignment(Qt::AlignCenter);
+        logoLabel->setStyleSheet(QString("color: %1;").arg(Constants::BRAND_LIGHT_BLUE));
+    }
+
+    // Title (kept for consistency, but can be removed if logo is sufficient)
+    QLabel* titleLabel = new QLabel("Training & Competency Management", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(20);
-    titleFont.setBold(true);
+    titleFont.setPointSize(12);
+    titleFont.setBold(false);
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setStyleSheet("color: #666;");
 
     // Subtitle
     QLabel* subtitleLabel = new QLabel("Please login to continue", this);
@@ -103,10 +123,12 @@ void LoginDialog::setupUI()
     buttonLayout->addStretch();
 
     // Main layout - add everything directly
+    mainLayout->addWidget(logoLabel);
+    mainLayout->addSpacing(10);
     mainLayout->addWidget(titleLabel);
     mainLayout->addSpacing(5);
     mainLayout->addWidget(subtitleLabel);
-    mainLayout->addSpacing(40);
+    mainLayout->addSpacing(30);
     mainLayout->addWidget(usernameLabel);
     mainLayout->addSpacing(5);
     mainLayout->addWidget(usernameEdit_);

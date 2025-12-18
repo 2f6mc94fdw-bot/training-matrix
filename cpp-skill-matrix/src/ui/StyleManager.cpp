@@ -712,13 +712,13 @@ QString StyleManager::buildStylesheet(Theme theme) const
 
 void StyleManager::initializeColors()
 {
-    // Light Theme Colors - Very Pale Grey Scheme
-    lightColors_["primary"] = QColor("#2196F3");          // Blue
+    // Light Theme Colors - Aptitude Brand Colors
+    lightColors_["primary"] = QColor("#60A5FA");          // Aptitude Light Blue
     lightColors_["secondary"] = QColor("#9E9E9E");        // Light gray
-    lightColors_["accent"] = QColor("#4CAF50");           // Green
-    lightColors_["danger"] = QColor("#F44336");           // Red
-    lightColors_["warning"] = QColor("#FF9800");          // Orange
-    lightColors_["success"] = QColor("#4CAF50");          // Green
+    lightColors_["accent"] = QColor("#22D3EE");           // Aptitude Cyan
+    lightColors_["danger"] = QColor("#EF4444");           // Aptitude Red
+    lightColors_["warning"] = QColor("#FB923C");          // Aptitude Orange
+    lightColors_["success"] = QColor("#10B981");          // Aptitude Green
     lightColors_["background"] = QColor("#FEFEFE");       // Extremely pale gray (almost white)
     lightColors_["windowBackground"] = QColor("#FCFCFC"); // Very very pale gray
     lightColors_["cardBackground"] = QColor("#FFFFFF");   // Pure white
@@ -743,15 +743,15 @@ void StyleManager::initializeColors()
     lightColors_["tabBackground"] = QColor("#FBFBFB");    // Very pale tab bg
     lightColors_["tabText"] = QColor("#757575");          // Tab text
 
-    // Dark Theme Colors - Slate Professional Design System
-    // Inspired by Tailwind Slate palette with Cyan accents
+    // Dark Theme Colors - Aptitude Brand with Professional Dark Backgrounds
+    // Based on Aptitude logo colors with slate backgrounds
 
-    // Accent colors (buttons, highlights, interactive elements)
-    darkColors_["primary"] = QColor("#0891b2");           // Cyan-600 - primary buttons/accents
-    darkColors_["accent"] = QColor("#22d3ee");            // Cyan-400 - accent text/highlights
-    darkColors_["success"] = QColor("#059669");           // Emerald-600 - success states
-    darkColors_["danger"] = QColor("#dc2626");            // Red-600 - danger/error states
-    darkColors_["warning"] = QColor("#d97706");           // Amber-600 - warning states
+    // Accent colors (buttons, highlights, interactive elements) - Aptitude Brand
+    darkColors_["primary"] = QColor("#60A5FA");           // Aptitude Light Blue - primary buttons/accents
+    darkColors_["accent"] = QColor("#22D3EE");            // Aptitude Cyan - accent text/highlights
+    darkColors_["success"] = QColor("#10B981");           // Aptitude Green - success states
+    darkColors_["danger"] = QColor("#EF4444");            // Aptitude Red - danger/error states
+    darkColors_["warning"] = QColor("#FB923C");           // Aptitude Orange - warning states
     darkColors_["secondary"] = QColor("#64748b");         // Slate-500 - secondary elements
 
     // Background colors (slate palette)
