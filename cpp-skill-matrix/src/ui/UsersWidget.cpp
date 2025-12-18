@@ -272,8 +272,16 @@ void UsersWidget::showUserDialog(const User* user)
         }
 
         if (!success) {
-            Logger::instance().error("UsersWidget", "Failed to save user: " + userRepository_.lastError());
-            QMessageBox::critical(this, "Error", "Failed to save user: " + userRepository_.lastError());
+            QString errorMsg = userRepository_.lastError();
+            Logger::instance().error("UsersWidget", "Failed to save user: " + errorMsg);
+
+            // Provide user-friendly message for common errors
+            if (errorMsg.contains("UNIQUE", Qt::CaseInsensitive) && errorMsg.contains("username", Qt::CaseInsensitive)) {
+                QMessageBox::critical(this, "Username Already Exists",
+                    QString("The username '%1' is already taken.\n\nPlease choose a different username.").arg(username));
+            } else {
+                QMessageBox::critical(this, "Error", "Failed to save user:\n\n" + errorMsg);
+            }
         } else {
             loadUsers();
         }

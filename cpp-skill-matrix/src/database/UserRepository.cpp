@@ -10,6 +10,7 @@ UserRepository::~UserRepository() {}
 
 QList<User> UserRepository::findAll()
 {
+    lastError_.clear();  // Clear any previous errors
     QList<User> users;
     QSqlDatabase& db = DatabaseManager::instance().database();
     if (!db.isOpen()) {
@@ -46,6 +47,7 @@ QList<User> UserRepository::findAll()
 
 User UserRepository::findById(const QString& id)
 {
+    lastError_.clear();  // Clear any previous errors
     QSqlDatabase& db = DatabaseManager::instance().database();
     if (!db.isOpen()) {
         lastError_ = "Database not connected";
