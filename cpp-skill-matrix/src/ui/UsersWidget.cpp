@@ -259,7 +259,8 @@ void UsersWidget::showUserDialog(const User* user)
             QString userId = Crypto::generateId("usr");
             QString passwordHash = Crypto::hashPassword(password);
 
-            User newUser(userId, username, passwordHash, role, engineerId);
+            User newUser(userId, username, passwordHash, role);
+            newUser.setEngineerId(engineerId);
             success = userRepository_.save(newUser);
 
             if (success) {
