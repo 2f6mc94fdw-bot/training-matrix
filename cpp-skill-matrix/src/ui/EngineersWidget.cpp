@@ -31,6 +31,8 @@ EngineersWidget::~EngineersWidget()
 void EngineersWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
 
     // Title
     QLabel* titleLabel = new QLabel("Engineers Management", this);
@@ -44,11 +46,24 @@ void EngineersWidget::setupUI()
     tableWidget_ = new QTableWidget(this);
     tableWidget_->setColumnCount(3);
     tableWidget_->setHorizontalHeaderLabels({"ID", "Name", "Shift"});
-    tableWidget_->horizontalHeader()->setStretchLastSection(true);
+
+    // Configure table appearance
     tableWidget_->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     tableWidget_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tableWidget_->setAlternatingRowColors(true);
+    tableWidget_->verticalHeader()->setVisible(false);
+    tableWidget_->setShowGrid(true);
+
+    // Configure column sizing
+    QHeaderView* header = tableWidget_->horizontalHeader();
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents);  // ID column - fit content
+    header->setSectionResizeMode(1, QHeaderView::Stretch);           // Name column - stretch to fill
+    header->setSectionResizeMode(2, QHeaderView::Fixed);             // Shift column - fixed width
+    tableWidget_->setColumnWidth(2, 100);  // Set shift column width to 100px
+
+    // Set minimum column widths
+    tableWidget_->setColumnWidth(0, 150);  // Minimum width for ID
 
     connect(tableWidget_, &QTableWidget::cellDoubleClicked, this, &EngineersWidget::onTableDoubleClicked);
 
@@ -56,11 +71,18 @@ void EngineersWidget::setupUI()
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(10);
 
     addButton_ = new QPushButton("Add Engineer", this);
     editButton_ = new QPushButton("Edit Engineer", this);
     deleteButton_ = new QPushButton("Delete Engineer", this);
     refreshButton_ = new QPushButton("Refresh", this);
+
+    // Set button sizes for consistency
+    addButton_->setMinimumWidth(120);
+    editButton_->setMinimumWidth(120);
+    deleteButton_->setMinimumWidth(120);
+    refreshButton_->setMinimumWidth(100);
 
     connect(addButton_, &QPushButton::clicked, this, &EngineersWidget::onAddClicked);
     connect(editButton_, &QPushButton::clicked, this, &EngineersWidget::onEditClicked);
