@@ -115,7 +115,7 @@ void EngineersWidget::showEngineerDialog(const Engineer* engineer)
     QLineEdit* nameEdit = new QLineEdit(&dialog);
     QComboBox* shiftCombo = new QComboBox(&dialog);
 
-    shiftCombo->addItems({"Day", "Night", "Rotating"});
+    shiftCombo->addItems({"A", "B", "C", "D", "Days"});
 
     if (engineer) {
         idEdit->setText(engineer->id());
