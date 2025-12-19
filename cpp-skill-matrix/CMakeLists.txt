@@ -81,6 +81,7 @@ set(SOURCES
     # UI
     src/ui/MainWindow.cpp
     src/ui/LoginDialog.cpp
+    src/ui/DatabaseConnectionDialog.cpp
     src/ui/DashboardWidget.cpp
     src/ui/EngineersWidget.cpp
     src/ui/UsersWidget.cpp
@@ -161,6 +162,7 @@ set(HEADERS
     # UI
     src/ui/MainWindow.h
     src/ui/LoginDialog.h
+    src/ui/DatabaseConnectionDialog.h
     src/ui/DashboardWidget.h
     src/ui/EngineersWidget.h
     src/ui/UsersWidget.h

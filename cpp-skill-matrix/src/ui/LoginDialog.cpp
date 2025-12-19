@@ -1,4 +1,5 @@
 #include "LoginDialog.h"
+#include "DatabaseConnectionDialog.h"
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../database/DatabaseManager.h"
@@ -148,11 +149,28 @@ void LoginDialog::setupUI()
     connect(usernameEdit_, &QLineEdit::returnPressed, this, &LoginDialog::onLoginClicked);
     connect(passwordEdit_, &QLineEdit::returnPressed, this, &LoginDialog::onLoginClicked);
 
-    // Load configuration and connect to database
+    // Load configuration
     Config& config = Config::instance();
     config.load();
 
-    // TODO: Show database connection dialog if not configured
+    // Show database connection dialog if not connected
+    if (!DatabaseManager::instance().isConnected()) {
+        showDatabaseConnectionDialog();
+    }
+}
+
+void LoginDialog::showDatabaseConnectionDialog()
+{
+    DatabaseConnectionDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted) {
+        // User canceled - show error message in login
+        statusLabel_->setText("Database connection required to login");
+        statusLabel_->setStyleSheet("QLabel { color: red; }");
+        loginButton_->setEnabled(false);
+    } else {
+        // Connected successfully
+        loginButton_->setEnabled(true);
+    }
 }
 
 QString LoginDialog::username() const
