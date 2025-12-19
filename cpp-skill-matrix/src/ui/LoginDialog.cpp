@@ -153,9 +153,24 @@ void LoginDialog::setupUI()
     Config& config = Config::instance();
     config.load();
 
-    // Show database connection dialog if not connected
+    // Attempt auto-connect using saved credentials
     if (!DatabaseManager::instance().isConnected()) {
-        showDatabaseConnectionDialog();
+        QString server = config.databaseServer();
+        QString database = config.databaseName();
+        QString user = config.databaseUser();
+        QString password = config.databasePassword();
+        int port = config.databasePort();
+
+        // Try to auto-connect if we have saved credentials
+        if (!server.isEmpty() && !database.isEmpty() && !user.isEmpty()) {
+            Logger::instance().info("LoginDialog", "Attempting auto-connect to database");
+            DatabaseManager::instance().connect(server, database, user, password, port);
+        }
+
+        // If still not connected, show the connection dialog
+        if (!DatabaseManager::instance().isConnected()) {
+            showDatabaseConnectionDialog();
+        }
     }
 }
 
