@@ -168,14 +168,16 @@ void DatabaseConnectionDialog::loadSavedSettings()
 {
     Config& config = Config::instance();
 
-    // Load last used connection settings
-    QString lastServer = config.value(Constants::SETTING_LAST_DB_SERVER, "localhost").toString();
-    QString lastDatabase = config.value(Constants::SETTING_LAST_DB_NAME, "SkillMatrix").toString();
-    QString lastUser = config.value(Constants::SETTING_LAST_DB_USER, "sa").toString();
+    // Load last used connection settings using Config's database helpers
+    QString lastServer = config.databaseServer();
+    QString lastDatabase = config.databaseName();
+    QString lastUser = config.databaseUser();
+    int lastPort = config.databasePort();
 
     serverEdit_->setText(lastServer);
     databaseEdit_->setText(lastDatabase);
     usernameEdit_->setText(lastUser);
+    portSpinBox_->setValue(lastPort);
 
     // Focus on password field if other fields are filled
     if (!lastServer.isEmpty() && !lastDatabase.isEmpty() && !lastUser.isEmpty()) {
@@ -189,9 +191,11 @@ void DatabaseConnectionDialog::saveSettings()
 {
     Config& config = Config::instance();
 
-    config.setValue(Constants::SETTING_LAST_DB_SERVER, serverEdit_->text());
-    config.setValue(Constants::SETTING_LAST_DB_NAME, databaseEdit_->text());
-    config.setValue(Constants::SETTING_LAST_DB_USER, usernameEdit_->text());
+    // Save using Config's database helper methods
+    config.setDatabaseServer(serverEdit_->text());
+    config.setDatabaseName(databaseEdit_->text());
+    config.setDatabaseUser(usernameEdit_->text());
+    config.setDatabasePort(portSpinBox_->value());
 
     config.save();
 }
