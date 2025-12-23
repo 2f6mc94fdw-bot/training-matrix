@@ -542,7 +542,6 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    background-color: %2; "  // Use main background (slate-900)
         "    border: 1px solid %67; "
         "    border-radius: 12px; "  // Rounded-xl style
-        "    alternate-background-color: %68; "
         "    selection-background-color: %69; "
         "    selection-color: white; "
         "    font-size: 13pt; "
@@ -552,9 +551,6 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QTreeWidget::item {"
         "    padding: 16px; "  // Match table padding
         "    min-height: 32px; "
-        "} "
-        "QTreeWidget::item:hover {"
-        "    background-color: %70; "
         "} "
         "QTreeWidget::item:selected {"
         "    background-color: %69; "
