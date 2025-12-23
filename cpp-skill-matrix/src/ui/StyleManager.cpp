@@ -546,13 +546,18 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    selection-color: white; "
         "    font-size: 13pt; "
         "    color: %1; "
+        "    show-decoration-selected: 1; "
         "} "
         "QTreeWidget::item {"
-        "    padding: 10px 8px; "  // Increased from 4px
-        "    min-height: 32px; "  // Added minimum height
+        "    padding: 16px; "  // Match table padding
+        "    min-height: 32px; "
+        "    border-bottom: 1px solid %67; "  // Add border like table grid
         "} "
         "QTreeWidget::item:hover {"
         "    background-color: %70; "
+        "} "
+        "QTreeWidget::item:selected {"
+        "    background-color: %69; "
         "} "
         "QTreeWidget::branch {"
         "    background-color: transparent; "
