@@ -10,14 +10,17 @@
 #include <QSpinBox>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QListWidget>
 
 ProductionAreasWidget::ProductionAreasWidget(QWidget* parent)
     : QWidget(parent)
+    , areaFilterCombo_(nullptr)
     , treeWidget_(nullptr)
     , addButton_(nullptr)
     , editButton_(nullptr)
     , deleteButton_(nullptr)
     , refreshButton_(nullptr)
+    , manageAreasButton_(nullptr)
 {
     setupUI();
     loadProductionAreas();
@@ -43,9 +46,40 @@ void ProductionAreasWidget::setupUI()
     mainLayout->addWidget(titleLabel);
     mainLayout->addSpacing(8);
 
+    // Area Filter Row
+    QHBoxLayout* filterLayout = new QHBoxLayout();
+    filterLayout->setSpacing(12);
+
+    QLabel* filterLabel = new QLabel("Production Area:", this);
+    QFont filterFont = filterLabel->font();
+    filterFont.setPointSize(12);
+    filterFont.setBold(true);
+    filterLabel->setFont(filterFont);
+
+    areaFilterCombo_ = new QComboBox(this);
+    areaFilterCombo_->setMinimumWidth(300);
+    areaFilterCombo_->setMinimumHeight(35);
+    connect(areaFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &ProductionAreasWidget::onAreaFilterChanged);
+
+    manageAreasButton_ = new QPushButton("Manage Areas", this);
+    manageAreasButton_->setMinimumWidth(130);
+    manageAreasButton_->setMinimumHeight(35);
+    connect(manageAreasButton_, &QPushButton::clicked, [this]() {
+        showAreaManagementDialog();
+    });
+
+    filterLayout->addWidget(filterLabel);
+    filterLayout->addWidget(areaFilterCombo_);
+    filterLayout->addWidget(manageAreasButton_);
+    filterLayout->addStretch();
+
+    mainLayout->addLayout(filterLayout);
+    mainLayout->addSpacing(8);
+
     // Tree
     treeWidget_ = new QTreeWidget(this);
-    treeWidget_->setHeaderLabels({"Name", "Type", "ID"});
+    treeWidget_->setHeaderLabels({"Name", "Type", "Details", "ID"});
     treeWidget_->setAlternatingRowColors(true);
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     treeWidget_->setIndentation(24);
@@ -54,7 +88,8 @@ void ProductionAreasWidget::setupUI()
     treeWidget_->header()->setStretchLastSection(false);
     treeWidget_->header()->setSectionResizeMode(0, QHeaderView::Stretch); // Name takes remaining space
     treeWidget_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Type fits content
-    treeWidget_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents); // ID fits content
+    treeWidget_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Details fits content
+    treeWidget_->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents); // ID fits content
 
     connect(treeWidget_, &QTreeWidget::itemDoubleClicked, this, &ProductionAreasWidget::onTreeItemDoubleClicked);
 
@@ -64,13 +99,13 @@ void ProductionAreasWidget::setupUI()
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(12);
 
-    addButton_ = new QPushButton("Add", this);
+    addButton_ = new QPushButton("Add Machine/Competency", this);
     editButton_ = new QPushButton("Edit", this);
     deleteButton_ = new QPushButton("Delete", this);
     refreshButton_ = new QPushButton("Refresh", this);
 
     // Set minimum button widths for better UX
-    addButton_->setMinimumWidth(100);
+    addButton_->setMinimumWidth(180);
     editButton_->setMinimumWidth(100);
     deleteButton_->setMinimumWidth(100);
     refreshButton_->setMinimumWidth(100);
@@ -93,9 +128,7 @@ void ProductionAreasWidget::setupUI()
 
 void ProductionAreasWidget::loadProductionAreas()
 {
-    treeWidget_->clear();
-
-    QList<ProductionArea> areas = repository_.findAllAreas();
+    allAreas_ = repository_.findAllAreas();
 
     if (!repository_.lastError().isEmpty()) {
         Logger::instance().error("ProductionAreasWidget", "Failed to load areas: " + repository_.lastError());
@@ -103,21 +136,120 @@ void ProductionAreasWidget::loadProductionAreas()
         return;
     }
 
-    for (const ProductionArea& area : areas) {
-        QTreeWidgetItem* areaItem = new QTreeWidgetItem(treeWidget_);
-        areaItem->setText(0, area.name());
-        areaItem->setText(1, "Production Area");
-        areaItem->setText(2, QString::number(area.id()));
-        areaItem->setData(0, Qt::UserRole, AreaItem);
+    loadAreaFilter();
 
-        // Load machines for this area
-        QList<Machine> machines = repository_.findMachinesByArea(area.id());
+    Logger::instance().info("ProductionAreasWidget", QString("Loaded %1 production areas").arg(allAreas_.size()));
+}
+
+void ProductionAreasWidget::loadAreaFilter()
+{
+    // Block signals while updating combo box
+    areaFilterCombo_->blockSignals(true);
+
+    int currentIndex = areaFilterCombo_->currentIndex();
+    int currentAreaId = -1;
+    if (currentIndex >= 0) {
+        currentAreaId = areaFilterCombo_->currentData().toInt();
+    }
+
+    areaFilterCombo_->clear();
+
+    // Add "All Areas" option
+    areaFilterCombo_->addItem("All Areas", -1);
+
+    // Add each production area
+    for (const ProductionArea& area : allAreas_) {
+        areaFilterCombo_->addItem(area.name(), area.id());
+    }
+
+    // Restore previous selection if possible
+    if (currentAreaId >= 0) {
+        int index = areaFilterCombo_->findData(currentAreaId);
+        if (index >= 0) {
+            areaFilterCombo_->setCurrentIndex(index);
+        }
+    }
+
+    areaFilterCombo_->blockSignals(false);
+
+    // Load data for current selection
+    onAreaFilterChanged(areaFilterCombo_->currentIndex());
+}
+
+void ProductionAreasWidget::onAreaFilterChanged(int index)
+{
+    if (index < 0) return;
+
+    int areaId = areaFilterCombo_->currentData().toInt();
+
+    if (areaId == -1) {
+        // Show all areas
+        loadMachinesForArea(-1);
+    } else {
+        // Show specific area
+        loadMachinesForArea(areaId);
+    }
+}
+
+void ProductionAreasWidget::loadMachinesForArea(int areaId)
+{
+    treeWidget_->clear();
+
+    if (areaId == -1) {
+        // Show all areas with their machines
+        for (const ProductionArea& area : allAreas_) {
+            QTreeWidgetItem* areaItem = new QTreeWidgetItem(treeWidget_);
+            areaItem->setText(0, area.name());
+            areaItem->setText(1, "Production Area");
+            areaItem->setText(2, "");
+            areaItem->setText(3, QString::number(area.id()));
+            areaItem->setData(0, Qt::UserRole, AreaItem);
+
+            QFont areaFont = areaItem->font(0);
+            areaFont.setBold(true);
+            areaItem->setFont(0, areaFont);
+
+            // Load machines for this area
+            QList<Machine> machines = repository_.findMachinesByArea(area.id());
+            for (const Machine& machine : machines) {
+                QTreeWidgetItem* machineItem = new QTreeWidgetItem(areaItem);
+                machineItem->setText(0, machine.name());
+                machineItem->setText(1, "Machine");
+                machineItem->setText(2, QString("Importance: %1").arg(machine.importance()));
+                machineItem->setText(3, QString::number(machine.id()));
+                machineItem->setData(0, Qt::UserRole, MachineItem);
+
+                // Load competencies for this machine
+                QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
+                for (const Competency& competency : competencies) {
+                    QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
+                    competencyItem->setText(0, competency.name());
+                    competencyItem->setText(1, "Competency");
+                    competencyItem->setText(2, QString("Max Score: %1").arg(competency.maxScore()));
+                    competencyItem->setText(3, QString::number(competency.id()));
+                    competencyItem->setData(0, Qt::UserRole, CompetencyItem);
+                }
+
+                machineItem->setExpanded(true);
+            }
+
+            areaItem->setExpanded(true);
+        }
+    } else {
+        // Show only machines for selected area
+        QList<Machine> machines = repository_.findMachinesByArea(areaId);
+
         for (const Machine& machine : machines) {
-            QTreeWidgetItem* machineItem = new QTreeWidgetItem(areaItem);
+            QTreeWidgetItem* machineItem = new QTreeWidgetItem(treeWidget_);
             machineItem->setText(0, machine.name());
             machineItem->setText(1, "Machine");
-            machineItem->setText(2, QString::number(machine.id()));
+            machineItem->setText(2, QString("Importance: %1").arg(machine.importance()));
+            machineItem->setText(3, QString::number(machine.id()));
             machineItem->setData(0, Qt::UserRole, MachineItem);
+
+            QFont machineFont = machineItem->font(0);
+            machineFont.setBold(true);
+            machineItem->setFont(0, machineFont);
 
             // Load competencies for this machine
             QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
@@ -125,15 +257,128 @@ void ProductionAreasWidget::loadProductionAreas()
                 QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
                 competencyItem->setText(0, competency.name());
                 competencyItem->setText(1, "Competency");
-                competencyItem->setText(2, QString::number(competency.id()));
+                competencyItem->setText(2, QString("Max Score: %1").arg(competency.maxScore()));
+                competencyItem->setText(3, QString::number(competency.id()));
                 competencyItem->setData(0, Qt::UserRole, CompetencyItem);
             }
+
+            machineItem->setExpanded(true);
+        }
+    }
+}
+
+void ProductionAreasWidget::showAreaManagementDialog()
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle("Manage Production Areas");
+    dialog.resize(500, 400);
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
+
+    QLabel* titleLabel = new QLabel("Production Areas", &dialog);
+    QFont titleFont = titleLabel->font();
+    titleFont.setPointSize(14);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
+    mainLayout->addWidget(titleLabel);
+
+    QListWidget* areaList = new QListWidget(&dialog);
+    for (const ProductionArea& area : allAreas_) {
+        QListWidgetItem* item = new QListWidgetItem(area.name());
+        item->setData(Qt::UserRole, area.id());
+        areaList->addItem(item);
+    }
+    mainLayout->addWidget(areaList);
+
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+
+    QPushButton* addAreaBtn = new QPushButton("Add Area", &dialog);
+    QPushButton* editAreaBtn = new QPushButton("Edit Area", &dialog);
+    QPushButton* deleteAreaBtn = new QPushButton("Delete Area", &dialog);
+    QPushButton* closeBtn = new QPushButton("Close", &dialog);
+
+    connect(addAreaBtn, &QPushButton::clicked, [&]() {
+        showAreaDialog(nullptr);
+        // Refresh list
+        areaList->clear();
+        allAreas_ = repository_.findAllAreas();
+        for (const ProductionArea& area : allAreas_) {
+            QListWidgetItem* item = new QListWidgetItem(area.name());
+            item->setData(Qt::UserRole, area.id());
+            areaList->addItem(item);
+        }
+    });
+
+    connect(editAreaBtn, &QPushButton::clicked, [&]() {
+        QListWidgetItem* current = areaList->currentItem();
+        if (!current) {
+            QMessageBox::warning(&dialog, "No Selection", "Please select an area to edit.");
+            return;
+        }
+        int areaId = current->data(Qt::UserRole).toInt();
+        ProductionArea area = repository_.findAreaById(areaId);
+        if (area.id() > 0) {
+            showAreaDialog(&area);
+            // Refresh list
+            areaList->clear();
+            allAreas_ = repository_.findAllAreas();
+            for (const ProductionArea& area : allAreas_) {
+                QListWidgetItem* item = new QListWidgetItem(area.name());
+                item->setData(Qt::UserRole, area.id());
+                areaList->addItem(item);
+            }
+        }
+    });
+
+    connect(deleteAreaBtn, &QPushButton::clicked, [&]() {
+        QListWidgetItem* current = areaList->currentItem();
+        if (!current) {
+            QMessageBox::warning(&dialog, "No Selection", "Please select an area to delete.");
+            return;
         }
 
-        areaItem->setExpanded(true);
-    }
+        QString areaName = current->text();
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            &dialog,
+            "Confirm Delete",
+            QString("Are you sure you want to delete '%1'?\nThis will also delete all machines and competencies in this area.").arg(areaName),
+            QMessageBox::Yes | QMessageBox::No
+        );
 
-    Logger::instance().info("ProductionAreasWidget", QString("Loaded %1 production areas").arg(areas.size()));
+        if (reply == QMessageBox::Yes) {
+            int areaId = current->data(Qt::UserRole).toInt();
+            if (repository_.removeArea(areaId)) {
+                QMessageBox::information(&dialog, "Success", "Area deleted successfully.");
+                // Refresh list
+                areaList->clear();
+                allAreas_ = repository_.findAllAreas();
+                for (const ProductionArea& area : allAreas_) {
+                    QListWidgetItem* item = new QListWidgetItem(area.name());
+                    item->setData(Qt::UserRole, area.id());
+                    areaList->addItem(item);
+                }
+            } else {
+                QMessageBox::critical(&dialog, "Error", "Failed to delete area: " + repository_.lastError());
+            }
+        }
+    });
+
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    buttonLayout->addWidget(addAreaBtn);
+    buttonLayout->addWidget(editAreaBtn);
+    buttonLayout->addWidget(deleteAreaBtn);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(closeBtn);
+
+    mainLayout->addLayout(buttonLayout);
+    dialog.setLayout(mainLayout);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        loadProductionAreas();
+    }
 }
 
 void ProductionAreasWidget::showAreaDialog(const ProductionArea* area)
@@ -191,8 +436,6 @@ void ProductionAreasWidget::showAreaDialog(const ProductionArea* area)
         if (!success) {
             Logger::instance().error("ProductionAreasWidget", "Failed to save area: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save production area: " + repository_.lastError());
-        } else {
-            loadProductionAreas();
         }
     }
 }
@@ -259,7 +502,7 @@ void ProductionAreasWidget::showMachineDialog(int parentAreaId, const Machine* m
             Logger::instance().error("ProductionAreasWidget", "Failed to save machine: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save machine: " + repository_.lastError());
         } else {
-            loadProductionAreas();
+            loadAreaFilter();
         }
     }
 }
@@ -326,31 +569,68 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
             Logger::instance().error("ProductionAreasWidget", "Failed to save competency: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save competency: " + repository_.lastError());
         } else {
-            loadProductionAreas();
+            loadAreaFilter();
         }
     }
 }
 
 void ProductionAreasWidget::onAddClicked()
 {
+    int currentAreaId = areaFilterCombo_->currentData().toInt();
+
+    if (currentAreaId == -1) {
+        QMessageBox::information(this, "Select Area",
+            "Please select a specific production area from the dropdown to add machines or competencies.\n\n"
+            "Use the 'Manage Areas' button to add new production areas.");
+        return;
+    }
+
     QTreeWidgetItem* currentItem = treeWidget_->currentItem();
 
     if (!currentItem) {
-        // No selection - add production area
-        showAreaDialog(nullptr);
+        // No selection - add machine to selected area
+        showMachineDialog(currentAreaId, nullptr);
     } else {
         int itemType = currentItem->data(0, Qt::UserRole).toInt();
 
-        if (itemType == AreaItem) {
-            // Add machine to this area
-            int areaId = currentItem->text(2).toInt();
-            showMachineDialog(areaId, nullptr);
-        } else if (itemType == MachineItem) {
-            // Add competency to this machine
-            int machineId = currentItem->text(2).toInt();
-            showCompetencyDialog(machineId, nullptr);
+        if (itemType == AreaItem || itemType == MachineItem) {
+            // Add competency to selected machine or first machine under area
+            int machineId;
+            if (itemType == MachineItem) {
+                machineId = currentItem->text(3).toInt();
+            } else {
+                // Get first machine in area
+                if (currentItem->childCount() > 0) {
+                    machineId = currentItem->child(0)->text(3).toInt();
+                } else {
+                    QMessageBox::information(this, "No Machines",
+                        "Please add a machine first before adding competencies.");
+                    return;
+                }
+            }
+
+            // Ask what to add
+            QMessageBox msgBox(this);
+            msgBox.setWindowTitle("Add Item");
+            msgBox.setText("What would you like to add?");
+            QPushButton* machineBtn = msgBox.addButton("Add Machine", QMessageBox::ActionRole);
+            QPushButton* competencyBtn = msgBox.addButton("Add Competency", QMessageBox::ActionRole);
+            msgBox.addButton(QMessageBox::Cancel);
+
+            msgBox.exec();
+
+            if (msgBox.clickedButton() == machineBtn) {
+                showMachineDialog(currentAreaId, nullptr);
+            } else if (msgBox.clickedButton() == competencyBtn) {
+                if (itemType == MachineItem) {
+                    showCompetencyDialog(machineId, nullptr);
+                } else {
+                    QMessageBox::information(this, "Select Machine",
+                        "Please select a machine to add a competency to it.");
+                }
+            }
         } else {
-            QMessageBox::information(this, "Info", "Cannot add items to a competency. Select a production area or machine.");
+            QMessageBox::information(this, "Info", "Cannot add items to a competency. Select a machine to add a competency.");
         }
     }
 }
@@ -364,12 +644,13 @@ void ProductionAreasWidget::onEditClicked()
     }
 
     int itemType = currentItem->data(0, Qt::UserRole).toInt();
-    int id = currentItem->text(2).toInt();
+    int id = currentItem->text(3).toInt();
 
     if (itemType == AreaItem) {
         ProductionArea area = repository_.findAreaById(id);
         if (area.id() > 0) {
             showAreaDialog(&area);
+            loadProductionAreas();
         }
     } else if (itemType == MachineItem) {
         Machine machine = repository_.findMachineById(id);
@@ -393,13 +674,21 @@ void ProductionAreasWidget::onDeleteClicked()
     }
 
     int itemType = currentItem->data(0, Qt::UserRole).toInt();
-    int id = currentItem->text(2).toInt();
+    int id = currentItem->text(3).toInt();
     QString name = currentItem->text(0);
+
+    QString itemTypeName;
+    if (itemType == AreaItem) itemTypeName = "production area";
+    else if (itemType == MachineItem) itemTypeName = "machine";
+    else itemTypeName = "competency";
 
     QMessageBox::StandardButton reply = QMessageBox::question(
         this,
         "Confirm Delete",
-        QString("Are you sure you want to delete '%1'?\nThis will also delete all child items.").arg(name),
+        QString("Are you sure you want to delete this %1: '%2'?\n%3")
+            .arg(itemTypeName)
+            .arg(name)
+            .arg(itemType != CompetencyItem ? "This will also delete all child items." : ""),
         QMessageBox::Yes | QMessageBox::No
     );
 
@@ -416,8 +705,12 @@ void ProductionAreasWidget::onDeleteClicked()
 
         if (success) {
             Logger::instance().info("ProductionAreasWidget", "Deleted item: " + name);
-            QMessageBox::information(this, "Success", "Item deleted successfully.");
-            loadProductionAreas();
+            QMessageBox::information(this, "Success", QString("%1 deleted successfully.").arg(QString(itemTypeName[0].toUpper()) + itemTypeName.mid(1)));
+            if (itemType == AreaItem) {
+                loadProductionAreas();
+            } else {
+                loadAreaFilter();
+            }
         } else {
             Logger::instance().error("ProductionAreasWidget", "Failed to delete: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to delete item: " + repository_.lastError());
@@ -435,12 +728,13 @@ void ProductionAreasWidget::onTreeItemDoubleClicked(QTreeWidgetItem* item, int c
     if (!item) return;
 
     int itemType = item->data(0, Qt::UserRole).toInt();
-    int id = item->text(2).toInt();
+    int id = item->text(3).toInt();
 
     if (itemType == AreaItem) {
         ProductionArea area = repository_.findAreaById(id);
         if (area.id() > 0) {
             showAreaDialog(&area);
+            loadProductionAreas();
         }
     } else if (itemType == MachineItem) {
         Machine machine = repository_.findMachineById(id);
