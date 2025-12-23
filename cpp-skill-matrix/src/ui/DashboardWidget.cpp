@@ -336,20 +336,25 @@ void DashboardWidget::setupUI()
 
 void DashboardWidget::loadStatistics()
 {
-    updateQuickStats();
-    updateKeyInsights();
-    createScoreDistributionCharts();
+    // PERFORMANCE FIX: Cache all data upfront to avoid redundant database queries
+    // Previously this was calling findAll() multiple times (3x for assessments alone!)
+    QList<Engineer> engineers = engineerRepo_.findAll();
+    QList<Assessment> assessments = assessmentRepo_.findAll();
+    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+
+    updateQuickStats(engineers, assessments, areas);
+    updateKeyInsights(assessments);
+    createScoreDistributionCharts(engineers, assessments);
     createPerformanceLists();
 
     QString timestamp = QDateTime::currentDateTime().toString("MMMM d, yyyy h:mm AP");
     lastUpdateLabel_->setText("Last updated: " + timestamp);
 }
 
-void DashboardWidget::updateQuickStats()
+void DashboardWidget::updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, const QList<ProductionArea>& areas)
 {
     // Get basic counts
-    int engineerCount = engineerRepo_.findAll().size();
-    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    int engineerCount = engineers.size();
 
     // Count total competencies across all areas
     int totalCompetencies = 0;
@@ -361,7 +366,6 @@ void DashboardWidget::updateQuickStats()
     }
 
     // Calculate average skill level and completion rate
-    QList<Assessment> assessments = assessmentRepo_.findAll();
     double totalScore = 0;
     int scoreCount = 0;
     int competent = 0;  // Score >= 2
@@ -384,10 +388,8 @@ void DashboardWidget::updateQuickStats()
     completionRateLabel_->setText(QString::number(completionRate, 'f', 1) + "%");
 }
 
-void DashboardWidget::updateKeyInsights()
+void DashboardWidget::updateKeyInsights(const QList<Assessment>& assessments)
 {
-    QList<Assessment> assessments = assessmentRepo_.findAll();
-
     int totalAssessments = assessments.size();
     int fullyTrained = 0;
     int needTraining = 0;
@@ -405,10 +407,9 @@ void DashboardWidget::updateKeyInsights()
     needTrainingLabel_->setText(QString::number(needTraining));
 }
 
-void DashboardWidget::createScoreDistributionCharts()
+void DashboardWidget::createScoreDistributionCharts(const QList<Engineer>& engineers, const QList<Assessment>& assessments)
 {
-    // Get all assessments
-    QList<Assessment> assessments = assessmentRepo_.findAll();
+    // Use cached assessments instead of querying again
 
     // === PIE CHART: Score Distribution ===
     QMap<int, int> scoreCounts;
@@ -445,16 +446,17 @@ void DashboardWidget::createScoreDistributionCharts()
     barSet->setColor(QColor("#ff6b6b"));  // Red accent like web app
 
     QStringList engineerNames;
-    QList<Engineer> engineers = engineerRepo_.findAll();
+    // Use cached engineers instead of querying again
 
     for (const Engineer& engineer : engineers) {
-        // Calculate average score for this engineer
-        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineer(engineer.id());
+        // PERFORMANCE FIX: Filter cached assessments instead of querying per engineer
         double totalScore = 0;
         int count = 0;
-        for (const Assessment& assessment : engineerAssessments) {
-            totalScore += assessment.score();
-            count++;
+        for (const Assessment& assessment : assessments) {
+            if (assessment.engineerId() == engineer.id()) {
+                totalScore += assessment.score();
+                count++;
+            }
         }
         double avgScore = count > 0 ? totalScore / count : 0.0;
 

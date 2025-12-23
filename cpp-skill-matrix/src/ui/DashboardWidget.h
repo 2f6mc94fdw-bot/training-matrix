@@ -9,6 +9,9 @@
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
 #include "../database/CoreSkillsRepository.h"
+#include "../models/Engineer.h"
+#include "../models/Assessment.h"
+#include "../models/ProductionArea.h"
 #include <QtCharts/QChart>
 #include <QtCharts/QChartView>
 #include <QtCharts/QBarSeries>
@@ -28,10 +31,10 @@ private slots:
 private:
     void setupUI();
     void loadStatistics();
-    void createScoreDistributionCharts();
+    void createScoreDistributionCharts(const QList<Engineer>& engineers, const QList<Assessment>& assessments);
     void createPerformanceLists();
-    void updateQuickStats();
-    void updateKeyInsights();
+    void updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, const QList<ProductionArea>& areas);
+    void updateKeyInsights(const QList<Assessment>& assessments);
 
 private:
     // Stat labels - 4 cards matching web app
