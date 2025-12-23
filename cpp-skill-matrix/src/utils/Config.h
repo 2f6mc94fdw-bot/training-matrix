@@ -105,6 +105,11 @@ private:
     QString getDefaultConfigPath() const;
 
     /**
+     * @brief Get old Skill Matrix config file path for migration
+     */
+    QString getOldSkillMatrixConfigPath() const;
+
+    /**
      * @brief Parse nested key (e.g., "database.server" -> ["database", "server"])
      */
     QStringList parseKey(const QString& key) const;
