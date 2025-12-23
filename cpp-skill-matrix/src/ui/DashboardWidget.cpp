@@ -89,11 +89,17 @@ void DashboardWidget::setupUI()
     headerLayout->addLayout(titleLayout);
     headerLayout->addStretch();
 
-    // Logo (right side, 100% bigger)
+    // Logo (right side) - Use native size to avoid blur from upscaling
     QLabel* logoLabel = new QLabel(this);
     QPixmap logo(":/images/aptitude-logo.png");
     if (!logo.isNull()) {
-        logoLabel->setPixmap(logo.scaled(160, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        // Use smaller size with high quality rendering to avoid blur
+        int logoSize = 100;
+        QPixmap scaledLogo = logo.scaled(logoSize, logoSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        // Enable high DPI rendering for crisp display
+        scaledLogo.setDevicePixelRatio(devicePixelRatio());
+        logoLabel->setPixmap(scaledLogo);
     }
     headerLayout->addWidget(logoLabel);
 
