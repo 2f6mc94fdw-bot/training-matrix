@@ -538,6 +538,7 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Tree Widget */ "
         "QTreeWidget {"
+        "    gridline-color: %9; "  // Match table gridline color
         "    background-color: %2; "  // Use main background (slate-900)
         "    border: 1px solid %67; "
         "    border-radius: 12px; "  // Rounded-xl style
@@ -551,7 +552,6 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QTreeWidget::item {"
         "    padding: 16px; "  // Match table padding
         "    min-height: 32px; "
-        "    border-bottom: 1px solid %67; "  // Add border like table grid
         "} "
         "QTreeWidget::item:hover {"
         "    background-color: %70; "
