@@ -1,4 +1,5 @@
 #include "ImportExportDialog.h"
+#include "../controllers/DataController.h"
 #include "../utils/Logger.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -81,6 +82,19 @@ void ImportExportDialog::setupUI()
     backupLayout->addWidget(restoreButton_, 0, 1);
 
     mainLayout->addWidget(backupGroup);
+
+    // Test Data Group
+    QGroupBox* testDataGroup = new QGroupBox("Test Data", this);
+    QGridLayout* testDataLayout = new QGridLayout(testDataGroup);
+
+    QPushButton* generateTestDataButton = new QPushButton("Generate Random Assessments", this);
+    generateTestDataButton->setToolTip("Creates random assessment scores for all engineers to test analytics");
+
+    connect(generateTestDataButton, &QPushButton::clicked, this, &ImportExportDialog::onGenerateTestDataClicked);
+
+    testDataLayout->addWidget(generateTestDataButton, 0, 0);
+
+    mainLayout->addWidget(testDataGroup);
 
     // Status Display
     QLabel* statusLabel = new QLabel("Operation Status:", this);
@@ -175,5 +189,29 @@ void ImportExportDialog::onRestoreClicked()
             Logger::instance().info("ImportExportDialog", "Restoring from backup: " + fileName);
             QMessageBox::information(this, "Restore", "Database restore functionality coming soon!");
         }
+    }
+}
+
+void ImportExportDialog::onGenerateTestDataClicked()
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Generate Test Data",
+        "This will create random assessment scores for all engineers.\n\n"
+        "Approximately 70% of competencies will be filled with random scores (0-3).\n"
+        "Existing assessments will not be overwritten.\n\n"
+        "Continue?",
+        QMessageBox::Yes | QMessageBox::No
+    );
+
+    if (reply == QMessageBox::Yes) {
+        statusDisplay_->setPlainText("Generating random assessments...\n\n");
+
+        QString result = DataController::generateRandomAssessments(70);
+
+        statusDisplay_->setPlainText(result);
+        Logger::instance().info("ImportExportDialog", "Generated test data: " + result);
+
+        QMessageBox::information(this, "Success", result);
     }
 }

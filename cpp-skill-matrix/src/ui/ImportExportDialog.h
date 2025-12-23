@@ -20,6 +20,7 @@ private slots:
     void onImportJSONClicked();
     void onBackupClicked();
     void onRestoreClicked();
+    void onGenerateTestDataClicked();
 
 private:
     void setupUI();
