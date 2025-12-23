@@ -83,6 +83,7 @@ void ProductionAreasWidget::setupUI()
     treeWidget_->setAlternatingRowColors(true);
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     treeWidget_->setIndentation(24);
+    treeWidget_->setUniformRowHeights(true);  // Better performance and consistent look
 
     // Set proper column widths
     treeWidget_->header()->setStretchLastSection(false);

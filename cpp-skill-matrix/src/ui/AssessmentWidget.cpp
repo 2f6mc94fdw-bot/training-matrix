@@ -132,7 +132,7 @@ void AssessmentWidget::loadEngineerCards()
             "    border: 2px solid #e2e8f0;"
             "    border-radius: 8px;"
             "    padding: 20px;"
-            "    background-color: white;"
+            "    background-color: transparent;"
             "}"
         );
 
@@ -309,10 +309,10 @@ void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
                 "}"
             ).arg(scoreInfos[score].color);
         } else {
-            // Inactive button: white background, colored border
+            // Inactive button: transparent background, colored border
             buttonStyle = QString(
                 "QPushButton {"
-                "    background-color: white;"
+                "    background-color: transparent;"
                 "    color: #64748b;"
                 "    border: 2px solid #e2e8f0;"
                 "    border-radius: 16px;"
@@ -321,6 +321,7 @@ void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
                 "QPushButton:hover {"
                 "    border-color: %1;"
                 "    color: %1;"
+                "    background-color: rgba(255, 255, 255, 0.05);"
                 "}"
             ).arg(scoreInfos[score].color);
         }
