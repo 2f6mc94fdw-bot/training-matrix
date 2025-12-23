@@ -34,6 +34,7 @@ private:
     void loadProductionAreas();
     void loadAreaFilter();
     void loadMachinesForArea(int areaId);
+    void showAreaManagementDialog();
     void showAreaDialog(const ProductionArea* area = nullptr);
     void showMachineDialog(int parentAreaId, const Machine* machine = nullptr);
     void showCompetencyDialog(int parentMachineId, const Competency* competency = nullptr);
