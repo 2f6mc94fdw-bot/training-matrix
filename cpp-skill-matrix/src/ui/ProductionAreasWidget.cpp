@@ -11,6 +11,7 @@
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QListWidget>
+#include <QPalette>
 
 ProductionAreasWidget::ProductionAreasWidget(QWidget* parent)
     : QWidget(parent)
@@ -84,6 +85,12 @@ void ProductionAreasWidget::setupUI()
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     treeWidget_->setIndentation(24);
     treeWidget_->setUniformRowHeights(true);  // Better performance and consistent look
+
+    // Set alternating row colors via palette (takes precedence over stylesheet)
+    QPalette treePalette = treeWidget_->palette();
+    treePalette.setColor(QPalette::Base, QColor("#0f172a"));  // Normal row - slate-950
+    treePalette.setColor(QPalette::AlternateBase, QColor("#1e293b"));  // Alternate row - slate-800
+    treeWidget_->setPalette(treePalette);
 
     // Set proper column widths
     treeWidget_->header()->setStretchLastSection(false);
