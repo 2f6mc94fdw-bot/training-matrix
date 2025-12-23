@@ -1,5 +1,6 @@
 #include "DashboardWidget.h"
 #include "StyleManager.h"
+#include "AptitudeLogoWidget.h"
 #include "../utils/Logger.h"
 #include "../utils/IconProvider.h"
 #include "../core/Session.h"
@@ -89,19 +90,10 @@ void DashboardWidget::setupUI()
     headerLayout->addLayout(titleLayout);
     headerLayout->addStretch();
 
-    // Logo (right side) - Use native size to avoid blur from upscaling
-    QLabel* logoLabel = new QLabel(this);
-    QPixmap logo(":/images/aptitude-logo.png");
-    if (!logo.isNull()) {
-        // Use smaller size with high quality rendering to avoid blur
-        int logoSize = 100;
-        QPixmap scaledLogo = logo.scaled(logoSize, logoSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-        // Enable high DPI rendering for crisp display
-        scaledLogo.setDevicePixelRatio(devicePixelRatio());
-        logoLabel->setPixmap(scaledLogo);
-    }
-    headerLayout->addWidget(logoLabel);
+    // Logo (right side) - Vector-based for crisp rendering at any size
+    AptitudeLogoWidget* logoWidget = new AptitudeLogoWidget(this);
+    logoWidget->setSize(160);  // Large, crisp logo
+    headerLayout->addWidget(logoWidget);
 
     mainLayout->addLayout(headerLayout);
 

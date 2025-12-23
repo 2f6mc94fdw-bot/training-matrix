@@ -97,6 +97,7 @@ set(SOURCES
     src/ui/ImportExportDialog.cpp
     src/ui/ChangePasswordDialog.cpp
     src/ui/StyleManager.cpp
+    src/ui/AptitudeLogoWidget.cpp
 
     # UI Widgets
     src/ui/widgets/ChartWidget.cpp
@@ -178,6 +179,7 @@ set(HEADERS
     src/ui/ImportExportDialog.h
     src/ui/ChangePasswordDialog.h
     src/ui/StyleManager.h
+    src/ui/AptitudeLogoWidget.h
 
     # UI Widgets
     src/ui/widgets/ChartWidget.h
