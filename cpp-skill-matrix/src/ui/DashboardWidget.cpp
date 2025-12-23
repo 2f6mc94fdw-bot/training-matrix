@@ -64,20 +64,40 @@ void DashboardWidget::setupUI()
     mainLayout->setSpacing(32);  // 8px grid: 32px between sections
     mainLayout->setContentsMargins(40, 40, 40, 40);  // 8px grid: 40px container padding
 
-    // Header Section
+    // Header Section with Logo
+    QHBoxLayout* headerLayout = new QHBoxLayout();
+    headerLayout->setSpacing(20);
+
+    // Logo
+    QLabel* logoLabel = new QLabel(this);
+    QPixmap logo(":/images/aptitude-logo.png");
+    if (!logo.isNull()) {
+        logoLabel->setPixmap(logo.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    headerLayout->addWidget(logoLabel);
+
+    // Title and subtitle
+    QVBoxLayout* titleLayout = new QVBoxLayout();
+    titleLayout->setSpacing(4);
+
     QLabel* titleLabel = new QLabel("Dashboard", this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(32);  // Web app style: large title
     titleFont.setWeight(QFont::Bold);
     titleLabel->setFont(titleFont);
-    mainLayout->addWidget(titleLabel);
+    titleLayout->addWidget(titleLabel);
 
     QLabel* subtitleLabel = new QLabel("Team performance overview and key metrics", this);
     QFont subtitleFont = subtitleLabel->font();
     subtitleFont.setPointSize(14);
     subtitleLabel->setFont(subtitleFont);
     subtitleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    mainLayout->addWidget(subtitleLabel);
+    titleLayout->addWidget(subtitleLabel);
+
+    headerLayout->addLayout(titleLayout);
+    headerLayout->addStretch();
+
+    mainLayout->addLayout(headerLayout);
 
     mainLayout->addSpacing(24);  // Space after header
 
@@ -124,20 +144,20 @@ void DashboardWidget::setupUI()
         return card;
     };
 
-    // Card 1: Total Engineers (gray border like web app)
-    QWidget* engineersCard = createStatCard("Total Engineers", engineerCountLabel_, "users", "#64748b");
+    // Card 1: Total Engineers (Aptitude Light Blue)
+    QWidget* engineersCard = createStatCard("Total Engineers", engineerCountLabel_, "users", "#60A5FA");
     statsGrid->addWidget(engineersCard, 0, 0);
 
-    // Card 2: Total Competencies (red/accent border)
-    QWidget* competenciesCard = createStatCard("Total Competencies", competencyCountLabel_, "target", "#ff6b6b");
+    // Card 2: Total Competencies (Aptitude Red)
+    QWidget* competenciesCard = createStatCard("Total Competencies", competencyCountLabel_, "target", "#EF4444");
     statsGrid->addWidget(competenciesCard, 0, 1);
 
-    // Card 3: Average Skill Level (green/success border)
-    QWidget* avgSkillCard = createStatCard("Average Skill Level", avgSkillLevelLabel_, "trending-up", "#10b981");
+    // Card 3: Average Skill Level (Aptitude Green)
+    QWidget* avgSkillCard = createStatCard("Average Skill Level", avgSkillLevelLabel_, "trending-up", "#10B981");
     statsGrid->addWidget(avgSkillCard, 0, 2);
 
-    // Card 4: Completion Rate (yellow/warning border)
-    QWidget* completionCard = createStatCard("Completion Rate", completionRateLabel_, "award", "#f59e0b");
+    // Card 4: Completion Rate (Aptitude Orange)
+    QWidget* completionCard = createStatCard("Completion Rate", completionRateLabel_, "award", "#FB923C");
     statsGrid->addWidget(completionCard, 0, 3);
 
     mainLayout->addLayout(statsGrid);
