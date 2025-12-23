@@ -25,6 +25,9 @@ public:
     explicit DashboardWidget(QWidget* parent = nullptr);
     ~DashboardWidget();
 
+public slots:
+    void refresh() { loadStatistics(); }  // Public refresh method
+
 private slots:
     void onRefreshClicked();
 

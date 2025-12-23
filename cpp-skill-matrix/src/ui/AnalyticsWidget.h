@@ -19,6 +19,9 @@ public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
 
+public slots:
+    void refresh() { loadAnalytics(); }  // Public refresh method
+
 private:
     void setupUI();
     void loadAnalytics();

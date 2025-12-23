@@ -212,6 +212,9 @@ void ImportExportDialog::onGenerateTestDataClicked()
         statusDisplay_->setPlainText(result);
         Logger::instance().info("ImportExportDialog", "Generated test data: " + result);
 
-        QMessageBox::information(this, "Success", result);
+        // Emit signal to refresh all data-dependent widgets
+        emit dataChanged();
+
+        QMessageBox::information(this, "Success", result + "\n\nThe Dashboard and Analytics will now refresh automatically.");
     }
 }

@@ -153,6 +153,12 @@ void MainWindow::setupCentralWidget()
         auditLogWidget_ = new AuditLogWidget(this);
         importExportWidget_ = new ImportExportDialog(this);
 
+        // Connect data change signal to refresh widgets
+        connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                dashboardWidget_, &DashboardWidget::refresh);
+        connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                analyticsWidget_, &AnalyticsWidget::refresh);
+
         // Add admin widgets to stack
         contentStack_->addWidget(dashboardWidget_);
         contentStack_->addWidget(engineersWidget_);
