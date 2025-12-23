@@ -2,6 +2,8 @@
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
+#include "../models/Machine.h"
+#include "../models/Competency.h"
 #include "../utils/Logger.h"
 #include <QRandomGenerator>
 #include <QDateTime>
@@ -15,25 +17,36 @@ QString DataController::generateRandomAssessments(int percentageToFill)
     ProductionRepository productionRepo;
     AssessmentRepository assessmentRepo;
 
-    // Get all engineers and competencies
+    // Get all engineers
     QList<Engineer> engineers = engineerRepo.findAll();
-    QList<ProductionArea> areas = productionRepo.findAllAreas();
-
     if (engineers.isEmpty()) {
         return "Error: No engineers found. Please add engineers first.";
     }
 
-    // Collect all competencies
-    QList<Competency> allCompetencies;
+    // Collect all competencies with their area and machine IDs
+    struct CompetencyInfo {
+        Competency competency;
+        int machineId;
+        int areaId;
+    };
+    QList<CompetencyInfo> competencyInfos;
+
+    QList<ProductionArea> areas = productionRepo.findAllAreas();
     for (const ProductionArea& area : areas) {
         QList<Machine> machines = productionRepo.findMachinesByArea(area.id());
         for (const Machine& machine : machines) {
             QList<Competency> competencies = productionRepo.findCompetenciesByMachine(machine.id());
-            allCompetencies.append(competencies);
+            for (const Competency& competency : competencies) {
+                CompetencyInfo info;
+                info.competency = competency;
+                info.machineId = machine.id();
+                info.areaId = area.id();
+                competencyInfos.append(info);
+            }
         }
     }
 
-    if (allCompetencies.isEmpty()) {
+    if (competencyInfos.isEmpty()) {
         return "Error: No competencies found. Please add production areas and machines first.";
     }
 
@@ -41,33 +54,40 @@ QString DataController::generateRandomAssessments(int percentageToFill)
     int totalCreated = 0;
     int totalSkipped = 0;
     QRandomGenerator* random = QRandomGenerator::global();
-    QDateTime now = QDateTime::currentDateTime();
 
     for (const Engineer& engineer : engineers) {
-        for (const Competency& competency : allCompetencies) {
-            // Use percentage to determine if we should create an assessment for this combination
-            if (random->bounded(100) < percentageToFill) {
-                // Check if assessment already exists
-                QList<Assessment> existing = assessmentRepo.findByEngineerAndCompetency(engineer.id(), competency.id());
+        // Get existing assessments for this engineer
+        QList<Assessment> existingAssessments = assessmentRepo.findByEngineer(engineer.id());
 
-                if (existing.isEmpty()) {
-                    // Generate random score (0-3)
-                    int score = random->bounded(competency.maxScore() + 1);
+        for (const CompetencyInfo& info : competencyInfos) {
+            // Use percentage to determine if we should create an assessment
+            if (random->bounded(100) < percentageToFill) {
+                // Check if assessment already exists for this competency
+                bool exists = false;
+                for (const Assessment& existing : existingAssessments) {
+                    if (existing.competencyId() == info.competency.id()) {
+                        exists = true;
+                        totalSkipped++;
+                        break;
+                    }
+                }
+
+                if (!exists) {
+                    // Generate random score (0 to maxScore)
+                    int score = random->bounded(info.competency.maxScore() + 1);
 
                     Assessment assessment(
                         0,  // id (auto-generated)
                         engineer.id(),
-                        competency.id(),
-                        score,
-                        now,
-                        "admin"  // assessor
+                        info.areaId,
+                        info.machineId,
+                        info.competency.id(),
+                        score
                     );
 
-                    if (assessmentRepo.save(assessment)) {
+                    if (assessmentRepo.saveOrUpdate(assessment)) {
                         totalCreated++;
                     }
-                } else {
-                    totalSkipped++;
                 }
             }
         }
@@ -77,7 +97,7 @@ QString DataController::generateRandomAssessments(int percentageToFill)
                              "%4 existing assessments were skipped.")
                           .arg(totalCreated)
                           .arg(engineers.size())
-                          .arg(allCompetencies.size())
+                          .arg(competencyInfos.size())
                           .arg(totalSkipped);
 
     Logger::instance().info("DataController", message);
