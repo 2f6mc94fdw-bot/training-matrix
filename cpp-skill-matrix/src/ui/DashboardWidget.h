@@ -33,7 +33,7 @@ private:
     void loadStatistics();
     void createScoreDistributionCharts(const QList<Engineer>& engineers, const QList<Assessment>& assessments);
     void createPerformanceLists();
-    void updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, const QList<ProductionArea>& areas);
+    void updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, int totalCompetencies);
     void updateKeyInsights(const QList<Assessment>& assessments);
 
 private:

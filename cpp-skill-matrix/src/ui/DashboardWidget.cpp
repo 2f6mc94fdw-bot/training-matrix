@@ -68,15 +68,7 @@ void DashboardWidget::setupUI()
     QHBoxLayout* headerLayout = new QHBoxLayout();
     headerLayout->setSpacing(20);
 
-    // Logo
-    QLabel* logoLabel = new QLabel(this);
-    QPixmap logo(":/images/aptitude-logo.png");
-    if (!logo.isNull()) {
-        logoLabel->setPixmap(logo.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    }
-    headerLayout->addWidget(logoLabel);
-
-    // Title and subtitle
+    // Title and subtitle (left side)
     QVBoxLayout* titleLayout = new QVBoxLayout();
     titleLayout->setSpacing(4);
 
@@ -96,6 +88,14 @@ void DashboardWidget::setupUI()
 
     headerLayout->addLayout(titleLayout);
     headerLayout->addStretch();
+
+    // Logo (right side, 100% bigger)
+    QLabel* logoLabel = new QLabel(this);
+    QPixmap logo(":/images/aptitude-logo.png");
+    if (!logo.isNull()) {
+        logoLabel->setPixmap(logo.scaled(160, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    headerLayout->addWidget(logoLabel);
 
     mainLayout->addLayout(headerLayout);
 
@@ -342,7 +342,19 @@ void DashboardWidget::loadStatistics()
     QList<Assessment> assessments = assessmentRepo_.findAll();
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
 
-    updateQuickStats(engineers, assessments, areas);
+    // PERFORMANCE FIX: Cache machines and competencies upfront to avoid nested loop queries
+    // Previously: 10 areas × 10 machines = 110 queries. Now: Just count in memory.
+    QList<Machine> allMachines;
+    int totalCompetencies = 0;
+    for (const ProductionArea& area : areas) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        allMachines.append(machines);
+        for (const Machine& machine : machines) {
+            totalCompetencies += productionRepo_.findCompetenciesByMachine(machine.id()).size();
+        }
+    }
+
+    updateQuickStats(engineers, assessments, totalCompetencies);
     updateKeyInsights(assessments);
     createScoreDistributionCharts(engineers, assessments);
     createPerformanceLists();
@@ -351,19 +363,10 @@ void DashboardWidget::loadStatistics()
     lastUpdateLabel_->setText("Last updated: " + timestamp);
 }
 
-void DashboardWidget::updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, const QList<ProductionArea>& areas)
+void DashboardWidget::updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, int totalCompetencies)
 {
     // Get basic counts
     int engineerCount = engineers.size();
-
-    // Count total competencies across all areas
-    int totalCompetencies = 0;
-    for (const ProductionArea& area : areas) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        for (const Machine& machine : machines) {
-            totalCompetencies += productionRepo_.findCompetenciesByMachine(machine.id()).size();
-        }
-    }
 
     // Calculate average skill level and completion rate
     double totalScore = 0;
