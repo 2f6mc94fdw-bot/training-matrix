@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "../core/Application.h"
+#include "../database/DatabaseManager.h"
 #include "../core/Constants.h"
 #include "../utils/Logger.h"
 #include "StyleManager.h"
