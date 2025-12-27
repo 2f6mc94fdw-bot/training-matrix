@@ -235,6 +235,9 @@ void CoreSkillsWidget::loadAssessments()
             QPushButton* button = buttonGroup.buttons[score];
             bool isSelected = (score == currentScore);
 
+            // Set the property for save detection
+            button->setProperty("isSelected", isSelected);
+
             QString buttonStyle;
             if (isSelected) {
                 buttonStyle = QString(
@@ -290,6 +293,8 @@ void CoreSkillsWidget::onEngineerChanged(int index)
             button->setProperty("engineerId", newEngineerId);
 
             bool isSelected = (score == 0);  // Default to score 0
+            button->setProperty("isSelected", isSelected);  // Set property for save detection
+
             QString buttonStyle;
             if (isSelected) {
                 buttonStyle = QString(
