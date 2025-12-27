@@ -269,6 +269,7 @@ void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, in
 
         // Style button based on whether it's selected
         bool isSelected = (score == currentScore);
+        button->setProperty("isSelected", isSelected);  // Store for save detection
 
         QString buttonStyle;
         if (isSelected) {
@@ -341,6 +342,9 @@ void MyAssessmentsWidget::onScoreButtonClicked()
                 QPushButton* button = buttonGroup.buttons[i];
                 bool isSelected = (i == score);
 
+                // Store selected state as property for reliable save detection
+                button->setProperty("isSelected", isSelected);
+
                 QString buttonStyle;
                 if (isSelected) {
                     buttonStyle = QString(
@@ -394,12 +398,11 @@ void MyAssessmentsWidget::onSaveClicked()
 
     // Loop through all button groups and find selected score for each competency
     for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
-        // Find which button is selected (has the score property and colored background)
+        // Find which button is selected using the isSelected property
         int selectedScore = 0;
         for (int score = 0; score < 4; score++) {
             QPushButton* button = buttonGroup.buttons[score];
-            // Check if button has a colored background (contains "background-color: #" in style)
-            if (button->styleSheet().contains("background-color: #")) {
+            if (button->property("isSelected").toBool()) {
                 selectedScore = score;
                 break;
             }
