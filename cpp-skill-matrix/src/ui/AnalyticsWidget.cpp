@@ -359,36 +359,29 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
 
 void AnalyticsWidget::loadAnalytics()
 {
-    Logger::instance().info("AnalyticsWidget", "Starting background data load...");
+    Logger::instance().info("AnalyticsWidget", "Loading analytics data...");
 
-    // Load data on background thread to avoid UI freeze
-    QFuture<LoadedData> future = QtConcurrent::run([this]() -> LoadedData {
-        LoadedData data;
+    // Load all data once and cache it (optimized for performance)
+    cachedEngineers_ = engineerRepo_.findAll();
+    cachedAssessments_ = assessmentRepo_.findAll();
+    cachedAreas_ = productionRepo_.findAllAreas();
 
-        // Create temporary repositories (thread-safe copies)
-        EngineerRepository engineerRepo;
-        AssessmentRepository assessmentRepo;
-        ProductionRepository productionRepo;
-
-        // Load all data from database
-        data.engineers = engineerRepo.findAll();
-        data.assessments = assessmentRepo.findAll();
-        data.areas = productionRepo.findAllAreas();
-
-        // Pre-calculate total competencies to avoid repeated queries
-        data.totalCompetencies = 0;
-        for (const ProductionArea& area : data.areas) {
-            QList<Machine> machines = productionRepo.findMachinesByArea(area.id());
-            for (const Machine& machine : machines) {
-                QList<Competency> competencies = productionRepo.findCompetenciesByMachine(machine.id());
-                data.totalCompetencies += competencies.size();
-            }
+    // Pre-calculate total competencies to avoid repeated queries
+    cachedTotalCompetencies_ = 0;
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            cachedTotalCompetencies_ += competencies.size();
         }
+    }
 
-        return data;
-    });
+    Logger::instance().info("AnalyticsWidget", "Data loaded. Updating analytics views...");
 
-    dataWatcher_->setFuture(future);
+    // Update all analytics views
+    updateTrendsData();
+    updateShiftComparisonData();
+    updateAutomatedInsights();
 }
 
 void AnalyticsWidget::updateTrendsData()
