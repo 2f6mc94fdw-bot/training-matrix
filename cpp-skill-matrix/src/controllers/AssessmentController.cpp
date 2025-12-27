@@ -39,28 +39,45 @@ QList<Assessment> AssessmentController::getAssessmentsByProductionArea(int produ
 {
     lastError_.clear();
     AssessmentRepository repo;
-    QList<Assessment> assessments = repo.findByProductionArea(productionAreaId);
+    QList<Assessment> allAssessments = repo.findAll();
 
     if (!repo.lastError().isEmpty()) {
         lastError_ = repo.lastError();
         Logger::instance().error("AssessmentController", "Failed to get assessments by production area: " + lastError_);
+        return QList<Assessment>();
     }
 
-    return assessments;
+    // Filter by production area ID
+    QList<Assessment> filtered;
+    for (const Assessment& assessment : allAssessments) {
+        if (assessment.productionAreaId() == productionAreaId) {
+            filtered.append(assessment);
+        }
+    }
+
+    return filtered;
 }
 
 Assessment AssessmentController::getAssessment(const QString& engineerId, int competencyId)
 {
     lastError_.clear();
     AssessmentRepository repo;
-    Assessment assessment = repo.findByEngineerAndCompetency(engineerId, competencyId);
+    QList<Assessment> assessments = repo.findByEngineer(engineerId);
 
     if (!repo.lastError().isEmpty()) {
         lastError_ = repo.lastError();
         Logger::instance().error("AssessmentController", "Failed to get assessment: " + lastError_);
+        return Assessment();
     }
 
-    return assessment;
+    // Find assessment for this competency
+    for (const Assessment& assessment : assessments) {
+        if (assessment.competencyId() == competencyId) {
+            return assessment;
+        }
+    }
+
+    return Assessment(); // Not found
 }
 
 bool AssessmentController::updateAssessment(const QString& engineerId, int productionAreaId,
@@ -137,9 +154,15 @@ double AssessmentController::getCompletionPercentage(const QString& engineerId, 
 {
     lastError_.clear();
 
-    // Get all competencies in the production area
+    // Get all competencies in the production area by iterating through machines
     ProductionRepository prodRepo;
-    QList<Competency> competencies = prodRepo.findCompetenciesByProductionArea(productionAreaId);
+    QList<Machine> machines = prodRepo.findMachinesByArea(productionAreaId);
+
+    QList<Competency> competencies;
+    for (const Machine& machine : machines) {
+        QList<Competency> machineComps = prodRepo.findCompetenciesByMachine(machine.id());
+        competencies.append(machineComps);
+    }
 
     int totalCompetencies = competencies.size();
     if (totalCompetencies == 0) {

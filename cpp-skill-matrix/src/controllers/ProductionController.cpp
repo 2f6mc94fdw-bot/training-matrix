@@ -11,14 +11,14 @@ QList<ProductionArea> ProductionController::getAllProductionAreas()
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findAllProductionAreas();
+    return repo.findAllAreas();
 }
 
 ProductionArea ProductionController::getProductionAreaById(int id)
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findProductionAreaById(id);
+    return repo.findAreaById(id);
 }
 
 int ProductionController::createProductionArea(const QString& name)
@@ -33,7 +33,7 @@ int ProductionController::createProductionArea(const QString& name)
     area.setName(name);
 
     ProductionRepository repo;
-    bool success = repo.saveProductionArea(area);
+    bool success = repo.saveArea(area);
 
     if (!success) {
         lastError_ = repo.lastError();
@@ -45,7 +45,7 @@ int ProductionController::createProductionArea(const QString& name)
     return area.id();
 }
 
-bool ProductionController::updateProductionArea(int id, const QString& name)
+bool ProductionController::updateArea(int id, const QString& name)
 {
     lastError_.clear();
 
@@ -59,7 +59,7 @@ bool ProductionController::updateProductionArea(int id, const QString& name)
     }
 
     ProductionRepository repo;
-    ProductionArea area = repo.findProductionAreaById(id);
+    ProductionArea area = repo.findAreaById(id);
 
     if (!area.isValid()) {
         lastError_ = "Production area not found: " + QString::number(id);
@@ -67,7 +67,7 @@ bool ProductionController::updateProductionArea(int id, const QString& name)
     }
 
     area.setName(name);
-    bool success = repo.updateProductionArea(area);
+    bool success = repo.updateArea(area);
 
     if (!success) {
         lastError_ = repo.lastError();
@@ -86,7 +86,7 @@ bool ProductionController::deleteProductionArea(int id)
     }
 
     ProductionRepository repo;
-    bool success = repo.removeProductionArea(id);
+    bool success = repo.removeArea(id);
 
     if (!success) {
         lastError_ = repo.lastError();
@@ -100,14 +100,24 @@ QList<Machine> ProductionController::getAllMachines()
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findAllMachines();
+
+    // Get all machines by iterating through all areas
+    QList<Machine> allMachines;
+    QList<ProductionArea> areas = repo.findAllAreas();
+
+    for (const ProductionArea& area : areas) {
+        QList<Machine> areaMachines = repo.findMachinesByArea(area.id());
+        allMachines.append(areaMachines);
+    }
+
+    return allMachines;
 }
 
 QList<Machine> ProductionController::getMachinesByProductionArea(int productionAreaId)
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findMachinesByProductionArea(productionAreaId);
+    return repo.findMachinesByArea(productionAreaId);
 }
 
 Machine ProductionController::getMachineById(int id)
@@ -206,7 +216,17 @@ QList<Competency> ProductionController::getAllCompetencies()
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findAllCompetencies();
+
+    // Get all competencies by iterating through all machines
+    QList<Competency> allCompetencies;
+    QList<Machine> machines = getAllMachines();
+
+    for (const Machine& machine : machines) {
+        QList<Competency> machineComps = repo.findCompetenciesByMachine(machine.id());
+        allCompetencies.append(machineComps);
+    }
+
+    return allCompetencies;
 }
 
 QList<Competency> ProductionController::getCompetenciesByMachine(int machineId)
@@ -220,7 +240,17 @@ QList<Competency> ProductionController::getCompetenciesByProductionArea(int prod
 {
     lastError_.clear();
     ProductionRepository repo;
-    return repo.findCompetenciesByProductionArea(productionAreaId);
+
+    // Get competencies by iterating through machines in this area
+    QList<Competency> areaCompetencies;
+    QList<Machine> machines = repo.findMachinesByArea(productionAreaId);
+
+    for (const Machine& machine : machines) {
+        QList<Competency> machineComps = repo.findCompetenciesByMachine(machine.id());
+        areaCompetencies.append(machineComps);
+    }
+
+    return areaCompetencies;
 }
 
 Competency ProductionController::getCompetencyById(int id)
