@@ -14,6 +14,8 @@
 #include "CoreSkillsWidget.h"
 #include "MyCoreSkillsWidget.h"
 #include "MyAssessmentsWidget.h"
+#include "MyDashboardWidget.h"
+#include "MyProgressWidget.h"
 #include "ReportsWidget.h"
 #include "AnalyticsWidget.h"
 #include "CertificationsWidget.h"
@@ -178,7 +180,7 @@ void MainWindow::setupCentralWidget()
         QString engineerId = session->engineerId();
 
         // My Dashboard - shows personal overview
-        QWidget* myDashboard = new QLabel(QString("Welcome! Your Engineer ID: %1\n\nYour personal dashboard will show your skills, assessments, and targets here.").arg(engineerId), this);
+        MyDashboardWidget* myDashboard = new MyDashboardWidget(engineerId, this);
         contentStack_->addWidget(myDashboard);
 
         // My Assessments - shows only their assessments
@@ -194,7 +196,7 @@ void MainWindow::setupCentralWidget()
         contentStack_->addWidget(myCerts);
 
         // My Progress - shows progress over time with targets
-        QWidget* myProgress = new QLabel("Your progress history and targets will appear here.", this);
+        MyProgressWidget* myProgress = new MyProgressWidget(engineerId, this);
         contentStack_->addWidget(myProgress);
     }
 
