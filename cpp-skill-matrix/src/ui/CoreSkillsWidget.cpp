@@ -370,12 +370,21 @@ void CoreSkillsWidget::onSaveClicked()
         assessment.setSkillId(buttonGroup.skillId);
         assessment.setScore(selectedScore);
 
+        Logger::instance().debug("CoreSkillsWidget",
+            QString("Attempting to save: engineerId=%1, categoryId=%2, skillId=%3, score=%4")
+                .arg(engineerId)
+                .arg(buttonGroup.categoryId)
+                .arg(buttonGroup.skillId)
+                .arg(selectedScore));
+
         if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
             savedCount++;
         } else {
             errorCount++;
             Logger::instance().error("CoreSkillsWidget",
-                QString("Failed to save assessment: %1").arg(coreSkillsRepo_.lastError()));
+                QString("Failed to save assessment for skill %1: %2")
+                    .arg(buttonGroup.skillId)
+                    .arg(coreSkillsRepo_.lastError()));
         }
     }
 
