@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QTableWidget>
 #include <QComboBox>
+#include <QHBoxLayout>
 #include "../database/CoreSkillsRepository.h"
 #include "../database/EngineerRepository.h"
 

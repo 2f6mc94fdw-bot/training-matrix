@@ -8,7 +8,7 @@
 #include <QScrollArea>
 #include <QMessageBox>
 #include <QShowEvent>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 
 AssessmentWidget::AssessmentWidget(QWidget* parent)

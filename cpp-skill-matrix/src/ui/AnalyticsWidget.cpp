@@ -7,7 +7,7 @@
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QTimer>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrent>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
