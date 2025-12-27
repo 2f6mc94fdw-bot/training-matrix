@@ -53,14 +53,6 @@ void LoginDialog::setupUI()
     logoLayout->addWidget(logoWidget);
     logoLayout->addStretch();
 
-    // Subtitle
-    QLabel* subtitleLabel = new QLabel("Training & Competency Management", this);
-    QFont subtitleFont = subtitleLabel->font();
-    subtitleFont.setPointSize(11);
-    subtitleLabel->setFont(subtitleFont);
-    subtitleLabel->setAlignment(Qt::AlignCenter);
-    subtitleLabel->setStyleSheet("color: #94a3b8;");  // Slate-400 for subtle text
-
     // Login prompt
     QLabel* promptLabel = new QLabel("Please login to continue", this);
     QFont promptFont = promptLabel->font();
@@ -117,9 +109,7 @@ void LoginDialog::setupUI()
 
     // Main layout - add everything with proper spacing
     mainLayout->addLayout(logoLayout);
-    mainLayout->addSpacing(15);
-    mainLayout->addWidget(subtitleLabel);
-    mainLayout->addSpacing(5);
+    mainLayout->addSpacing(20);
     mainLayout->addWidget(promptLabel);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(usernameLabel);
