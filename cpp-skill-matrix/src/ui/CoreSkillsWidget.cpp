@@ -126,7 +126,7 @@ void CoreSkillsWidget::loadCoreSkills()
                 buttonLayout->setContentsMargins(4, 2, 4, 2);
                 buttonLayout->setSpacing(6);
 
-                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+                createScoreButtons(buttonLayout, buttonWidget, engineerId, category.id(), skill.id(), 0);
 
                 buttonWidget->setLayout(buttonLayout);
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
@@ -338,7 +338,8 @@ void CoreSkillsWidget::onRefreshClicked()
     }
 }
 
-void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
+void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, QWidget* parentWidget,
+                                         const QString& engineerId,
                                          const QString& categoryId, const QString& skillId,
                                          int currentScore)
 {
@@ -361,7 +362,7 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
     buttonGroup.skillId = skillId;
 
     for (int score = 0; score < 4; score++) {
-        QPushButton* button = new QPushButton(scoreInfos[score].label, this);
+        QPushButton* button = new QPushButton(scoreInfos[score].label, parentWidget);
         button->setFixedSize(32, 32);
         button->setCursor(Qt::PointingHandCursor);
 
