@@ -80,6 +80,10 @@ void CoreSkillsWidget::setupUI()
     // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
     skillsTable_->setSortingEnabled(false);
 
+    // Configure vertical header to respect manual row heights
+    skillsTable_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    skillsTable_->verticalHeader()->setDefaultSectionSize(44);  // Default height for all rows
+
     mainLayout->addWidget(skillsTable_);
 
     // Buttons
@@ -134,21 +138,13 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // Set row height to accommodate 32px buttons + top/bottom margins (2px each) + padding
-                skillsTable_->setRowHeight(row, 44);
-
                 // Create score buttons widget
                 QWidget* buttonWidget = new QWidget();
                 QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
-                buttonLayout->setContentsMargins(4, 4, 4, 4);
+                buttonLayout->setContentsMargins(6, 6, 6, 6);
                 buttonLayout->setSpacing(6);
 
                 createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
-
-                // Ensure widget is properly sized and visible
-                buttonWidget->setMinimumSize(154, 40);  // Width: 4*32 + 3*6 + 4+4 = 154px, Height: 32 + 4+4 = 40px
-                buttonWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-                buttonWidget->show();  // Explicitly show widget (same pattern as working TEST label)
 
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
 
