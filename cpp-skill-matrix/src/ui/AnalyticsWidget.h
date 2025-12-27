@@ -19,6 +19,9 @@ public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
 
+protected:
+    void showEvent(QShowEvent* event) override;
+
 public slots:
     void refresh() { loadAnalytics(); }  // Public refresh method
 
@@ -92,6 +95,9 @@ private:
     QList<Assessment> cachedAssessments_;
     QList<ProductionArea> cachedAreas_;
     int cachedTotalCompetencies_;
+
+    // Lazy loading state
+    bool isFirstShow_;
 
 private slots:
     void onTabChanged(int tabIndex);

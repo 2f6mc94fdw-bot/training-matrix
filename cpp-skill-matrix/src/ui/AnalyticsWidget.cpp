@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QShowEvent>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
@@ -30,14 +31,27 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftCardsContainer_(nullptr)
     , shiftChartView_(nullptr)
     , insightsList_(nullptr)
+    , isFirstShow_(true)
 {
     setupUI();
-    loadAnalytics();
+    // Don't load analytics here - wait for showEvent() (lazy loading)
     Logger::instance().info("AnalyticsWidget", "Analytics widget initialized");
 }
 
 AnalyticsWidget::~AnalyticsWidget()
 {
+}
+
+void AnalyticsWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+
+    // Lazy loading: only load data on first show
+    if (isFirstShow_) {
+        isFirstShow_ = false;
+        loadAnalytics();
+        Logger::instance().info("AnalyticsWidget", "Loaded analytics data on first show");
+    }
 }
 
 void AnalyticsWidget::setupUI()

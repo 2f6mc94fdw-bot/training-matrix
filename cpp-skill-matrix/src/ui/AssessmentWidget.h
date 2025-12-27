@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QMap>
+#include <QTimer>
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
@@ -22,10 +23,14 @@ public:
     explicit AssessmentWidget(QWidget* parent = nullptr);
     ~AssessmentWidget();
 
+protected:
+    void showEvent(QShowEvent* event) override;
+
 private slots:
     void onAreaFilterChanged(int index);
     void onScoreButtonClicked();
     void onRefreshClicked();
+    void loadNextEngineerCard();
 
 private:
     void setupUI();
@@ -49,6 +54,22 @@ private:
     EngineerRepository engineerRepo_;
     ProductionRepository productionRepo_;
     AssessmentRepository assessmentRepo_;
+
+    // Progressive loading state
+    bool isFirstShow_;
+    QTimer* loadTimer_;
+    QLabel* loadingLabel_;
+
+    // Cached data for progressive loading
+    QList<Engineer> cachedEngineers_;
+    QMap<QString, int> cachedAssessmentScores_;
+    QMap<int, QString> cachedAreaNames_;  // areaId -> areaName lookup
+    struct MachineData {
+        Machine machine;
+        QList<Competency> competencies;
+    };
+    QMap<int, QList<MachineData>> cachedAreaToMachines_;
+    int currentEngineerIndex_;
 };
 
 #endif // ASSESSMENTWIDGET_H
