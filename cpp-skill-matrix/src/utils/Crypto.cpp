@@ -6,24 +6,63 @@
 
 QString Crypto::hashPassword(const QString& password)
 {
-    // For production, use BCrypt or Argon2
-    // This is a simple implementation using SHA-256 with multiple rounds
-    QString hashed = password;
+    // IMPORTANT: For production, use BCrypt or Argon2 libraries
+    // This implementation uses PBKDF2-like approach with SHA-256
+    // It provides better security than plain hashing but is not as strong as BCrypt/Argon2
 
-    // Apply multiple rounds of hashing for better security
-    for (int i = 0; i < 10; i++) {
-        QByteArray data = hashed.toUtf8();
-        QByteArray hash = QCryptographicHash::hash(data, QCryptographicHash::Sha256);
-        hashed = hash.toHex();
+    // Generate a unique salt per password (stored as prefix in the hash)
+    QString salt = generateSalt(16); // 16 bytes = 32 hex chars
+
+    // Perform PBKDF2-like derivation with 10000 iterations
+    QByteArray derived = password.toUtf8() + QByteArray::fromHex(salt.toUtf8());
+
+    // Apply 10000 rounds of hashing (PBKDF2-like)
+    for (int i = 0; i < 10000; i++) {
+        QCryptographicHash hasher(QCryptographicHash::Sha256);
+        hasher.addData(derived);
+        hasher.addData(QByteArray::number(i)); // Include iteration count
+        derived = hasher.result();
     }
 
-    return hashed;
+    // Return format: salt$hash (allows verification with same salt)
+    return salt + "$" + derived.toHex();
 }
 
 bool Crypto::verifyPassword(const QString& password, const QString& hash)
 {
-    QString hashedInput = hashPassword(password);
-    return hashedInput == hash;
+    // Check if hash contains salt separator (new format: salt$hash)
+    if (hash.contains("$")) {
+        // New format with salt
+        QStringList parts = hash.split("$");
+        if (parts.size() != 2) {
+            return false;
+        }
+
+        QString salt = parts[0];
+        QString storedHash = parts[1];
+
+        // Derive hash with same salt
+        QByteArray derived = password.toUtf8() + QByteArray::fromHex(salt.toUtf8());
+
+        for (int i = 0; i < 10000; i++) {
+            QCryptographicHash hasher(QCryptographicHash::Sha256);
+            hasher.addData(derived);
+            hasher.addData(QByteArray::number(i));
+            derived = hasher.result();
+        }
+
+        return derived.toHex() == storedHash;
+    } else {
+        // Legacy format without salt (for backward compatibility)
+        // This is the old insecure method - kept only for existing passwords
+        QString hashed = password;
+        for (int i = 0; i < 10; i++) {
+            QByteArray data = hashed.toUtf8();
+            QByteArray hashBytes = QCryptographicHash::hash(data, QCryptographicHash::Sha256);
+            hashed = hashBytes.toHex();
+        }
+        return hashed == hash;
+    }
 }
 
 QString Crypto::generateSalt(int length)

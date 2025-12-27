@@ -131,6 +131,10 @@ QString DatabaseManager::lastError() const
 
 bool DatabaseManager::executeQuery(const QString& query)
 {
+    // SECURITY WARNING: This method is deprecated and should not be used for queries with user input
+    Logger::instance().warning("DatabaseManager",
+        "executeQuery() is deprecated - use prepared statements with parameter binding instead");
+
     if (!isConnected()) {
         lastErrorMessage_ = "Not connected to database";
         return false;
