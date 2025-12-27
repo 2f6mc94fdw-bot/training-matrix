@@ -72,7 +72,9 @@ void CoreSkillsWidget::setupUI()
     // Configure column sizing for proper display
     skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
     skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Score (auto-adjust to button size)
+    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
+    // Score column width: 4 buttons (32px each) + 3 gaps (6px each) + margins (4+4) = 154px, use 180px for comfort
+    skillsTable_->setColumnWidth(2, 180);
 
     skillsTable_->setAlternatingRowColors(true);
     // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
@@ -132,20 +134,20 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // Set row height to accommodate 32px buttons + margins
-                skillsTable_->setRowHeight(row, 40);
+                // Set row height to accommodate 32px buttons + top/bottom margins (2px each) + padding
+                skillsTable_->setRowHeight(row, 44);
 
                 // Create score buttons widget
                 QWidget* buttonWidget = new QWidget();
                 QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
-                buttonLayout->setContentsMargins(4, 2, 4, 2);
+                buttonLayout->setContentsMargins(4, 4, 4, 4);
                 buttonLayout->setSpacing(6);
 
                 createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
 
                 // Ensure widget is properly sized and visible
-                buttonWidget->setMinimumHeight(36);
-                buttonWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                buttonWidget->setMinimumSize(154, 40);  // Width: 4*32 + 3*6 + 4+4 = 154px, Height: 32 + 4+4 = 40px
+                buttonWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
                 buttonWidget->show();  // Explicitly show widget (same pattern as working TEST label)
 
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
