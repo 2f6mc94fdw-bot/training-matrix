@@ -135,13 +135,16 @@ void CoreSkillsWidget::loadCoreSkills()
 
                 // Create score buttons widget
                 QWidget* buttonWidget = new QWidget();
-                QHBoxLayout* buttonLayout = new QHBoxLayout();
+                QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
                 buttonLayout->setContentsMargins(4, 2, 4, 2);
                 buttonLayout->setSpacing(6);
 
                 createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
 
-                buttonWidget->setLayout(buttonLayout);
+                // Ensure widget is properly sized and visible
+                buttonWidget->setMinimumHeight(36);
+                buttonWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
 
                 row++;
