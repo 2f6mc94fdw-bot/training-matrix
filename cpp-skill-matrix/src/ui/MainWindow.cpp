@@ -208,7 +208,32 @@ void MainWindow::setupStatusBar()
     QLabel* statusLabel = new QLabel("Ready", this);
     statusBar()->addWidget(statusLabel);
 
-    // TODO: Add database connection status indicator
+    // Add database connection status indicator
+    QLabel* dbStatusLabel = new QLabel(this);
+
+    // Check database connection status
+    bool isConnected = DatabaseManager::instance().isConnected();
+    if (isConnected) {
+        dbStatusLabel->setText("Database: Connected");
+        dbStatusLabel->setStyleSheet("QLabel { color: green; font-weight: bold; }");
+    } else {
+        dbStatusLabel->setText("Database: Disconnected");
+        dbStatusLabel->setStyleSheet("QLabel { color: red; font-weight: bold; }");
+    }
+
+    statusBar()->addPermanentWidget(dbStatusLabel);
+
+    // Connect to database connection changes
+    connect(&DatabaseManager::instance(), &DatabaseManager::connectionChanged,
+            this, [dbStatusLabel](bool connected) {
+        if (connected) {
+            dbStatusLabel->setText("Database: Connected");
+            dbStatusLabel->setStyleSheet("QLabel { color: green; font-weight: bold; }");
+        } else {
+            dbStatusLabel->setText("Database: Disconnected");
+            dbStatusLabel->setStyleSheet("QLabel { color: red; font-weight: bold; }");
+        }
+    });
 }
 
 void MainWindow::onNavigationItemClicked(int index)
