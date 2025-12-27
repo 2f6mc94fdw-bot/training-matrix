@@ -3,11 +3,16 @@
 
 #include <QWidget>
 #include <QComboBox>
-#include <QTableWidget>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QMap>
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
+#include "../models/Engineer.h"
+#include "../models/Competency.h"
 
 class AssessmentWidget : public QWidget
 {
@@ -18,23 +23,28 @@ public:
     ~AssessmentWidget();
 
 private slots:
-    void onEngineerChanged(int index);
-    void onProductionAreaChanged(int index);
-    void onSaveClicked();
-    void onLoadClicked();
+    void onAreaFilterChanged(int index);
+    void onScoreButtonClicked();
+    void onRefreshClicked();
 
 private:
     void setupUI();
-    void loadEngineers();
-    void loadProductionAreas();
-    void loadAssessmentData();
+    void loadEngineerCards();
+    void createScoreButtons(QHBoxLayout* layout, const QString& engineerId, int areaId, int machineId, int competencyId, int currentScore);
+    void updateEngineerSummary(const QString& engineerId, QLabel* summaryLabel);
 
 private:
-    QComboBox* engineerCombo_;
-    QComboBox* productionAreaCombo_;
-    QTableWidget* assessmentTable_;
-    QPushButton* saveButton_;
-    QPushButton* loadButton_;
+    QComboBox* areaFilterCombo_;
+    QVBoxLayout* engineersLayout_;  // Container for engineer cards
+    QWidget* engineersContainer_;
+
+    // Map to track score button groups
+    struct ScoreButtonGroup {
+        QPushButton* buttons[4];  // 0-3 buttons
+        QString engineerId;
+        QString competencyId;
+    };
+    QList<ScoreButtonGroup> scoreButtonGroups_;
 
     EngineerRepository engineerRepo_;
     ProductionRepository productionRepo_;

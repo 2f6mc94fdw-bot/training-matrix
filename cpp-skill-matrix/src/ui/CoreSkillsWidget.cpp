@@ -58,6 +58,8 @@ void CoreSkillsWidget::setupUI()
     skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score", "IDs"});
     skillsTable_->horizontalHeader()->setStretchLastSection(true);
     skillsTable_->setAlternatingRowColors(true);
+    skillsTable_->setSortingEnabled(true);  // Enable column sorting
+    skillsTable_->sortByColumn(0, Qt::AscendingOrder);  // Default sort by Category
     skillsTable_->hideColumn(3); // Hide IDs column
 
     mainLayout->addWidget(skillsTable_);
@@ -94,6 +96,8 @@ void CoreSkillsWidget::loadEngineers()
 
 void CoreSkillsWidget::loadCoreSkills()
 {
+    // Disable sorting while loading to improve performance and prevent issues
+    skillsTable_->setSortingEnabled(false);
     skillsTable_->setRowCount(0);
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
@@ -123,6 +127,10 @@ void CoreSkillsWidget::loadCoreSkills()
             }
         }
     }
+
+    // Re-enable sorting and apply default sort
+    skillsTable_->setSortingEnabled(true);
+    skillsTable_->sortByColumn(0, Qt::AscendingOrder);
 
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
 }

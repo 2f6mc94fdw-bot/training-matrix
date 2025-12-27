@@ -259,18 +259,24 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "QGroupBox {"
         "    background-color: %18; "
         "    border: 1px solid %19; "
-        "    border-radius: 12px; "  // Rounded-xl style
-        "    margin-top: 20px; "
-        "    padding: 24px; "
-        "    font-weight: 600; "
-        "    font-size: 15pt; "
+        "    border-radius: 12px; "
+        "    margin: 0px; "
+        "    padding: 20px; "
+        "    padding-top: 32px; "  // Extra top padding for title
+        "    font-weight: 400; "  // Normal weight for content
+        "    font-size: 13pt; "
         "} "
         "QGroupBox::title {"
         "    subcontrol-origin: margin; "
         "    subcontrol-position: top left; "
-        "    padding: 4px 12px; "
+        "    padding: 0px 8px; "
+        "    padding-left: 20px; "  // Align with content padding
         "    color: %20; "
         "    background-color: transparent; "
+        "    font-size: 11pt; "  // Smaller title font
+        "    font-weight: 500; "  // Medium weight
+        "    text-transform: uppercase; "
+        "    letter-spacing: 0.5px; "
         "} "
         ""
         "/* Input Fields */ "
@@ -495,7 +501,8 @@ QString StyleManager::buildStylesheet(Theme theme) const
         "    border: 1px solid %58; "
         "    border-radius: 12px; "  // Rounded-xl style
         "    background-color: %18; "  // Use card background (slate-800)
-        "    padding: 8px; "
+        "    padding: 24px; "  // Increased from 8px for less congestion
+        "    margin: 0px; "  // Remove margins
         "} "
         "QTabBar::tab {"
         "    background-color: %59; "
@@ -531,21 +538,22 @@ QString StyleManager::buildStylesheet(Theme theme) const
         ""
         "/* Tree Widget */ "
         "QTreeWidget {"
+        "    gridline-color: %9; "  // Match table gridline color
         "    background-color: %2; "  // Use main background (slate-900)
         "    border: 1px solid %67; "
         "    border-radius: 12px; "  // Rounded-xl style
-        "    alternate-background-color: %68; "
         "    selection-background-color: %69; "
         "    selection-color: white; "
         "    font-size: 13pt; "
         "    color: %1; "
+        "    show-decoration-selected: 1; "
         "} "
         "QTreeWidget::item {"
-        "    padding: 10px 8px; "  // Increased from 4px
-        "    min-height: 32px; "  // Added minimum height
+        "    padding: 16px; "  // Match table padding
+        "    min-height: 32px; "
         "} "
-        "QTreeWidget::item:hover {"
-        "    background-color: %70; "
+        "QTreeWidget::item:selected {"
+        "    background-color: %69; "
         "} "
         "QTreeWidget::branch {"
         "    background-color: transparent; "
@@ -705,46 +713,46 @@ QString StyleManager::buildStylesheet(Theme theme) const
 
 void StyleManager::initializeColors()
 {
-    // Light Theme Colors
-    lightColors_["primary"] = QColor("#2196F3");          // Blue
-    lightColors_["secondary"] = QColor("#757575");        // Gray
-    lightColors_["accent"] = QColor("#4CAF50");           // Green
-    lightColors_["danger"] = QColor("#F44336");           // Red
-    lightColors_["warning"] = QColor("#FF9800");          // Orange
-    lightColors_["success"] = QColor("#4CAF50");          // Green
-    lightColors_["background"] = QColor("#FAFAFA");       // Very light gray
-    lightColors_["windowBackground"] = QColor("#F5F5F5"); // Light gray
-    lightColors_["cardBackground"] = QColor("#FFFFFF");   // White
+    // Light Theme Colors - Aptitude Brand Colors
+    lightColors_["primary"] = QColor("#60A5FA");          // Aptitude Light Blue
+    lightColors_["secondary"] = QColor("#9E9E9E");        // Light gray
+    lightColors_["accent"] = QColor("#22D3EE");           // Aptitude Cyan
+    lightColors_["danger"] = QColor("#EF4444");           // Aptitude Red
+    lightColors_["warning"] = QColor("#FB923C");          // Aptitude Orange
+    lightColors_["success"] = QColor("#10B981");          // Aptitude Green
+    lightColors_["background"] = QColor("#FEFEFE");       // Extremely pale gray (almost white)
+    lightColors_["windowBackground"] = QColor("#FCFCFC"); // Very very pale gray
+    lightColors_["cardBackground"] = QColor("#FFFFFF");   // Pure white
     lightColors_["text"] = QColor("#212121");             // Dark gray
     lightColors_["textSecondary"] = QColor("#757575");    // Medium gray
-    lightColors_["border"] = QColor("#E0E0E0");           // Light border
-    lightColors_["alternateBackground"] = QColor("#F5F5F5"); // Alternate row
+    lightColors_["border"] = QColor("#F0F0F0");           // Very pale border
+    lightColors_["alternateBackground"] = QColor("#FBFBFB"); // Very pale alternate row
     lightColors_["hoverBackground"] = QColor("#E3F2FD");  // Light blue hover
-    lightColors_["headerBackground"] = QColor("#FAFAFA"); // Header background
+    lightColors_["headerBackground"] = QColor("#FDFDFD"); // Very pale header background
     lightColors_["headerText"] = QColor("#424242");       // Header text
-    lightColors_["inputBackground"] = QColor("#FFFFFF");  // Input bg
-    lightColors_["disabledBackground"] = QColor("#F5F5F5"); // Disabled bg
+    lightColors_["inputBackground"] = QColor("#FFFFFF");  // Pure white input bg
+    lightColors_["disabledBackground"] = QColor("#F8F8F8"); // Very pale disabled bg
     lightColors_["disabledText"] = QColor("#BDBDBD");     // Disabled text
-    lightColors_["menuBackground"] = QColor("#FFFFFF");   // Menu bg
+    lightColors_["menuBackground"] = QColor("#FFFFFF");   // Pure white menu bg
     lightColors_["menuText"] = QColor("#212121");         // Menu text
-    lightColors_["toolbarBackground"] = QColor("#FAFAFA"); // Toolbar bg
-    lightColors_["statusBarBackground"] = QColor("#F5F5F5"); // Status bar bg
+    lightColors_["toolbarBackground"] = QColor("#FDFDFD"); // Very pale toolbar bg
+    lightColors_["statusBarBackground"] = QColor("#FCFCFC"); // Very pale status bar bg
     lightColors_["statusBarText"] = QColor("#616161");    // Status bar text
-    lightColors_["progressBackground"] = QColor("#E0E0E0"); // Progress bg
-    lightColors_["scrollBarBackground"] = QColor("#F5F5F5"); // Scrollbar bg
-    lightColors_["scrollBarHandle"] = QColor("#BDBDBD"); // Scrollbar handle
-    lightColors_["tabBackground"] = QColor("#F5F5F5");    // Tab bg
+    lightColors_["progressBackground"] = QColor("#F0F0F0"); // Very pale progress bg
+    lightColors_["scrollBarBackground"] = QColor("#F8F8F8"); // Very pale scrollbar bg
+    lightColors_["scrollBarHandle"] = QColor("#D0D0D0"); // Light scrollbar handle
+    lightColors_["tabBackground"] = QColor("#FBFBFB");    // Very pale tab bg
     lightColors_["tabText"] = QColor("#757575");          // Tab text
 
-    // Dark Theme Colors - Slate Professional Design System
-    // Inspired by Tailwind Slate palette with Cyan accents
+    // Dark Theme Colors - Aptitude Brand with Professional Dark Backgrounds
+    // Based on Aptitude logo colors with slate backgrounds
 
-    // Accent colors (buttons, highlights, interactive elements)
-    darkColors_["primary"] = QColor("#0891b2");           // Cyan-600 - primary buttons/accents
-    darkColors_["accent"] = QColor("#22d3ee");            // Cyan-400 - accent text/highlights
-    darkColors_["success"] = QColor("#059669");           // Emerald-600 - success states
-    darkColors_["danger"] = QColor("#dc2626");            // Red-600 - danger/error states
-    darkColors_["warning"] = QColor("#d97706");           // Amber-600 - warning states
+    // Accent colors (buttons, highlights, interactive elements) - Aptitude Brand
+    darkColors_["primary"] = QColor("#60A5FA");           // Aptitude Light Blue - primary buttons/accents
+    darkColors_["accent"] = QColor("#22D3EE");            // Aptitude Cyan - accent text/highlights
+    darkColors_["success"] = QColor("#10B981");           // Aptitude Green - success states
+    darkColors_["danger"] = QColor("#EF4444");            // Aptitude Red - danger/error states
+    darkColors_["warning"] = QColor("#FB923C");           // Aptitude Orange - warning states
     darkColors_["secondary"] = QColor("#64748b");         // Slate-500 - secondary elements
 
     // Background colors (slate palette)

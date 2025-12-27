@@ -2,19 +2,25 @@
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../utils/Logger.h"
+#include "StyleManager.h"
 
 // Widget includes
 #include "DashboardWidget.h"
 #include "EngineersWidget.h"
+#include "UsersWidget.h"
 #include "ProductionAreasWidget.h"
 #include "AssessmentWidget.h"
 #include "CoreSkillsWidget.h"
+#include "MyCoreSkillsWidget.h"
 #include "ReportsWidget.h"
 #include "AnalyticsWidget.h"
 #include "CertificationsWidget.h"
 #include "SnapshotsWidget.h"
 #include "AuditLogWidget.h"
 #include "ImportExportDialog.h"
+#include "ChangePasswordDialog.h"
+
+#include "../controllers/AuthController.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
@@ -61,6 +67,8 @@ void MainWindow::setupMenuBar()
 
     // File menu
     QMenu* fileMenu = menuBar->addMenu("&File");
+    fileMenu->addAction("Change &Password", this, &MainWindow::onChangePasswordClicked);
+    fileMenu->addSeparator();
     fileMenu->addAction("&Logout", this, &MainWindow::onLogoutClicked);
     fileMenu->addSeparator();
     fileMenu->addAction("E&xit", this, &MainWindow::close);
@@ -72,8 +80,8 @@ void MainWindow::setupMenuBar()
     // Help menu
     QMenu* helpMenu = menuBar->addMenu("&Help");
     helpMenu->addAction("&About", []() {
-        QMessageBox::about(nullptr, "About Skill Matrix",
-            QString("Skill Matrix v%1\n\nA comprehensive training and competency management system.")
+        QMessageBox::about(nullptr, "About Aptitude",
+            QString("Aptitude v%1\n\nA comprehensive training and competency management system.\n\nEmpowering organizations to track, develop, and optimize workforce skills.")
             .arg(Constants::APP_VERSION));
     });
 }
@@ -84,18 +92,32 @@ void MainWindow::setupNavigationSidebar()
     navigationList_->setMaximumWidth(Constants::SIDEBAR_WIDTH);
     navigationList_->setMinimumWidth(Constants::SIDEBAR_WIDTH);
 
-    // Add navigation items
-    navigationList_->addItem("Dashboard");
-    navigationList_->addItem("Engineers");
-    navigationList_->addItem("Production Areas");
-    navigationList_->addItem("Assessments");
-    navigationList_->addItem("Core Skills");
-    navigationList_->addItem("Reports");
-    navigationList_->addItem("Analytics");
-    navigationList_->addItem("Certifications");
-    navigationList_->addItem("Snapshots");
-    navigationList_->addItem("Audit Log");
-    navigationList_->addItem("Import/Export");
+    // Get current user's role from session
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
+
+    if (isAdmin) {
+        // Admin navigation - full access to all features
+        navigationList_->addItem("Dashboard");
+        navigationList_->addItem("Engineers");
+        navigationList_->addItem("Users");
+        navigationList_->addItem("Production Areas");
+        navigationList_->addItem("Assessments");
+        navigationList_->addItem("Core Skills");
+        navigationList_->addItem("Reports");
+        navigationList_->addItem("Analytics");
+        navigationList_->addItem("Certifications");
+        navigationList_->addItem("Snapshots");
+        navigationList_->addItem("Audit Log");
+        navigationList_->addItem("Import/Export");
+    } else {
+        // Engineer navigation - personal view only
+        navigationList_->addItem("My Dashboard");
+        navigationList_->addItem("My Assessments");
+        navigationList_->addItem("My Core Skills");
+        navigationList_->addItem("My Certifications");
+        navigationList_->addItem("My Progress");
+    }
 
     connect(navigationList_, &QListWidget::currentRowChanged, this, &MainWindow::onNavigationItemClicked);
 }
@@ -104,6 +126,8 @@ void MainWindow::setupCentralWidget()
 {
     QWidget* centralWidget = new QWidget(this);
     QHBoxLayout* mainLayout = new QHBoxLayout(centralWidget);
+    mainLayout->setSpacing(0);  // No spacing between sidebar and content (they have their own padding)
+    mainLayout->setContentsMargins(0, 0, 0, 0);  // No margins on main layout - widgets control their own spacing
 
     // Setup navigation
     setupNavigationSidebar();
@@ -111,31 +135,66 @@ void MainWindow::setupCentralWidget()
     // Setup content stack
     contentStack_ = new QStackedWidget(this);
 
-    // Create real widgets
-    dashboardWidget_ = new DashboardWidget(this);
-    engineersWidget_ = new EngineersWidget(this);
-    productionAreasWidget_ = new ProductionAreasWidget(this);
-    assessmentWidget_ = new AssessmentWidget(this);
-    coreSkillsWidget_ = new CoreSkillsWidget(this);
-    reportsWidget_ = new ReportsWidget(this);
-    analyticsWidget_ = new AnalyticsWidget(this);
-    certificationsWidget_ = new CertificationsWidget(this);
-    snapshotsWidget_ = new SnapshotsWidget(this);
-    auditLogWidget_ = new AuditLogWidget(this);
-    importExportWidget_ = new ImportExportDialog(this);
+    // Get current user's role from session
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
 
-    // Add widgets to stack
-    contentStack_->addWidget(dashboardWidget_);
-    contentStack_->addWidget(engineersWidget_);
-    contentStack_->addWidget(productionAreasWidget_);
-    contentStack_->addWidget(assessmentWidget_);
-    contentStack_->addWidget(coreSkillsWidget_);
-    contentStack_->addWidget(reportsWidget_);
-    contentStack_->addWidget(analyticsWidget_);
-    contentStack_->addWidget(certificationsWidget_);
-    contentStack_->addWidget(snapshotsWidget_);
-    contentStack_->addWidget(auditLogWidget_);
-    contentStack_->addWidget(importExportWidget_);
+    if (isAdmin) {
+        // PERFORMANCE: Use lazy initialization - create widgets only when first accessed
+        // Initialize all widget pointers to nullptr
+        engineersWidget_ = nullptr;
+        usersWidget_ = nullptr;
+        productionAreasWidget_ = nullptr;
+        assessmentWidget_ = nullptr;
+        coreSkillsWidget_ = nullptr;
+        reportsWidget_ = nullptr;
+        analyticsWidget_ = nullptr;
+        certificationsWidget_ = nullptr;
+        snapshotsWidget_ = nullptr;
+        auditLogWidget_ = nullptr;
+        importExportWidget_ = nullptr;
+
+        // Create only the dashboard widget initially (default view)
+        dashboardWidget_ = new DashboardWidget(this);
+
+        // Add placeholder widgets to stack (will be replaced with real widgets on first access)
+        contentStack_->addWidget(dashboardWidget_);  // 0 - Dashboard
+        contentStack_->addWidget(new QWidget(this)); // 1 - Engineers (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 2 - Users (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 3 - Production Areas (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 4 - Assessments (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 5 - Core Skills (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 6 - Reports (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 7 - Analytics (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 8 - Certifications (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 9 - Snapshots (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 10 - Audit Log (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 11 - Import/Export (lazy)
+    } else {
+        // Engineer widgets - personal view filtered by engineerId
+        // For now, create placeholder widgets - will be replaced with engineer-specific widgets
+        QString engineerId = session->engineerId();
+
+        // My Dashboard - shows personal overview
+        QWidget* myDashboard = new QLabel(QString("Welcome! Your Engineer ID: %1\n\nYour personal dashboard will show your skills, assessments, and targets here.").arg(engineerId), this);
+        contentStack_->addWidget(myDashboard);
+
+        // My Assessments - shows only their assessments
+        QWidget* myAssessments = new QLabel("Your machine competency assessments will appear here.", this);
+        contentStack_->addWidget(myAssessments);
+
+        // My Core Skills - shows only their core skills
+        MyCoreSkillsWidget* myCoreSkills = new MyCoreSkillsWidget(engineerId, this);
+        contentStack_->addWidget(myCoreSkills);
+
+        // My Certifications - shows only their certifications
+        QWidget* myCerts = new QLabel("Your certifications will appear here.", this);
+        contentStack_->addWidget(myCerts);
+
+        // My Progress - shows progress over time with targets
+        QWidget* myProgress = new QLabel("Your progress history and targets will appear here.", this);
+        contentStack_->addWidget(myProgress);
+    }
 
     // Layout
     mainLayout->addWidget(navigationList_);
@@ -154,14 +213,178 @@ void MainWindow::setupStatusBar()
 
 void MainWindow::onNavigationItemClicked(int index)
 {
+    // PERFORMANCE: Lazy load widgets on first access
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
+
+    if (isAdmin) {
+        // Check if we need to create the widget for this index
+        QWidget* currentWidget = contentStack_->widget(index);
+
+        // If it's a placeholder QWidget (not a specialized widget), create the real widget
+        if (currentWidget && QString(currentWidget->metaObject()->className()) == "QWidget") {
+            QWidget* newWidget = nullptr;
+
+            switch (index) {
+                case 1: // Engineers
+                    if (!engineersWidget_) {
+                        engineersWidget_ = new EngineersWidget(this);
+                        newWidget = engineersWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Engineers widget");
+                    }
+                    break;
+                case 2: // Users
+                    if (!usersWidget_) {
+                        usersWidget_ = new UsersWidget(this);
+                        newWidget = usersWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Users widget");
+                    }
+                    break;
+                case 3: // Production Areas
+                    if (!productionAreasWidget_) {
+                        productionAreasWidget_ = new ProductionAreasWidget(this);
+                        newWidget = productionAreasWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Areas widget");
+                    }
+                    break;
+                case 4: // Assessments
+                    if (!assessmentWidget_) {
+                        assessmentWidget_ = new AssessmentWidget(this);
+                        newWidget = assessmentWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Assessment widget");
+                    }
+                    break;
+                case 5: // Core Skills
+                    if (!coreSkillsWidget_) {
+                        coreSkillsWidget_ = new CoreSkillsWidget(this);
+                        newWidget = coreSkillsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills widget");
+                    }
+                    break;
+                case 6: // Reports
+                    if (!reportsWidget_) {
+                        reportsWidget_ = new ReportsWidget(this);
+                        newWidget = reportsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Reports widget");
+                    }
+                    break;
+                case 7: // Analytics
+                    if (!analyticsWidget_) {
+                        analyticsWidget_ = new AnalyticsWidget(this);
+
+                        // Connect to import/export data change signal if import/export widget exists
+                        if (importExportWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    analyticsWidget_, &AnalyticsWidget::refresh);
+                        }
+
+                        newWidget = analyticsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Analytics widget");
+                    }
+                    break;
+                case 8: // Certifications
+                    if (!certificationsWidget_) {
+                        certificationsWidget_ = new CertificationsWidget(this);
+                        newWidget = certificationsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Certifications widget");
+                    }
+                    break;
+                case 9: // Snapshots
+                    if (!snapshotsWidget_) {
+                        snapshotsWidget_ = new SnapshotsWidget(this);
+                        newWidget = snapshotsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Snapshots widget");
+                    }
+                    break;
+                case 10: // Audit Log
+                    if (!auditLogWidget_) {
+                        auditLogWidget_ = new AuditLogWidget(this);
+                        newWidget = auditLogWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Audit Log widget");
+                    }
+                    break;
+                case 11: // Import/Export
+                    if (!importExportWidget_) {
+                        importExportWidget_ = new ImportExportDialog(this);
+
+                        // Connect to dashboard and analytics if they exist
+                        if (dashboardWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    dashboardWidget_, &DashboardWidget::refresh);
+                        }
+                        if (analyticsWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    analyticsWidget_, &AnalyticsWidget::refresh);
+                        }
+
+                        newWidget = importExportWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Import/Export widget");
+                    }
+                    break;
+            }
+
+            // Replace placeholder with real widget
+            if (newWidget) {
+                contentStack_->removeWidget(currentWidget);
+                delete currentWidget;
+                contentStack_->insertWidget(index, newWidget);
+            }
+        }
+    }
+
     contentStack_->setCurrentIndex(index);
     Logger::instance().debug("MainWindow", QString("Navigation changed to index %1").arg(index));
 }
 
 void MainWindow::onThemeToggled()
 {
-    // TODO: Implement theme toggle
-    Logger::instance().debug("MainWindow", "Theme toggle requested");
+    StyleManager& styleManager = StyleManager::instance();
+
+    // Toggle between Light and Dark themes
+    StyleManager::Theme newTheme = (styleManager.currentTheme() == StyleManager::Light)
+        ? StyleManager::Dark
+        : StyleManager::Light;
+
+    styleManager.applyTheme(newTheme);
+
+    QString themeName = (newTheme == StyleManager::Light) ? "Light" : "Dark";
+    Logger::instance().info("MainWindow", QString("Theme switched to: %1").arg(themeName));
+
+    // Save theme preference immediately
+    QSettings* settings = Application::instance().settings();
+    if (settings) {
+        QString themeSetting = (newTheme == StyleManager::Light)
+            ? Constants::THEME_LIGHT
+            : Constants::THEME_DARK;
+        settings->setValue(Constants::SETTING_THEME, themeSetting);
+        settings->sync();
+    }
+
+    // Show a brief message in the status bar
+    statusBar()->showMessage(QString("Theme changed to %1 mode").arg(themeName), 3000);
+}
+
+void MainWindow::onChangePasswordClicked()
+{
+    ChangePasswordDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QString oldPassword = dialog.oldPassword();
+        QString newPassword = dialog.newPassword();
+
+        AuthController authController;
+        bool success = authController.changePassword(oldPassword, newPassword);
+
+        if (success) {
+            QMessageBox::information(this, "Success",
+                "Your password has been changed successfully.");
+            Logger::instance().info("MainWindow", "Password changed via menu");
+        } else {
+            QMessageBox::critical(this, "Error",
+                "Failed to change password. Please ensure your current password is correct.");
+            Logger::instance().warning("MainWindow", "Password change failed via menu");
+        }
+    }
 }
 
 void MainWindow::onLogoutClicked()
@@ -201,6 +424,8 @@ void MainWindow::restoreSettings()
     if (settings) {
         restoreGeometry(settings->value(Constants::SETTING_WINDOW_GEOMETRY).toByteArray());
         restoreState(settings->value(Constants::SETTING_WINDOW_STATE).toByteArray());
+
+        // Note: Theme is already restored and applied by Application::initialize()
     }
 }
 
@@ -210,6 +435,14 @@ void MainWindow::saveSettings()
     if (settings) {
         settings->setValue(Constants::SETTING_WINDOW_GEOMETRY, saveGeometry());
         settings->setValue(Constants::SETTING_WINDOW_STATE, saveState());
+
+        // Save theme preference
+        QString themeSetting = (StyleManager::instance().currentTheme() == StyleManager::Light)
+            ? Constants::THEME_LIGHT
+            : Constants::THEME_DARK;
+        settings->setValue(Constants::SETTING_THEME, themeSetting);
+
         settings->sync();
+        Logger::instance().debug("MainWindow", QString("Saved theme: %1").arg(themeSetting));
     }
 }

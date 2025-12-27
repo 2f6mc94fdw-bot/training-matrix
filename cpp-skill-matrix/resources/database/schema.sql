@@ -206,11 +206,18 @@ CREATE NONCLUSTERED INDEX [IX_certifications_engineer] ON [dbo].[certifications]
 CREATE NONCLUSTERED INDEX [IX_audit_logs_timestamp] ON [dbo].[audit_logs]([timestamp] DESC);
 GO
 
--- Insert default admin user (password: admin123 - hashed with bcrypt)
+-- Insert default admin user
+-- IMPORTANT: After running this schema, you MUST update the admin password hash
+-- The password hash must be generated using the app's Crypto::hashPassword function
+--
+-- To set the admin password, run this SQL AFTER computing the hash:
+-- UPDATE users SET password = '<hash_from_app>' WHERE username = 'admin';
+--
+-- Or create the admin user manually through the application
 IF NOT EXISTS (SELECT * FROM [dbo].[users] WHERE [id] = 'admin')
 BEGIN
     INSERT INTO [dbo].[users] ([id], [username], [password], [role], [engineer_id])
-    VALUES ('admin', 'admin', '$2a$10$XQK9X.xjKZv4PqGqxdpN0OYjQz5Z8rCqH9VB0KpXKNH0qUqKjKqKq', 'admin', NULL);
+    VALUES ('admin', 'admin', 'temporary_hash_change_me', 'admin', NULL);
 END
 GO
 
@@ -251,6 +258,38 @@ BEGIN
         ('problem-solving', 'leadership', 'Problem Solving', 3),
         ('training-others', 'leadership', 'Training Others', 3);
 END
+GO
+
+-- Targets table (for setting goals during 1-1 meetings)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[targets]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[targets] (
+        [id] NVARCHAR(50) PRIMARY KEY,
+        [engineer_id] NVARCHAR(50) NOT NULL,
+        [title] NVARCHAR(200) NOT NULL,
+        [description] NVARCHAR(MAX),
+        [target_type] NVARCHAR(50) NOT NULL CHECK ([target_type] IN ('competency', 'certification', 'core_skill', 'general')),
+        [target_area_id] NVARCHAR(50),  -- ID of competency, skill, etc. (optional)
+        [target_value] INT,  -- Target score or count
+        [current_value] INT,  -- Current achievement level
+        [due_date] DATE,
+        [status] NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK ([status] IN ('active', 'completed', 'cancelled')),
+        [set_by_user_id] NVARCHAR(50),
+        [notes] NVARCHAR(MAX),
+        [created_at] DATETIME DEFAULT GETDATE(),
+        [updated_at] DATETIME DEFAULT GETDATE(),
+        [completed_at] DATETIME,
+        CONSTRAINT [FK_targets_engineers] FOREIGN KEY ([engineer_id])
+            REFERENCES [dbo].[engineers]([id]) ON DELETE CASCADE,
+        CONSTRAINT [FK_targets_set_by] FOREIGN KEY ([set_by_user_id])
+            REFERENCES [dbo].[users]([id])
+    );
+END
+GO
+
+-- Create index for targets
+CREATE NONCLUSTERED INDEX [IX_targets_engineer] ON [dbo].[targets]([engineer_id]);
+CREATE NONCLUSTERED INDEX [IX_targets_status] ON [dbo].[targets]([status]);
 GO
 
 PRINT 'Database schema created successfully!';

@@ -27,12 +27,41 @@ bool Config::load(const QString& filePath)
 
     QFile file(configFilePath_);
     if (!file.exists()) {
-        Logger::instance().warning("Config", "Config file not found: " + configFilePath_);
-        // Create default config
-        config_ = QVariantMap();
-        return true; // Not an error - will use defaults
+        // Check if old "Skill Matrix" config exists and migrate it
+        QString oldConfigPath = getOldSkillMatrixConfigPath();
+        if (!oldConfigPath.isEmpty() && QFile::exists(oldConfigPath)) {
+            Logger::instance().info("Config", "Migrating config from old Skill Matrix app: " + oldConfigPath);
+
+            // Copy old config to new location
+            QFile oldFile(oldConfigPath);
+            if (oldFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QByteArray data = oldFile.readAll();
+                oldFile.close();
+
+                // Ensure directory exists for new config
+                QFileInfo fileInfo(configFilePath_);
+                QDir dir = fileInfo.dir();
+                if (!dir.exists()) {
+                    dir.mkpath(".");
+                }
+
+                // Write to new location
+                QFile newFile(configFilePath_);
+                if (newFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                    newFile.write(data);
+                    newFile.close();
+                    Logger::instance().info("Config", "Successfully migrated config to: " + configFilePath_);
+                }
+            }
+        } else {
+            Logger::instance().warning("Config", "Config file not found: " + configFilePath_);
+            // Create default config
+            config_ = QVariantMap();
+            return true; // Not an error - will use defaults
+        }
     }
 
+    // Now load the config (either existing or migrated)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         Logger::instance().error("Config", "Failed to open config file: " + configFilePath_);
         return false;
@@ -192,6 +221,28 @@ QString Config::getDefaultConfigPath() const
         dir.mkpath(".");
     }
     return dir.filePath("config.json");
+}
+
+QString Config::getOldSkillMatrixConfigPath() const
+{
+    // Get the path where the old "Skill Matrix" app stored its config
+    // On macOS: ~/Library/Application Support/com.skillmatrix.app/config.json
+    // On Windows: C:\Users\<user>\AppData\Local\com.skillmatrix.app\config.json
+    // On Linux: ~/.local/share/com.skillmatrix.app/config.json
+
+#ifdef Q_OS_MAC
+    QString homePath = QDir::homePath();
+    QString oldPath = homePath + "/Library/Application Support/com.skillmatrix.app/config.json";
+    return oldPath;
+#elif defined(Q_OS_WIN)
+    QString homePath = QDir::homePath();
+    QString oldPath = homePath + "/AppData/Local/com.skillmatrix.app/config.json";
+    return oldPath;
+#else
+    QString homePath = QDir::homePath();
+    QString oldPath = homePath + "/.local/share/com.skillmatrix.app/config.json";
+    return oldPath;
+#endif
 }
 
 QStringList Config::parseKey(const QString& key) const

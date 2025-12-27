@@ -9,6 +9,9 @@
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
 #include "../database/CoreSkillsRepository.h"
+#include "../models/Engineer.h"
+#include "../models/Assessment.h"
+#include "../models/ProductionArea.h"
 #include <QtCharts/QChart>
 #include <QtCharts/QChartView>
 #include <QtCharts/QBarSeries>
@@ -22,31 +25,43 @@ public:
     explicit DashboardWidget(QWidget* parent = nullptr);
     ~DashboardWidget();
 
+public slots:
+    void refresh() { loadStatistics(); }  // Public refresh method
+
 private slots:
     void onRefreshClicked();
 
 private:
     void setupUI();
     void loadStatistics();
-    void createSkillDistributionChart();
-    void createRecentActivityFeed();
-    void updateQuickStats();
+    void createScoreDistributionCharts(const QList<Engineer>& engineers, const QList<Assessment>& assessments);
+    void createPerformanceLists();
+    void updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, int totalCompetencies);
+    void updateKeyInsights(const QList<Assessment>& assessments);
 
 private:
-    // Stat labels
+    // Stat labels - 4 cards matching web app
     QLabel* engineerCountLabel_;
-    QLabel* productionAreaCountLabel_;
-    QLabel* assessmentCountLabel_;
-    QLabel* coreSkillCountLabel_;
+    QLabel* competencyCountLabel_;
+    QLabel* avgSkillLevelLabel_;
+    QLabel* completionRateLabel_;
+
     QLabel* lastUpdateLabel_;
-    QLabel* lastLoginLabel_;
 
-    // Charts
-    QChartView* skillChartView_;
-    QChart* skillChart_;
+    // Charts - Pie + Bar charts side by side
+    QChartView* pieChartView_;
+    QChart* pieChart_;
+    QChartView* barChartView_;
+    QChart* barChart_;
 
-    // Recent activity
-    QListWidget* recentActivityList_;
+    // Performance lists - Top Performers + Needs Attention
+    QListWidget* topPerformersList_;
+    QListWidget* needsAttentionList_;
+
+    // Key Insights labels
+    QLabel* totalAssessmentsLabel_;
+    QLabel* fullyTrainedLabel_;
+    QLabel* needTrainingLabel_;
 
     // Buttons
     QPushButton* refreshButton_;

@@ -1,5 +1,6 @@
 #include "DashboardWidget.h"
 #include "StyleManager.h"
+#include "AptitudeLogoWidget.h"
 #include "../utils/Logger.h"
 #include "../utils/IconProvider.h"
 #include "../core/Session.h"
@@ -22,22 +23,29 @@
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QPieSlice>
 
+#include <algorithm>  // for std::sort
+
 DashboardWidget::DashboardWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCountLabel_(nullptr)
-    , productionAreaCountLabel_(nullptr)
-    , assessmentCountLabel_(nullptr)
-    , coreSkillCountLabel_(nullptr)
+    , competencyCountLabel_(nullptr)
+    , avgSkillLevelLabel_(nullptr)
+    , completionRateLabel_(nullptr)
     , lastUpdateLabel_(nullptr)
-    , lastLoginLabel_(nullptr)
-    , skillChartView_(nullptr)
-    , skillChart_(nullptr)
-    , recentActivityList_(nullptr)
+    , pieChartView_(nullptr)
+    , pieChart_(nullptr)
+    , barChartView_(nullptr)
+    , barChart_(nullptr)
+    , topPerformersList_(nullptr)
+    , needsAttentionList_(nullptr)
+    , totalAssessmentsLabel_(nullptr)
+    , fullyTrainedLabel_(nullptr)
+    , needTrainingLabel_(nullptr)
     , refreshButton_(nullptr)
 {
     setupUI();
     loadStatistics();
-    Logger::instance().info("DashboardWidget", "Dashboard widget initialized with enhanced features");
+    Logger::instance().info("DashboardWidget", "Dashboard widget initialized (web app style)");
 }
 
 DashboardWidget::~DashboardWidget()
@@ -46,204 +54,253 @@ DashboardWidget::~DashboardWidget()
 
 void DashboardWidget::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(24);  // gap-6 between major sections
-    mainLayout->setContentsMargins(24, 24, 24, 24);  // p-6 main container padding
+    // Main scroll area
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    // Title and Welcome Section
-    QLabel* titleLabel = new QLabel("📊 Dashboard Overview", this);
+    QWidget* contentWidget = new QWidget();
+    QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
+    mainLayout->setSpacing(32);  // 8px grid: 32px between sections
+    mainLayout->setContentsMargins(40, 40, 40, 40);  // 8px grid: 40px container padding
+
+    // Header Section with Logo
+    QHBoxLayout* headerLayout = new QHBoxLayout();
+    headerLayout->setSpacing(20);
+
+    // Title and subtitle (left side)
+    QVBoxLayout* titleLayout = new QVBoxLayout();
+    titleLayout->setSpacing(4);
+
+    QLabel* titleLabel = new QLabel("Dashboard", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(26);  // Increased from 24
-    titleFont.setBold(true);
+    titleFont.setPointSize(32);  // Web app style: large title
+    titleFont.setWeight(QFont::Bold);
     titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin-bottom: 8px;");
-    mainLayout->addWidget(titleLabel);
+    titleLayout->addWidget(titleLabel);
 
-    // Welcome message with user info
-    Session* session = Application::instance().session();
-    QString welcomeText = QString("Welcome back, %1!").arg(
-        session && !session->username().isEmpty() ? session->username() : "User"
-    );
-    QLabel* welcomeLabel = new QLabel(welcomeText, this);
-    QFont welcomeFont = welcomeLabel->font();
-    welcomeFont.setPointSize(14);  // Increased from 12
-    welcomeLabel->setFont(welcomeFont);
-    mainLayout->addWidget(welcomeLabel);
+    QLabel* subtitleLabel = new QLabel("Team performance overview and key metrics", this);
+    QFont subtitleFont = subtitleLabel->font();
+    subtitleFont.setPointSize(14);
+    subtitleLabel->setFont(subtitleFont);
+    subtitleLabel->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+    titleLayout->addWidget(subtitleLabel);
 
-    // Last login time
-    lastLoginLabel_ = new QLabel(
-        QString("Last login: %1").arg(QDateTime::currentDateTime().toString("dddd, MMMM d, yyyy h:mm AP")),
-        this
-    );
-    lastLoginLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    QFont lastLoginFont = lastLoginLabel_->font();
-    lastLoginFont.setPointSize(12);  // Added explicit font size
-    lastLoginLabel_->setFont(lastLoginFont);
-    mainLayout->addWidget(lastLoginLabel_);
+    headerLayout->addLayout(titleLayout);
+    headerLayout->addStretch();
 
-    mainLayout->addSpacing(20);  // Increased from 10
+    // Logo (right side) - Vector-based for crisp rendering at any size
+    AptitudeLogoWidget* logoWidget = new AptitudeLogoWidget(this);
+    logoWidget->setSize(160);  // Large, crisp logo
+    headerLayout->addWidget(logoWidget);
 
-    // Quick Statistics Grid (2x2 cards)
+    mainLayout->addLayout(headerLayout);
+
+    mainLayout->addSpacing(24);  // Space after header
+
+    // Quick Stats Cards (4 cards matching web app)
     QGridLayout* statsGrid = new QGridLayout();
-    statsGrid->setSpacing(16);  // gap-4 stat cards grid
-    statsGrid->setContentsMargins(0, 0, 0, 0);
+    statsGrid->setSpacing(24);  // 8px grid: 24px between cards
 
-    // Engineers Card
-    QGroupBox* engineersBox = new QGroupBox("👥 Total Engineers", this);
-    QVBoxLayout* engineersLayout = new QVBoxLayout(engineersBox);
-    engineersLayout->setSpacing(8);  // gap-2 internal spacing
-    engineersLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    engineerCountLabel_ = new QLabel("0", this);
-    QFont countFont = engineerCountLabel_->font();
-    countFont.setPointSize(40);  // Increased from 36
-    countFont.setBold(true);
-    engineerCountLabel_->setFont(countFont);
-    engineerCountLabel_->setAlignment(Qt::AlignCenter);
-    engineerCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("primary").name() + "; margin: 8px 0;");
-    engineersLayout->addWidget(engineerCountLabel_);
-    QLabel* engineersSubtext = new QLabel("Active workforce", this);
-    engineersSubtext->setAlignment(Qt::AlignCenter);
-    QFont subtextFont = engineersSubtext->font();
-    subtextFont.setPointSize(12);  // Added explicit font size
-    engineersSubtext->setFont(subtextFont);
-    engineersSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    engineersLayout->addWidget(engineersSubtext);
-    engineersBox->setMinimumHeight(180);  // Increased from 140
+    // Helper lambda to create stat cards
+    auto createStatCard = [this](const QString& title, QLabel*& valueLabel, const QString& iconName, const QString& borderColor) -> QWidget* {
+        QGroupBox* card = new QGroupBox(title, this);
+        card->setMinimumHeight(140);  // Web app card height
 
-    // Production Areas Card
-    QGroupBox* areasBox = new QGroupBox("🏭 Production Areas", this);
-    QVBoxLayout* areasLayout = new QVBoxLayout(areasBox);
-    areasLayout->setSpacing(8);  // gap-2 internal spacing
-    areasLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    productionAreaCountLabel_ = new QLabel("0", this);
-    productionAreaCountLabel_->setFont(countFont);
-    productionAreaCountLabel_->setAlignment(Qt::AlignCenter);
-    productionAreaCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("accent").name() + "; margin: 8px 0;");
-    areasLayout->addWidget(productionAreaCountLabel_);
-    QLabel* areasSubtext = new QLabel("Defined work areas", this);
-    areasSubtext->setFont(subtextFont);
-    areasSubtext->setAlignment(Qt::AlignCenter);
-    areasSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    areasLayout->addWidget(areasSubtext);
-    areasBox->setMinimumHeight(180);  // Increased from 140
+        // Set left border accent (simulating web app's colored left border)
+        QString cardStyle = QString(
+            "QGroupBox {"
+            "    border-left: 4px solid %1;"
+            "    padding: 20px;"
+            "}"
+        ).arg(borderColor);
+        card->setStyleSheet(cardStyle);
 
-    // Assessments Card
-    QGroupBox* assessmentsBox = new QGroupBox("📋 Total Assessments", this);
-    QVBoxLayout* assessmentsLayout = new QVBoxLayout(assessmentsBox);
-    assessmentsLayout->setSpacing(8);  // gap-2 internal spacing
-    assessmentsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    assessmentCountLabel_ = new QLabel("0", this);
-    assessmentCountLabel_->setFont(countFont);
-    assessmentCountLabel_->setAlignment(Qt::AlignCenter);
-    assessmentCountLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("warning").name() + "; margin: 8px 0;");
-    assessmentsLayout->addWidget(assessmentCountLabel_);
-    QLabel* assessmentsSubtext = new QLabel("Competency evaluations", this);
-    assessmentsSubtext->setFont(subtextFont);
-    assessmentsSubtext->setAlignment(Qt::AlignCenter);
-    assessmentsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    assessmentsLayout->addWidget(assessmentsSubtext);
-    assessmentsBox->setMinimumHeight(180);  // Increased from 140
+        QVBoxLayout* cardLayout = new QVBoxLayout(card);
+        cardLayout->setSpacing(8);
 
-    // Core Skills Card
-    QGroupBox* coreSkillsBox = new QGroupBox("💡 Core Skills Assessed", this);
-    QVBoxLayout* coreSkillsLayout = new QVBoxLayout(coreSkillsBox);
-    coreSkillsLayout->setSpacing(8);  // gap-2 internal spacing
-    coreSkillsLayout->setContentsMargins(20, 20, 20, 20);  // p-5 stat card padding
-    coreSkillCountLabel_ = new QLabel("0", this);
-    coreSkillCountLabel_->setFont(countFont);
-    coreSkillCountLabel_->setAlignment(Qt::AlignCenter);
-    coreSkillCountLabel_->setStyleSheet("color: #E91E63; margin: 8px 0;");
-    coreSkillsLayout->addWidget(coreSkillCountLabel_);
-    QLabel* coreSkillsSubtext = new QLabel("Fundamental competencies", this);
-    coreSkillsSubtext->setFont(subtextFont);
-    coreSkillsSubtext->setAlignment(Qt::AlignCenter);
-    coreSkillsSubtext->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
-    coreSkillsLayout->addWidget(coreSkillsSubtext);
-    coreSkillsBox->setMinimumHeight(180);  // Increased from 140
+        // Large number (web app style: text-4xl)
+        valueLabel = new QLabel("0", this);
+        QFont numberFont = valueLabel->font();
+        numberFont.setPointSize(48);  // Very large like web app
+        numberFont.setWeight(QFont::Bold);
+        valueLabel->setFont(numberFont);
+        valueLabel->setStyleSheet("color: " + StyleManager::instance().getColor("text").name() + ";");
+        cardLayout->addWidget(valueLabel);
 
-    statsGrid->addWidget(engineersBox, 0, 0);
-    statsGrid->addWidget(areasBox, 0, 1);
-    statsGrid->addWidget(assessmentsBox, 1, 0);
-    statsGrid->addWidget(coreSkillsBox, 1, 1);
+        // Descriptive label
+        QLabel* descLabel = new QLabel(title, this);
+        QFont descFont = descLabel->font();
+        descFont.setPointSize(12);
+        descLabel->setFont(descFont);
+        descLabel->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
+        cardLayout->addWidget(descLabel);
+
+        cardLayout->addStretch();
+
+        return card;
+    };
+
+    // Card 1: Total Engineers (Aptitude Light Blue)
+    QWidget* engineersCard = createStatCard("Total Engineers", engineerCountLabel_, "users", "#60A5FA");
+    statsGrid->addWidget(engineersCard, 0, 0);
+
+    // Card 2: Total Competencies (Aptitude Red)
+    QWidget* competenciesCard = createStatCard("Total Competencies", competencyCountLabel_, "target", "#EF4444");
+    statsGrid->addWidget(competenciesCard, 0, 1);
+
+    // Card 3: Average Skill Level (Aptitude Green)
+    QWidget* avgSkillCard = createStatCard("Average Skill Level", avgSkillLevelLabel_, "trending-up", "#10B981");
+    statsGrid->addWidget(avgSkillCard, 0, 2);
+
+    // Card 4: Completion Rate (Aptitude Orange)
+    QWidget* completionCard = createStatCard("Completion Rate", completionRateLabel_, "award", "#FB923C");
+    statsGrid->addWidget(completionCard, 0, 3);
 
     mainLayout->addLayout(statsGrid);
 
-    mainLayout->addSpacing(12);  // Added spacing before charts section
+    mainLayout->addSpacing(32);  // Space after stat cards
 
-    // Charts and Activity Section
-    QHBoxLayout* chartsLayout = new QHBoxLayout();
-    chartsLayout->setSpacing(24);  // gap-6 between large panels
+    // Score Distribution Section (Pie Chart + Bar Chart side by side)
+    QLabel* chartsSectionTitle = new QLabel("Score Distribution", this);
+    QFont sectionTitleFont;
+    sectionTitleFont.setPointSize(20);
+    sectionTitleFont.setWeight(QFont::Bold);
+    chartsSectionTitle->setFont(sectionTitleFont);
+    mainLayout->addWidget(chartsSectionTitle);
 
-    // Skill Distribution Chart
-    QGroupBox* chartBox = new QGroupBox("📊 Skill Level Distribution", this);
-    QVBoxLayout* chartLayout = new QVBoxLayout(chartBox);
-    chartLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
+    mainLayout->addSpacing(16);
 
-    skillChart_ = new QChart();
-    skillChart_->setTitle("");
-    skillChart_->setAnimationOptions(QChart::SeriesAnimations);
-    skillChart_->legend()->setAlignment(Qt::AlignBottom);
-    skillChart_->setMargins(QMargins(12, 12, 12, 12));  // Added chart margins
+    QHBoxLayout* chartsRow = new QHBoxLayout();
+    chartsRow->setSpacing(24);
 
-    skillChartView_ = new QChartView(skillChart_, this);
-    skillChartView_->setRenderHint(QPainter::Antialiasing);
-    skillChartView_->setMinimumHeight(350);  // Increased from 300
+    // Left: Pie Chart
+    QGroupBox* pieChartBox = new QGroupBox("Score Breakdown", this);
+    QVBoxLayout* pieChartLayout = new QVBoxLayout(pieChartBox);
+    pieChartLayout->setContentsMargins(24, 24, 24, 24);
 
-    chartLayout->addWidget(skillChartView_);
-    chartBox->setMinimumWidth(450);  // Increased from 400
+    pieChart_ = new QChart();
+    pieChart_->setTitle("");
+    pieChart_->setAnimationOptions(QChart::SeriesAnimations);
+    pieChart_->legend()->setAlignment(Qt::AlignBottom);
 
-    // Recent Activity Feed
-    QGroupBox* activityBox = new QGroupBox("📝 Recent Activity", this);
-    QVBoxLayout* activityLayout = new QVBoxLayout(activityBox);
-    activityLayout->setContentsMargins(16, 16, 16, 16);  // p-4 smaller panels
+    pieChartView_ = new QChartView(pieChart_, this);
+    pieChartView_->setRenderHint(QPainter::Antialiasing);
+    pieChartView_->setMinimumHeight(350);
+    pieChartLayout->addWidget(pieChartView_);
 
-    recentActivityList_ = new QListWidget(this);
-    recentActivityList_->setMinimumHeight(350);  // Increased from 300
-    recentActivityList_->setAlternatingRowColors(true);
+    pieChartBox->setMinimumWidth(400);
+    chartsRow->addWidget(pieChartBox, 1);
 
-    activityLayout->addWidget(recentActivityList_);
-    activityBox->setMinimumWidth(400);  // Increased from 350
+    // Right: Bar Chart
+    QGroupBox* barChartBox = new QGroupBox("Engineer Performance", this);
+    QVBoxLayout* barChartLayout = new QVBoxLayout(barChartBox);
+    barChartLayout->setContentsMargins(24, 24, 24, 24);
 
-    chartsLayout->addWidget(chartBox, 6);
-    chartsLayout->addWidget(activityBox, 4);
+    barChart_ = new QChart();
+    barChart_->setTitle("");
+    barChart_->setAnimationOptions(QChart::SeriesAnimations);
+    barChart_->legend()->setVisible(false);
 
-    mainLayout->addLayout(chartsLayout);
+    barChartView_ = new QChartView(barChart_, this);
+    barChartView_->setRenderHint(QPainter::Antialiasing);
+    barChartView_->setMinimumHeight(350);
+    barChartLayout->addWidget(barChartView_);
 
-    mainLayout->addSpacing(12);  // Added spacing before actions section
+    barChartBox->setMinimumWidth(500);
+    chartsRow->addWidget(barChartBox, 1);
 
-    // Quick Actions Guide
-    QGroupBox* actionsBox = new QGroupBox("🚀 Quick Actions", this);
-    QVBoxLayout* actionsLayout = new QVBoxLayout(actionsBox);
-    actionsLayout->setContentsMargins(24, 24, 24, 24);  // p-6 large card padding
+    mainLayout->addLayout(chartsRow);
 
-    QLabel* actionsLabel = new QLabel(
-        "<ul style='line-height: 2.0;'>"  // Increased from 1.6
-        "<li style='margin-bottom: 8px;'><b>Engineers:</b> Manage engineer profiles and information</li>"
-        "<li style='margin-bottom: 8px;'><b>Production Areas:</b> Define areas, machines, and competencies</li>"
-        "<li style='margin-bottom: 8px;'><b>Assessments:</b> Perform and track competency evaluations</li>"
-        "<li style='margin-bottom: 8px;'><b>Reports:</b> Generate detailed skill matrix reports</li>"
-        "<li style='margin-bottom: 8px;'><b>Analytics:</b> View charts and insights</li>"
-        "<li style='margin-bottom: 8px;'><b>Import/Export:</b> Transfer data to/from external systems</li>"
-        "</ul>", this);
-    actionsLabel->setTextFormat(Qt::RichText);
-    actionsLabel->setWordWrap(true);
-    QFont actionsFont = actionsLabel->font();
-    actionsFont.setPointSize(13);  // Added explicit font size
-    actionsLabel->setFont(actionsFont);
+    mainLayout->addSpacing(32);
 
-    actionsLayout->addWidget(actionsLabel);
-    mainLayout->addWidget(actionsBox);
+    // Performance Lists Section (Top Performers + Needs Attention)
+    QHBoxLayout* performanceRow = new QHBoxLayout();
+    performanceRow->setSpacing(24);
 
-    mainLayout->addSpacing(16);  // Added spacing before footer
+    // Left: Top Performers
+    QGroupBox* topPerformersBox = new QGroupBox("🏆 Top Performers", this);
+    QVBoxLayout* topPerformersLayout = new QVBoxLayout(topPerformersBox);
+    topPerformersLayout->setContentsMargins(24, 24, 24, 24);
 
-    // Footer with last update and refresh button
+    topPerformersList_ = new QListWidget(this);
+    topPerformersList_->setMinimumHeight(250);
+    topPerformersList_->setStyleSheet("QListWidget { background-color: #d1fae5; }");  // Green tint
+    QFont listFont;
+    listFont.setPointSize(14);
+    topPerformersList_->setFont(listFont);
+    topPerformersLayout->addWidget(topPerformersList_);
+
+    performanceRow->addWidget(topPerformersBox, 1);
+
+    // Right: Needs Attention
+    QGroupBox* needsAttentionBox = new QGroupBox("⚠️ Needs Attention", this);
+    QVBoxLayout* needsAttentionLayout = new QVBoxLayout(needsAttentionBox);
+    needsAttentionLayout->setContentsMargins(24, 24, 24, 24);
+
+    needsAttentionList_ = new QListWidget(this);
+    needsAttentionList_->setMinimumHeight(250);
+    needsAttentionList_->setStyleSheet("QListWidget { background-color: #fef3c7; }");  // Yellow tint
+    needsAttentionList_->setFont(listFont);
+    needsAttentionLayout->addWidget(needsAttentionList_);
+
+    performanceRow->addWidget(needsAttentionBox, 1);
+
+    mainLayout->addLayout(performanceRow);
+
+    mainLayout->addSpacing(32);
+
+    // Key Insights Section (3 stat boxes)
+    QLabel* insightsSectionTitle = new QLabel("Key Insights", this);
+    insightsSectionTitle->setFont(sectionTitleFont);
+    mainLayout->addWidget(insightsSectionTitle);
+
+    mainLayout->addSpacing(16);
+
+    QHBoxLayout* insightsRow = new QHBoxLayout();
+    insightsRow->setSpacing(24);
+
+    // Helper lambda for insight boxes
+    auto createInsightBox = [this](const QString& label, QLabel*& valueLabel) -> QWidget* {
+        QGroupBox* box = new QGroupBox(label, this);
+        box->setMinimumHeight(100);
+        QVBoxLayout* boxLayout = new QVBoxLayout(box);
+        boxLayout->setSpacing(8);
+
+        valueLabel = new QLabel("0", this);
+        QFont valueFont = valueLabel->font();
+        valueFont.setPointSize(36);
+        valueFont.setWeight(QFont::Bold);
+        valueLabel->setFont(valueFont);
+        valueLabel->setAlignment(Qt::AlignCenter);
+        boxLayout->addWidget(valueLabel);
+
+        boxLayout->addStretch();
+        return box;
+    };
+
+    QWidget* assessmentsBox = createInsightBox("Total Assessments", totalAssessmentsLabel_);
+    insightsRow->addWidget(assessmentsBox);
+
+    QWidget* fullyTrainedBox = createInsightBox("Fully Trained (≥2)", fullyTrainedLabel_);
+    insightsRow->addWidget(fullyTrainedBox);
+
+    QWidget* needTrainingBox = createInsightBox("Need Training (<2)", needTrainingLabel_);
+    insightsRow->addWidget(needTrainingBox);
+
+    mainLayout->addLayout(insightsRow);
+
+    mainLayout->addSpacing(32);
+
+    // Footer with refresh button
     QHBoxLayout* footerLayout = new QHBoxLayout();
-    footerLayout->setContentsMargins(0, 12, 0, 0);  // Added top margin
+    footerLayout->setContentsMargins(0, 16, 0, 0);
 
     lastUpdateLabel_ = new QLabel("Last updated: Never", this);
     lastUpdateLabel_->setStyleSheet("color: " + StyleManager::instance().getColor("textSecondary").name() + ";");
     QFont footerFont = lastUpdateLabel_->font();
-    footerFont.setPointSize(12);  // Added explicit font size
+    footerFont.setPointSize(14);
     lastUpdateLabel_->setFont(footerFont);
     footerLayout->addWidget(lastUpdateLabel_);
 
@@ -252,144 +309,237 @@ void DashboardWidget::setupUI()
     refreshButton_ = new QPushButton(IconProvider::instance().getIcon(IconProvider::Refresh),
                                       "Refresh Statistics", this);
     refreshButton_->setStyleSheet(StyleManager::instance().getButtonStyle("primary"));
+
+    QFont buttonFont = refreshButton_->font();
+    buttonFont.setPointSize(14);
+    buttonFont.setWeight(QFont::DemiBold);
+    refreshButton_->setFont(buttonFont);
+    refreshButton_->setMinimumHeight(40);
+
     connect(refreshButton_, &QPushButton::clicked, this, &DashboardWidget::onRefreshClicked);
     footerLayout->addWidget(refreshButton_);
 
     mainLayout->addLayout(footerLayout);
     mainLayout->addStretch();
 
-    setLayout(mainLayout);
+    scrollArea->setWidget(contentWidget);
+
+    // Set the scroll area as the main layout
+    QVBoxLayout* outerLayout = new QVBoxLayout(this);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+    outerLayout->addWidget(scrollArea);
+    setLayout(outerLayout);
 }
 
 void DashboardWidget::loadStatistics()
 {
-    updateQuickStats();
-    createSkillDistributionChart();
-    createRecentActivityFeed();
+    // PERFORMANCE FIX: Cache all data upfront to avoid redundant database queries
+    // Previously this was calling findAll() multiple times (3x for assessments alone!)
+    QList<Engineer> engineers = engineerRepo_.findAll();
+    QList<Assessment> assessments = assessmentRepo_.findAll();
+    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+
+    // PERFORMANCE FIX: Cache machines and competencies upfront to avoid nested loop queries
+    // Previously: 10 areas × 10 machines = 110 queries. Now: Just count in memory.
+    QList<Machine> allMachines;
+    int totalCompetencies = 0;
+    for (const ProductionArea& area : areas) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        allMachines.append(machines);
+        for (const Machine& machine : machines) {
+            totalCompetencies += productionRepo_.findCompetenciesByMachine(machine.id()).size();
+        }
+    }
+
+    updateQuickStats(engineers, assessments, totalCompetencies);
+    updateKeyInsights(assessments);
+    createScoreDistributionCharts(engineers, assessments);
+    createPerformanceLists();
 
     QString timestamp = QDateTime::currentDateTime().toString("MMMM d, yyyy h:mm AP");
     lastUpdateLabel_->setText("Last updated: " + timestamp);
 }
 
-void DashboardWidget::updateQuickStats()
+void DashboardWidget::updateQuickStats(const QList<Engineer>& engineers, const QList<Assessment>& assessments, int totalCompetencies)
 {
-    int engineerCount = engineerRepo_.findAll().size();
-    int areaCount = productionRepo_.findAllAreas().size();
-    int assessmentCount = assessmentRepo_.findAll().size();
-    int coreSkillCount = coreSkillsRepo_.findAllAssessments().size();
+    // Get basic counts
+    int engineerCount = engineers.size();
 
-    engineerCountLabel_->setText(QString::number(engineerCount));
-    productionAreaCountLabel_->setText(QString::number(areaCount));
-    assessmentCountLabel_->setText(QString::number(assessmentCount));
-    coreSkillCountLabel_->setText(QString::number(coreSkillCount));
-
-    Logger::instance().info("DashboardWidget",
-        QString("Statistics: %1 engineers, %2 areas, %3 assessments, %4 core skills")
-        .arg(engineerCount).arg(areaCount).arg(assessmentCount).arg(coreSkillCount));
-}
-
-void DashboardWidget::createSkillDistributionChart()
-{
-    // Get all assessments and count by score
-    QList<Assessment> assessments = assessmentRepo_.findAll();
-
-    QMap<int, int> scoreCounts;
-    scoreCounts[0] = 0;  // Not assessed
-    scoreCounts[1] = 0;  // Basic
-    scoreCounts[2] = 0;  // Intermediate
-    scoreCounts[3] = 0;  // Advanced
+    // Calculate average skill level and completion rate
+    double totalScore = 0;
+    int scoreCount = 0;
+    int competent = 0;  // Score >= 2
 
     for (const Assessment& assessment : assessments) {
-        int score = assessment.score();
-        if (score >= 0 && score <= 3) {
-            scoreCounts[score]++;
+        totalScore += assessment.score();
+        scoreCount++;
+        if (assessment.score() >= 2) {
+            competent++;
         }
     }
 
-    // Create bar chart
-    skillChart_->removeAllSeries();
+    double avgSkill = scoreCount > 0 ? totalScore / scoreCount : 0.0;
+    double completionRate = scoreCount > 0 ? (double)competent / scoreCount * 100.0 : 0.0;
 
-    QBarSet* set = new QBarSet("Assessments");
-    set->setColor(StyleManager::instance().getColor("primary"));
-
-    *set << scoreCounts[0] << scoreCounts[1] << scoreCounts[2] << scoreCounts[3];
-
-    QBarSeries* series = new QBarSeries();
-    series->append(set);
-
-    skillChart_->addSeries(series);
-
-    // Setup axes
-    QStringList categories;
-    categories << "Not Assessed\n(0)" << "Basic\n(1)" << "Intermediate\n(2)" << "Advanced\n(3)";
-
-    QBarCategoryAxis* axisX = new QBarCategoryAxis();
-    axisX->append(categories);
-    skillChart_->addAxis(axisX, Qt::AlignBottom);
-    series->attachAxis(axisX);
-
-    QValueAxis* axisY = new QValueAxis();
-    axisY->setTitleText("Number of Assessments");
-    axisY->setLabelFormat("%d");
-    skillChart_->addAxis(axisY, Qt::AlignLeft);
-    series->attachAxis(axisY);
-
-    skillChart_->legend()->setVisible(false);
+    // Update labels
+    engineerCountLabel_->setText(QString::number(engineerCount));
+    competencyCountLabel_->setText(QString::number(totalCompetencies));
+    avgSkillLevelLabel_->setText(QString::number(avgSkill, 'f', 2));
+    completionRateLabel_->setText(QString::number(completionRate, 'f', 1) + "%");
 }
 
-void DashboardWidget::createRecentActivityFeed()
+void DashboardWidget::updateKeyInsights(const QList<Assessment>& assessments)
 {
-    recentActivityList_->clear();
+    int totalAssessments = assessments.size();
+    int fullyTrained = 0;
+    int needTraining = 0;
 
-    // Get recent assessments (limit to 10)
-    QList<Assessment> assessments = assessmentRepo_.findAll();
-
-    // Sort by most recent (assuming we have timestamps)
-    // For now, just show the last 10
-    int count = qMin(10, assessments.size());
-
-    if (count == 0) {
-        QListWidgetItem* item = new QListWidgetItem("No recent activity");
-        item->setForeground(StyleManager::instance().getColor("textSecondary"));
-        recentActivityList_->addItem(item);
-    } else {
-        for (int i = assessments.size() - 1; i >= qMax(0, assessments.size() - count); --i) {
-            const Assessment& assessment = assessments[i];
-
-            // Get engineer name
-            Engineer engineer = engineerRepo_.findById(assessment.engineerId());
-
-            QString activityText;
-            if (!engineer.name().isEmpty()) {
-                activityText = QString("✓ %1 assessed - Score: %2")
-                    .arg(engineer.name())
-                    .arg(assessment.score());
-            } else {
-                activityText = QString("✓ Assessment completed - Score: %1")
-                    .arg(assessment.score());
-            }
-
-            QListWidgetItem* item = new QListWidgetItem(
-                IconProvider::instance().getIcon(IconProvider::Assessment),
-                activityText
-            );
-
-            // Color code by score
-            if (assessment.score() == 3) {
-                item->setForeground(StyleManager::instance().getColor("accent"));
-            } else if (assessment.score() >= 1) {
-                item->setForeground(StyleManager::instance().getColor("primary"));
-            } else {
-                item->setForeground(StyleManager::instance().getColor("textSecondary"));
-            }
-
-            recentActivityList_->addItem(item);
+    for (const Assessment& assessment : assessments) {
+        if (assessment.score() >= 2) {
+            fullyTrained++;
+        } else {
+            needTraining++;
         }
+    }
+
+    totalAssessmentsLabel_->setText(QString::number(totalAssessments));
+    fullyTrainedLabel_->setText(QString::number(fullyTrained));
+    needTrainingLabel_->setText(QString::number(needTraining));
+}
+
+void DashboardWidget::createScoreDistributionCharts(const QList<Engineer>& engineers, const QList<Assessment>& assessments)
+{
+    // Use cached assessments instead of querying again
+
+    // === PIE CHART: Score Distribution ===
+    QMap<int, int> scoreCounts;
+    scoreCounts[0] = 0;
+    scoreCounts[1] = 0;
+    scoreCounts[2] = 0;
+    scoreCounts[3] = 0;
+
+    for (const Assessment& assessment : assessments) {
+        scoreCounts[assessment.score()]++;
+    }
+
+    QPieSeries* pieSeries = new QPieSeries();
+
+    // Web app colors for scores
+    QPieSlice* slice0 = pieSeries->append("Not Trained (0)", scoreCounts[0]);
+    slice0->setColor(QColor("#ff6b6b"));  // Red
+
+    QPieSlice* slice1 = pieSeries->append("Basic (1)", scoreCounts[1]);
+    slice1->setColor(QColor("#fbbf24"));  // Yellow
+
+    QPieSlice* slice2 = pieSeries->append("Competent (2)", scoreCounts[2]);
+    slice2->setColor(QColor("#60a5fa"));  // Blue
+
+    QPieSlice* slice3 = pieSeries->append("Expert (3)", scoreCounts[3]);
+    slice3->setColor(QColor("#4ade80"));  // Green
+
+    pieChart_->removeAllSeries();
+    pieChart_->addSeries(pieSeries);
+
+    // === BAR CHART: Engineer Performance ===
+    QBarSeries* barSeries = new QBarSeries();
+    QBarSet* barSet = new QBarSet("Avg Score");
+    barSet->setColor(QColor("#ff6b6b"));  // Red accent like web app
+
+    QStringList engineerNames;
+    // Use cached engineers instead of querying again
+
+    for (const Engineer& engineer : engineers) {
+        // PERFORMANCE FIX: Filter cached assessments instead of querying per engineer
+        double totalScore = 0;
+        int count = 0;
+        for (const Assessment& assessment : assessments) {
+            if (assessment.engineerId() == engineer.id()) {
+                totalScore += assessment.score();
+                count++;
+            }
+        }
+        double avgScore = count > 0 ? totalScore / count : 0.0;
+
+        *barSet << avgScore;
+        engineerNames << engineer.name();
+    }
+
+    barSeries->append(barSet);
+
+    barChart_->removeAllSeries();
+    barChart_->addSeries(barSeries);
+
+    // Setup axes
+    QBarCategoryAxis* axisX = new QBarCategoryAxis();
+    axisX->append(engineerNames);
+    barChart_->addAxis(axisX, Qt::AlignBottom);
+    barSeries->attachAxis(axisX);
+
+    QValueAxis* axisY = new QValueAxis();
+    axisY->setRange(0, 3);
+    axisY->setLabelFormat("%.1f");
+    barChart_->addAxis(axisY, Qt::AlignLeft);
+    barSeries->attachAxis(axisY);
+}
+
+void DashboardWidget::createPerformanceLists()
+{
+    topPerformersList_->clear();
+    needsAttentionList_->clear();
+
+    // Calculate average score per engineer
+    struct EngineerPerformance {
+        QString name;
+        int assessmentCount;
+        double avgScore;
+    };
+
+    QList<EngineerPerformance> performances;
+    QList<Engineer> engineers = engineerRepo_.findAll();
+
+    for (const Engineer& engineer : engineers) {
+        QList<Assessment> engineerAssessments = assessmentRepo_.findByEngineer(engineer.id());
+        if (engineerAssessments.isEmpty()) continue;
+
+        double totalScore = 0;
+        for (const Assessment& assessment : engineerAssessments) {
+            totalScore += assessment.score();
+        }
+        double avgScore = totalScore / engineerAssessments.size();
+
+        performances.append({engineer.name(), static_cast<int>(engineerAssessments.size()), avgScore});
+    }
+
+    // Sort by average score
+    std::sort(performances.begin(), performances.end(),
+              [](const EngineerPerformance& a, const EngineerPerformance& b) {
+                  return a.avgScore > b.avgScore;
+              });
+
+    // Top 5 performers
+    for (int i = 0; i < qMin(5, performances.size()); i++) {
+        QString text = QString("%1. %2 - %3 assessments, Avg: %4")
+                           .arg(i + 1)
+                           .arg(performances[i].name)
+                           .arg(performances[i].assessmentCount)
+                           .arg(performances[i].avgScore, 0, 'f', 2);
+        topPerformersList_->addItem(text);
+    }
+
+    // Bottom 5 (needs attention) - reverse order
+    int startIdx = qMax(0, performances.size() - 5);
+    for (int i = performances.size() - 1; i >= startIdx; i--) {
+        QString text = QString("⚠ %1 - %2 assessments, Avg: %3")
+                           .arg(performances[i].name)
+                           .arg(performances[i].assessmentCount)
+                           .arg(performances[i].avgScore, 0, 'f', 2);
+        needsAttentionList_->addItem(text);
     }
 }
 
 void DashboardWidget::onRefreshClicked()
 {
     loadStatistics();
-    Logger::instance().info("DashboardWidget", "Statistics refreshed by user");
+    Logger::instance().info("DashboardWidget", "Statistics refreshed");
 }

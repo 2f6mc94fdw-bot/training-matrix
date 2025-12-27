@@ -5,13 +5,13 @@
     <key>CFBundleExecutable</key>
     <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
     <key>CFBundleIdentifier</key>
-    <string>com.skillmatrix.app</string>
+    <string>com.aptitude.app</string>
     <key>CFBundleName</key>
-    <string>Skill Matrix</string>
+    <string>Aptitude</string>
     <key>CFBundleDisplayName</key>
-    <string>Skill Matrix</string>
+    <string>Aptitude</string>
     <key>CFBundleIconFile</key>
-    <string>SkillMatrix</string>
+    <string>aptitude</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>

@@ -13,6 +13,9 @@ public:
     explicit ImportExportDialog(QWidget* parent = nullptr);
     ~ImportExportDialog();
 
+signals:
+    void dataChanged();  // Emitted when data is imported or generated
+
 private slots:
     void onExportCSVClicked();
     void onExportJSONClicked();
@@ -20,6 +23,7 @@ private slots:
     void onImportJSONClicked();
     void onBackupClicked();
     void onRestoreClicked();
+    void onGenerateTestDataClicked();
 
 private:
     void setupUI();

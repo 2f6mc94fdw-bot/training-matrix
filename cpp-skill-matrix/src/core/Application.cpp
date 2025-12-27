@@ -210,14 +210,16 @@ bool Application::askQuestion(const QString& title, const QString& message)
     return reply == QMessageBox::Yes;
 }
 
-void Application::onUserLogin(const QString& userId, const QString& username, const QString& role)
+void Application::onUserLogin(const QString& userId, const QString& username, const QString& role, const QString& engineerId)
 {
     session_->setUserId(userId);
     session_->setUsername(username);
     session_->setRole(role);
+    session_->setEngineerId(engineerId);
     session_->setLoggedIn(true);
 
-    Logger::instance().info("Application", "User logged in: " + username + " (" + role + ")");
+    Logger::instance().info("Application", "User logged in: " + username + " (" + role + ")" +
+        (engineerId.isEmpty() ? "" : " - Engineer ID: " + engineerId));
     emit userLoggedIn();
 }
 

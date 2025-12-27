@@ -23,6 +23,7 @@ private slots:
 
 private:
     void setupUI();
+    void showDatabaseConnectionDialog();
     bool validateInput();
     bool attemptLogin();
 

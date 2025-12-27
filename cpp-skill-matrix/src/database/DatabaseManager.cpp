@@ -86,9 +86,14 @@ bool DatabaseManager::connect(const QString& server, const QString& database,
 
 void DatabaseManager::disconnect()
 {
-    if (db_.isOpen()) {
-        db_.close();
-        Logger::instance().info("DatabaseManager", "Disconnected from database");
+    // During static destruction, the Qt database driver may already be destroyed
+    // Use QSqlDatabase::contains() which is a static method that doesn't access
+    // the database object itself, preventing crashes during shutdown
+    if (QSqlDatabase::contains(Constants::DB_CONNECTION_NAME)) {
+        if (db_.isOpen()) {
+            db_.close();
+            Logger::instance().info("DatabaseManager", "Disconnected from database");
+        }
     }
 
     if (connected_) {
@@ -99,7 +104,7 @@ void DatabaseManager::disconnect()
 
 bool DatabaseManager::testConnection()
 {
-    if (!db_.isOpen()) {
+    if (!db_.isValid() || !db_.isOpen()) {
         return false;
     }
 

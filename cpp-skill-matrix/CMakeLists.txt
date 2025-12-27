@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(SkillMatrix VERSION 1.0.0 LANGUAGES CXX)
+project(Aptitude VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -81,11 +81,14 @@ set(SOURCES
     # UI
     src/ui/MainWindow.cpp
     src/ui/LoginDialog.cpp
+    src/ui/DatabaseConnectionDialog.cpp
     src/ui/DashboardWidget.cpp
     src/ui/EngineersWidget.cpp
+    src/ui/UsersWidget.cpp
     src/ui/ProductionAreasWidget.cpp
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
+    src/ui/MyCoreSkillsWidget.cpp
     src/ui/ReportsWidget.cpp
     src/ui/AnalyticsWidget.cpp
     src/ui/CertificationsWidget.cpp
@@ -93,7 +96,9 @@ set(SOURCES
     src/ui/AuditLogWidget.cpp
     src/ui/SettingsDialog.cpp
     src/ui/ImportExportDialog.cpp
+    src/ui/ChangePasswordDialog.cpp
     src/ui/StyleManager.cpp
+    src/ui/AptitudeLogoWidget.cpp
 
     # UI Widgets
     src/ui/widgets/ChartWidget.cpp
@@ -159,11 +164,14 @@ set(HEADERS
     # UI
     src/ui/MainWindow.h
     src/ui/LoginDialog.h
+    src/ui/DatabaseConnectionDialog.h
     src/ui/DashboardWidget.h
     src/ui/EngineersWidget.h
+    src/ui/UsersWidget.h
     src/ui/ProductionAreasWidget.h
     src/ui/AssessmentWidget.h
     src/ui/CoreSkillsWidget.h
+    src/ui/MyCoreSkillsWidget.h
     src/ui/ReportsWidget.h
     src/ui/AnalyticsWidget.h
     src/ui/CertificationsWidget.h
@@ -171,7 +179,9 @@ set(HEADERS
     src/ui/AuditLogWidget.h
     src/ui/SettingsDialog.h
     src/ui/ImportExportDialog.h
+    src/ui/ChangePasswordDialog.h
     src/ui/StyleManager.h
+    src/ui/AptitudeLogoWidget.h
 
     # UI Widgets
     src/ui/widgets/ChartWidget.h
@@ -222,9 +232,17 @@ if(WIN32)
 endif()
 
 if(APPLE)
-    # macOS: Create app bundle
+    # macOS: Create app bundle with icon
+    set(MACOSX_BUNDLE_ICON_FILE aptitude.icns)
+    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/aptitude.icns)
+    set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
+    target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_MACOSX})
+
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_ICON_FILE aptitude.icns
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/resources/Info.plist
     )
 endif()
