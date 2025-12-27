@@ -374,7 +374,7 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
     buttonGroup.skillId = skillId;
 
     for (int score = 0; score < 4; score++) {
-        QPushButton* button = new QPushButton(scoreInfos[score].label, this);
+        QPushButton* button = new QPushButton(scoreInfos[score].label);
         button->setFixedSize(32, 32);
         button->setCursor(Qt::PointingHandCursor);
 
