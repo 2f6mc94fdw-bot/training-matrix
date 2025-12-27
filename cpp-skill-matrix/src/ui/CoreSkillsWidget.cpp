@@ -7,6 +7,7 @@
 #include <QMessageBox>
 #include <QLabel>
 #include <QGroupBox>
+#include <QShowEvent>
 
 CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
     : QWidget(parent)
@@ -17,12 +18,24 @@ CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
 {
     setupUI();
     loadEngineers();
-    loadCoreSkills();
+    // Don't load core skills here - wait for showEvent() (lazy loading like AssessmentWidget)
     Logger::instance().info("CoreSkillsWidget", "Core Skills widget initialized");
 }
 
 CoreSkillsWidget::~CoreSkillsWidget()
 {
+}
+
+void CoreSkillsWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+
+    // Lazy loading: only load data on first show (like AssessmentWidget)
+    if (isFirstShow_) {
+        isFirstShow_ = false;
+        Logger::instance().info("CoreSkillsWidget", "First show - loading core skills");
+        loadCoreSkills();
+    }
 }
 
 void CoreSkillsWidget::setupUI()
@@ -120,12 +133,14 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // DIAGNOSTIC TEST: Simple label instead of buttons
-                QLabel* testLabel = new QLabel("TEST", this);
+                // DIAGNOSTIC TEST: Try multiple approaches
+                QLabel* testLabel = new QLabel("TEST");
                 testLabel->setStyleSheet("background-color: red; color: white; padding: 5px;");
+                testLabel->setMinimumSize(50, 30);
+                testLabel->show();
                 skillsTable_->setCellWidget(row, 2, testLabel);
 
-                // TODO: Restore button creation after test
+                Logger::instance().info("CoreSkillsWidget", QString("Set cell widget for row %1").arg(row));
 
                 row++;
             }
@@ -137,6 +152,10 @@ void CoreSkillsWidget::loadCoreSkills()
     // Keep sorting disabled to ensure buttons remain visible.
 
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
+
+    // Force table to update and show widgets
+    skillsTable_->viewport()->update();
+    skillsTable_->update();
 }
 
 void CoreSkillsWidget::loadAssessments()

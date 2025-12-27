@@ -18,6 +18,9 @@ public:
     explicit CoreSkillsWidget(QWidget* parent = nullptr);
     ~CoreSkillsWidget();
 
+protected:
+    void showEvent(QShowEvent* event) override;
+
 private slots:
     void onEngineerChanged(int index);
     void onSaveClicked();
@@ -50,6 +53,8 @@ private:
 
     CoreSkillsRepository coreSkillsRepo_;
     EngineerRepository engineerRepo_;
+
+    bool isFirstShow_ = true;
 };
 
 #endif // CORESKILLSWIDGET_H
