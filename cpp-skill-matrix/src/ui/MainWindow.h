@@ -5,6 +5,10 @@
 #include <QStackedWidget>
 #include <QListWidget>
 
+class DashboardWidget;
+class AnalyticsWidget;
+class ImportExportDialog;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -36,18 +40,18 @@ private:
     QStackedWidget* contentStack_;
 
     // Widget placeholders
-    QWidget* dashboardWidget_;
+    DashboardWidget* dashboardWidget_;
     QWidget* engineersWidget_;
     QWidget* usersWidget_;
     QWidget* productionAreasWidget_;
     QWidget* assessmentWidget_;
     QWidget* coreSkillsWidget_;
     QWidget* reportsWidget_;
-    QWidget* analyticsWidget_;
+    AnalyticsWidget* analyticsWidget_;
     QWidget* certificationsWidget_;
     QWidget* snapshotsWidget_;
     QWidget* auditLogWidget_;
-    QWidget* importExportWidget_;
+    ImportExportDialog* importExportWidget_;
 };
 
 #endif // MAINWINDOW_H

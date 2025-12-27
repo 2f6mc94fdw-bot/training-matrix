@@ -1,5 +1,6 @@
 #include "LoginDialog.h"
 #include "DatabaseConnectionDialog.h"
+#include "AptitudeLogoWidget.h"
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../database/DatabaseManager.h"
@@ -14,7 +15,6 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
-#include <QPixmap>
 
 LoginDialog::LoginDialog(QWidget* parent)
     : QDialog(parent)
@@ -37,45 +37,38 @@ void LoginDialog::setupUI()
 {
     setWindowTitle("Login - Aptitude");
     setModal(true);
-    setFixedSize(500, 550);  // Taller to fit logo and content
+    setFixedSize(500, 600);  // Taller to fit logo and content properly
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(15);
     mainLayout->setContentsMargins(50, 30, 50, 40);
 
-    // Logo
-    QLabel* logoLabel = new QLabel(this);
-    QPixmap logo(":/images/aptitude-logo.png");
-    if (!logo.isNull()) {
-        // Scale logo to fit nicely
-        logoLabel->setPixmap(logo.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        logoLabel->setAlignment(Qt::AlignCenter);
-    } else {
-        // Fallback if logo not found - show text title
-        logoLabel->setText("APTITUDE");
-        QFont logoFont = logoLabel->font();
-        logoFont.setPointSize(24);
-        logoFont.setBold(true);
-        logoLabel->setFont(logoFont);
-        logoLabel->setAlignment(Qt::AlignCenter);
-        logoLabel->setStyleSheet(QString("color: %1;").arg(Constants::BRAND_LIGHT_BLUE));
-    }
+    // Logo - use vector-based widget for crisp rendering
+    AptitudeLogoWidget* logoWidget = new AptitudeLogoWidget(this);
+    logoWidget->setSize(180);  // Set logo size to 180x180
+    logoWidget->setFixedSize(180, 180);
 
-    // Title (kept for consistency, but can be removed if logo is sufficient)
-    QLabel* titleLabel = new QLabel("Training & Competency Management", this);
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(12);
-    titleFont.setBold(false);
-    titleLabel->setFont(titleFont);
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setStyleSheet("color: #666;");
+    // Center the logo in a horizontal layout
+    QHBoxLayout* logoLayout = new QHBoxLayout();
+    logoLayout->addStretch();
+    logoLayout->addWidget(logoWidget);
+    logoLayout->addStretch();
 
     // Subtitle
-    QLabel* subtitleLabel = new QLabel("Please login to continue", this);
+    QLabel* subtitleLabel = new QLabel("Training & Competency Management", this);
     QFont subtitleFont = subtitleLabel->font();
-    subtitleFont.setPointSize(12);
+    subtitleFont.setPointSize(11);
     subtitleLabel->setFont(subtitleFont);
     subtitleLabel->setAlignment(Qt::AlignCenter);
+    subtitleLabel->setStyleSheet("color: #94a3b8;");  // Slate-400 for subtle text
+
+    // Login prompt
+    QLabel* promptLabel = new QLabel("Please login to continue", this);
+    QFont promptFont = promptLabel->font();
+    promptFont.setPointSize(12);
+    promptFont.setBold(true);
+    promptLabel->setFont(promptFont);
+    promptLabel->setAlignment(Qt::AlignCenter);
 
     // Username field
     QLabel* usernameLabel = new QLabel("Username", this);
@@ -123,12 +116,12 @@ void LoginDialog::setupUI()
     buttonLayout->addWidget(cancelButton_);
     buttonLayout->addStretch();
 
-    // Main layout - add everything directly
-    mainLayout->addWidget(logoLabel);
-    mainLayout->addSpacing(10);
-    mainLayout->addWidget(titleLabel);
-    mainLayout->addSpacing(5);
+    // Main layout - add everything with proper spacing
+    mainLayout->addLayout(logoLayout);
+    mainLayout->addSpacing(15);
     mainLayout->addWidget(subtitleLabel);
+    mainLayout->addSpacing(5);
+    mainLayout->addWidget(promptLabel);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(usernameLabel);
     mainLayout->addSpacing(5);
@@ -141,7 +134,7 @@ void LoginDialog::setupUI()
     mainLayout->addWidget(statusLabel_);
     mainLayout->addSpacing(20);
     mainLayout->addLayout(buttonLayout);
-    mainLayout->addSpacing(20);
+    mainLayout->addStretch();
 
     // Connections
     connect(loginButton_, &QPushButton::clicked, this, &LoginDialog::onLoginClicked);
