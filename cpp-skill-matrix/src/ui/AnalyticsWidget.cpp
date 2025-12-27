@@ -6,8 +6,6 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QShowEvent>
-#include <QTimer>
-#include <QtConcurrent/QtConcurrent>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
@@ -34,13 +32,8 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftChartView_(nullptr)
     , insightsList_(nullptr)
     , isFirstShow_(true)
-    , dataWatcher_(nullptr)
 {
     setupUI();
-
-    // Initialize background data loader
-    dataWatcher_ = new QFutureWatcher<LoadedData>(this);
-    connect(dataWatcher_, &QFutureWatcher<LoadedData>::finished, this, &AnalyticsWidget::onDataLoaded);
 
     // Don't load analytics here - wait for showEvent() (lazy loading)
     Logger::instance().info("AnalyticsWidget", "Analytics widget initialized");
@@ -829,30 +822,6 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
     shiftsButton_->setStyleSheet(tabIndex == 1 ? activeStyle : inactiveStyle);
     insightsButton_->setStyleSheet(tabIndex == 2 ? activeStyle : inactiveStyle);
-}
-
-void AnalyticsWidget::onDataLoaded()
-{
-    // Get the loaded data from the background thread
-    LoadedData data = dataWatcher_->result();
-
-    Logger::instance().info("AnalyticsWidget",
-        QString("Background load complete. Processing %1 engineers, %2 assessments...")
-            .arg(data.engineers.size())
-            .arg(data.assessments.size()));
-
-    // Store loaded data in member variables
-    cachedEngineers_ = data.engineers;
-    cachedAssessments_ = data.assessments;
-    cachedAreas_ = data.areas;
-    cachedTotalCompetencies_ = data.totalCompetencies;
-
-    // Update all analytics views with the loaded data
-    updateTrendsData();
-    updateShiftComparisonData();
-    updateAutomatedInsights();
-
-    Logger::instance().info("AnalyticsWidget", "Analytics data updated successfully");
 }
 
 void AnalyticsWidget::onRefreshClicked()

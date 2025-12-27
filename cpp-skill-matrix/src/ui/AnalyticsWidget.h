@@ -6,7 +6,6 @@
 #include <QPushButton>
 #include <QListWidget>
 #include <QStackedWidget>
-#include <QFutureWatcher>
 #include <QtCharts/QChartView>
 #include "../database/AssessmentRepository.h"
 #include "../database/EngineerRepository.h"
@@ -32,7 +31,6 @@ public slots:
 private slots:
     void onTabChanged(int tabIndex);
     void onRefreshClicked();
-    void onDataLoaded();
 
 private:
     void setupUI();
@@ -107,15 +105,6 @@ private:
 
     // Lazy loading state
     bool isFirstShow_;
-
-    // Background data loading
-    struct LoadedData {
-        QList<Engineer> engineers;
-        QList<Assessment> assessments;
-        QList<ProductionArea> areas;
-        int totalCompetencies;
-    };
-    QFutureWatcher<LoadedData>* dataWatcher_;
 };
 
 #endif // ANALYTICSWIDGET_H
