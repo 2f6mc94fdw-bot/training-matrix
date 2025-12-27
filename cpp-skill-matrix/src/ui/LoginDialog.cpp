@@ -45,8 +45,7 @@ void LoginDialog::setupUI()
 
     // Logo - use vector-based widget for crisp rendering
     AptitudeLogoWidget* logoWidget = new AptitudeLogoWidget(this);
-    logoWidget->setSize(180);  // Set logo size to 180x180
-    logoWidget->setFixedSize(180, 180);
+    logoWidget->setSize(180);  // This sets size to 180x220 (180 + 40 for text)
 
     // Center the logo in a horizontal layout
     QHBoxLayout* logoLayout = new QHBoxLayout();
