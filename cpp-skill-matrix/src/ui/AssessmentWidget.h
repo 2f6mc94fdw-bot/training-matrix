@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QMap>
 #include <QTimer>
+#include <QFutureWatcher>
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
@@ -26,10 +27,14 @@ public:
 protected:
     void showEvent(QShowEvent* event) override;
 
+signals:
+    void dataLoadingFinished();
+
 private slots:
     void onAreaFilterChanged(int index);
     void onScoreButtonClicked();
     void onRefreshClicked();
+    void onDataLoaded();
     void loadNextEngineerCard();
 
 private:
@@ -70,6 +75,15 @@ private:
     };
     QMap<int, QList<MachineData>> cachedAreaToMachines_;
     int currentEngineerIndex_;
+
+    // Background data loading
+    struct LoadedData {
+        QList<Engineer> engineers;
+        QList<Assessment> assessments;
+        QList<ProductionArea> areas;
+        QMap<int, QList<MachineData>> areaToMachines;
+    };
+    QFutureWatcher<LoadedData>* dataWatcher_;
 };
 
 #endif // ASSESSMENTWIDGET_H

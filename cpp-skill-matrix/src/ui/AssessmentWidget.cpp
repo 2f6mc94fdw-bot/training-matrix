@@ -8,6 +8,7 @@
 #include <QScrollArea>
 #include <QMessageBox>
 #include <QShowEvent>
+#include <QtConcurrent>
 #include <algorithm>
 
 AssessmentWidget::AssessmentWidget(QWidget* parent)
@@ -19,8 +20,14 @@ AssessmentWidget::AssessmentWidget(QWidget* parent)
     , loadTimer_(nullptr)
     , loadingLabel_(nullptr)
     , currentEngineerIndex_(0)
+    , dataWatcher_(nullptr)
 {
     setupUI();
+
+    // Initialize background data loader
+    dataWatcher_ = new QFutureWatcher<LoadedData>(this);
+    connect(dataWatcher_, &QFutureWatcher<LoadedData>::finished, this, &AssessmentWidget::onDataLoaded);
+
     Logger::instance().info("AssessmentWidget", "Assessment widget initialized");
 }
 
@@ -152,77 +159,51 @@ void AssessmentWidget::loadEngineerCards()
         loadTimer_->deleteLater();
     }
 
-    // CRITICAL FIX: Defer database loading to a timer callback
-    // This allows the UI to render the loading label before blocking
-    QTimer::singleShot(50, this, [this]() {
-        // PHASE 1: Load and cache all data (fast - database queries only)
-        Logger::instance().info("AssessmentWidget", "Loading assessment data from database...");
+    Logger::instance().info("AssessmentWidget", "Starting background data load...");
 
-        cachedEngineers_ = engineerRepo_.findAll();
-        QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
-        QList<Assessment> allAssessments = assessmentRepo_.findAll();
+    // Load data on background thread to avoid UI freeze
+    QFuture<LoadedData> future = QtConcurrent::run([this]() -> LoadedData {
+        LoadedData data;
 
-        // Build assessment lookup map for O(1) access
-        cachedAssessmentScores_.clear();
-        for (const Assessment& assessment : allAssessments) {
-            QString key = QString("%1_%2_%3_%4")
-                .arg(assessment.engineerId())
-                .arg(assessment.productionAreaId())
-                .arg(assessment.machineId())
-                .arg(assessment.competencyId());
-            cachedAssessmentScores_[key] = assessment.score();
-        }
+        // Create temporary repositories (thread-safe copies)
+        EngineerRepository engineerRepo;
+        ProductionRepository productionRepo;
+        AssessmentRepository assessmentRepo;
+
+        // Load all data from database
+        data.engineers = engineerRepo.findAll();
+        data.areas = productionRepo.findAllAreas();
+        data.assessments = assessmentRepo.findAll();
 
         // Pre-load all machines and competencies
-        // Also build area ID to name lookup map
-        QMap<int, QString> areaNames;
-        cachedAreaToMachines_.clear();
-        for (const ProductionArea& area : allAreas) {
-            areaNames[area.id()] = area.name();
-
-            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        for (const ProductionArea& area : data.areas) {
+            QList<Machine> machines = productionRepo.findMachinesByArea(area.id());
             QList<MachineData> machineDataList;
 
             for (const Machine& machine : machines) {
-                MachineData data;
-                data.machine = machine;
-                data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-                if (!data.competencies.isEmpty()) {
-                    machineDataList.append(data);
+                MachineData machineData;
+                machineData.machine = machine;
+                machineData.competencies = productionRepo.findCompetenciesByMachine(machine.id());
+                if (!machineData.competencies.isEmpty()) {
+                    machineDataList.append(machineData);
                 }
             }
 
             if (!machineDataList.isEmpty()) {
-                cachedAreaToMachines_[area.id()] = machineDataList;
+                data.areaToMachines[area.id()] = machineDataList;
             }
         }
 
-        // Store area names for use in loadNextEngineerCard
-        cachedAreaNames_ = areaNames;
-
         // Sort engineers by name
-        std::sort(cachedEngineers_.begin(), cachedEngineers_.end(),
+        std::sort(data.engineers.begin(), data.engineers.end(),
                   [](const Engineer& a, const Engineer& b) {
                       return a.name() < b.name();
                   });
 
-        Logger::instance().info("AssessmentWidget",
-            QString("Loaded %1 engineers from database. Starting progressive UI creation...")
-                .arg(cachedEngineers_.size()));
+        return data;
+    });
 
-        // PHASE 2: Create UI cards progressively (slow - UI creation)
-        currentEngineerIndex_ = 0;
-
-        if (cachedEngineers_.isEmpty()) {
-            loadingLabel_->setText("No engineers found");
-            return;
-        }
-
-        // Create timer to load one engineer card at a time
-        loadTimer_ = new QTimer(this);
-        connect(loadTimer_, &QTimer::timeout, this, &AssessmentWidget::loadNextEngineerCard);
-        loadTimer_->start(10);  // Load one card every 10ms (fast but non-blocking)
-    });  // End of QTimer::singleShot lambda
+    dataWatcher_->setFuture(future);
 }
 
 void AssessmentWidget::loadNextEngineerCard()
@@ -634,6 +615,52 @@ void AssessmentWidget::onAreaFilterChanged(int index)
 {
     Q_UNUSED(index);
     loadEngineerCards();
+}
+
+void AssessmentWidget::onDataLoaded()
+{
+    // Get the loaded data from the background thread
+    LoadedData data = dataWatcher_->result();
+
+    Logger::instance().info("AssessmentWidget",
+        QString("Background load complete. Processing %1 engineers...").arg(data.engineers.size()));
+
+    // Store loaded data in member variables
+    cachedEngineers_ = data.engineers;
+    cachedAreaToMachines_ = data.areaToMachines;
+
+    // Build assessment lookup map for O(1) access
+    cachedAssessmentScores_.clear();
+    for (const Assessment& assessment : data.assessments) {
+        QString key = QString("%1_%2_%3_%4")
+            .arg(assessment.engineerId())
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        cachedAssessmentScores_[key] = assessment.score();
+    }
+
+    // Build area ID to name lookup map
+    QMap<int, QString> areaNames;
+    for (const ProductionArea& area : data.areas) {
+        areaNames[area.id()] = area.name();
+    }
+    cachedAreaNames_ = areaNames;
+
+    // Check if we have engineers to display
+    if (cachedEngineers_.isEmpty()) {
+        loadingLabel_->setText("No engineers found");
+        return;
+    }
+
+    // Update loading label
+    loadingLabel_->setText(QString("Creating UI for %1 engineers...").arg(cachedEngineers_.size()));
+
+    // Create UI cards progressively (one every 10ms to avoid UI freeze)
+    currentEngineerIndex_ = 0;
+    loadTimer_ = new QTimer(this);
+    connect(loadTimer_, &QTimer::timeout, this, &AssessmentWidget::loadNextEngineerCard);
+    loadTimer_->start(10);
 }
 
 void AssessmentWidget::onRefreshClicked()
