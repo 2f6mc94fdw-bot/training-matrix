@@ -61,7 +61,6 @@ void LoginDialog::setupUI()
 
     usernameEdit_ = new QLineEdit(this);
     usernameEdit_->setPlaceholderText("Enter username");
-    usernameEdit_->setText("admin"); // Default for testing
     usernameEdit_->setMinimumHeight(40);
     usernameEdit_->setMaximumWidth(400);
 
@@ -72,7 +71,6 @@ void LoginDialog::setupUI()
     passwordEdit_ = new QLineEdit(this);
     passwordEdit_->setEchoMode(QLineEdit::Password);
     passwordEdit_->setPlaceholderText("Enter password");
-    passwordEdit_->setText("admin123"); // Default for testing
     passwordEdit_->setMinimumHeight(40);
     passwordEdit_->setMaximumWidth(400);
 
