@@ -139,39 +139,36 @@ void MainWindow::setupCentralWidget()
     bool isAdmin = session && session->isAdmin();
 
     if (isAdmin) {
-        // Admin widgets - full featured management interface
+        // PERFORMANCE: Use lazy initialization - create widgets only when first accessed
+        // Initialize all widget pointers to nullptr
+        engineersWidget_ = nullptr;
+        usersWidget_ = nullptr;
+        productionAreasWidget_ = nullptr;
+        assessmentWidget_ = nullptr;
+        coreSkillsWidget_ = nullptr;
+        reportsWidget_ = nullptr;
+        analyticsWidget_ = nullptr;
+        certificationsWidget_ = nullptr;
+        snapshotsWidget_ = nullptr;
+        auditLogWidget_ = nullptr;
+        importExportWidget_ = nullptr;
+
+        // Create only the dashboard widget initially (default view)
         dashboardWidget_ = new DashboardWidget(this);
-        engineersWidget_ = new EngineersWidget(this);
-        usersWidget_ = new UsersWidget(this);
-        productionAreasWidget_ = new ProductionAreasWidget(this);
-        assessmentWidget_ = new AssessmentWidget(this);
-        coreSkillsWidget_ = new CoreSkillsWidget(this);
-        reportsWidget_ = new ReportsWidget(this);
-        analyticsWidget_ = new AnalyticsWidget(this);
-        certificationsWidget_ = new CertificationsWidget(this);
-        snapshotsWidget_ = new SnapshotsWidget(this);
-        auditLogWidget_ = new AuditLogWidget(this);
-        importExportWidget_ = new ImportExportDialog(this);
 
-        // Connect data change signal to refresh widgets
-        connect(importExportWidget_, &ImportExportDialog::dataChanged,
-                dashboardWidget_, &DashboardWidget::refresh);
-        connect(importExportWidget_, &ImportExportDialog::dataChanged,
-                analyticsWidget_, &AnalyticsWidget::refresh);
-
-        // Add admin widgets to stack
-        contentStack_->addWidget(dashboardWidget_);
-        contentStack_->addWidget(engineersWidget_);
-        contentStack_->addWidget(usersWidget_);
-        contentStack_->addWidget(productionAreasWidget_);
-        contentStack_->addWidget(assessmentWidget_);
-        contentStack_->addWidget(coreSkillsWidget_);
-        contentStack_->addWidget(reportsWidget_);
-        contentStack_->addWidget(analyticsWidget_);
-        contentStack_->addWidget(certificationsWidget_);
-        contentStack_->addWidget(snapshotsWidget_);
-        contentStack_->addWidget(auditLogWidget_);
-        contentStack_->addWidget(importExportWidget_);
+        // Add placeholder widgets to stack (will be replaced with real widgets on first access)
+        contentStack_->addWidget(dashboardWidget_);  // 0 - Dashboard
+        contentStack_->addWidget(new QWidget(this)); // 1 - Engineers (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 2 - Users (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 3 - Production Areas (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 4 - Assessments (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 5 - Core Skills (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 6 - Reports (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 7 - Analytics (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 8 - Certifications (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 9 - Snapshots (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 10 - Audit Log (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 11 - Import/Export (lazy)
     } else {
         // Engineer widgets - personal view filtered by engineerId
         // For now, create placeholder widgets - will be replaced with engineer-specific widgets
@@ -215,6 +212,125 @@ void MainWindow::setupStatusBar()
 
 void MainWindow::onNavigationItemClicked(int index)
 {
+    // PERFORMANCE: Lazy load widgets on first access
+    Session* session = Application::instance().session();
+    bool isAdmin = session && session->isAdmin();
+
+    if (isAdmin) {
+        // Check if we need to create the widget for this index
+        QWidget* currentWidget = contentStack_->widget(index);
+
+        // If it's a placeholder QWidget (not a specialized widget), create the real widget
+        if (currentWidget && QString(currentWidget->metaObject()->className()) == "QWidget") {
+            QWidget* newWidget = nullptr;
+
+            switch (index) {
+                case 1: // Engineers
+                    if (!engineersWidget_) {
+                        engineersWidget_ = new EngineersWidget(this);
+                        newWidget = engineersWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Engineers widget");
+                    }
+                    break;
+                case 2: // Users
+                    if (!usersWidget_) {
+                        usersWidget_ = new UsersWidget(this);
+                        newWidget = usersWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Users widget");
+                    }
+                    break;
+                case 3: // Production Areas
+                    if (!productionAreasWidget_) {
+                        productionAreasWidget_ = new ProductionAreasWidget(this);
+                        newWidget = productionAreasWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Areas widget");
+                    }
+                    break;
+                case 4: // Assessments
+                    if (!assessmentWidget_) {
+                        assessmentWidget_ = new AssessmentWidget(this);
+                        newWidget = assessmentWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Assessment widget");
+                    }
+                    break;
+                case 5: // Core Skills
+                    if (!coreSkillsWidget_) {
+                        coreSkillsWidget_ = new CoreSkillsWidget(this);
+                        newWidget = coreSkillsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills widget");
+                    }
+                    break;
+                case 6: // Reports
+                    if (!reportsWidget_) {
+                        reportsWidget_ = new ReportsWidget(this);
+                        newWidget = reportsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Reports widget");
+                    }
+                    break;
+                case 7: // Analytics
+                    if (!analyticsWidget_) {
+                        analyticsWidget_ = new AnalyticsWidget(this);
+
+                        // Connect to import/export data change signal if import/export widget exists
+                        if (importExportWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    analyticsWidget_, &AnalyticsWidget::refresh);
+                        }
+
+                        newWidget = analyticsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Analytics widget");
+                    }
+                    break;
+                case 8: // Certifications
+                    if (!certificationsWidget_) {
+                        certificationsWidget_ = new CertificationsWidget(this);
+                        newWidget = certificationsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Certifications widget");
+                    }
+                    break;
+                case 9: // Snapshots
+                    if (!snapshotsWidget_) {
+                        snapshotsWidget_ = new SnapshotsWidget(this);
+                        newWidget = snapshotsWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Snapshots widget");
+                    }
+                    break;
+                case 10: // Audit Log
+                    if (!auditLogWidget_) {
+                        auditLogWidget_ = new AuditLogWidget(this);
+                        newWidget = auditLogWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Audit Log widget");
+                    }
+                    break;
+                case 11: // Import/Export
+                    if (!importExportWidget_) {
+                        importExportWidget_ = new ImportExportDialog(this);
+
+                        // Connect to dashboard and analytics if they exist
+                        if (dashboardWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    dashboardWidget_, &DashboardWidget::refresh);
+                        }
+                        if (analyticsWidget_) {
+                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
+                                    analyticsWidget_, &AnalyticsWidget::refresh);
+                        }
+
+                        newWidget = importExportWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Import/Export widget");
+                    }
+                    break;
+            }
+
+            // Replace placeholder with real widget
+            if (newWidget) {
+                contentStack_->removeWidget(currentWidget);
+                delete currentWidget;
+                contentStack_->insertWidget(index, newWidget);
+            }
+        }
+    }
+
     contentStack_->setCurrentIndex(index);
     Logger::instance().debug("MainWindow", QString("Navigation changed to index %1").arg(index));
 }
