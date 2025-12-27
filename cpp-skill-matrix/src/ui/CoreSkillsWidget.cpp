@@ -122,7 +122,7 @@ void CoreSkillsWidget::loadCoreSkills()
 
                 // Create score buttons widget
                 QWidget* buttonWidget = new QWidget(this);
-                QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
+                QHBoxLayout* buttonLayout = new QHBoxLayout();
                 buttonLayout->setContentsMargins(4, 2, 4, 2);
                 buttonLayout->setSpacing(6);
 
