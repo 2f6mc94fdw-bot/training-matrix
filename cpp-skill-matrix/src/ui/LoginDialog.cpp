@@ -53,14 +53,6 @@ void LoginDialog::setupUI()
     logoLayout->addWidget(logoWidget);
     logoLayout->addStretch();
 
-    // Login prompt
-    QLabel* promptLabel = new QLabel("Please login to continue", this);
-    QFont promptFont = promptLabel->font();
-    promptFont.setPointSize(12);
-    promptFont.setBold(true);
-    promptLabel->setFont(promptFont);
-    promptLabel->setAlignment(Qt::AlignCenter);
-
     // Username field
     QLabel* usernameLabel = new QLabel("Username", this);
     QFont labelFont = usernameLabel->font();
@@ -109,9 +101,7 @@ void LoginDialog::setupUI()
 
     // Main layout - add everything with proper spacing
     mainLayout->addLayout(logoLayout);
-    mainLayout->addSpacing(20);
-    mainLayout->addWidget(promptLabel);
-    mainLayout->addSpacing(30);
+    mainLayout->addSpacing(40);
     mainLayout->addWidget(usernameLabel);
     mainLayout->addSpacing(5);
     mainLayout->addWidget(usernameEdit_);
