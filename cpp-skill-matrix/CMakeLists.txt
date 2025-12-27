@@ -88,6 +88,7 @@ set(SOURCES
     src/ui/ProductionAreasWidget.cpp
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
+    src/ui/MyCoreSkillsWidget.cpp
     src/ui/ReportsWidget.cpp
     src/ui/AnalyticsWidget.cpp
     src/ui/CertificationsWidget.cpp
@@ -170,6 +171,7 @@ set(HEADERS
     src/ui/ProductionAreasWidget.h
     src/ui/AssessmentWidget.h
     src/ui/CoreSkillsWidget.h
+    src/ui/MyCoreSkillsWidget.h
     src/ui/ReportsWidget.h
     src/ui/AnalyticsWidget.h
     src/ui/CertificationsWidget.h
