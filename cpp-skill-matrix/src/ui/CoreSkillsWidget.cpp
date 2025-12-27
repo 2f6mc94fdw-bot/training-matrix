@@ -147,6 +147,7 @@ void CoreSkillsWidget::loadCoreSkills()
                 // Ensure widget is properly sized and visible
                 buttonWidget->setMinimumHeight(36);
                 buttonWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+                buttonWidget->show();  // Explicitly show widget (same pattern as working TEST label)
 
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
 
