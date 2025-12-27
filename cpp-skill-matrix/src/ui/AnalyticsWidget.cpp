@@ -337,6 +337,21 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
 
 void AnalyticsWidget::loadAnalytics()
 {
+    // OPTIMIZATION: Load all data once and cache it
+    cachedEngineers_ = engineerRepo_.findAll();
+    cachedAssessments_ = assessmentRepo_.findAll();
+    cachedAreas_ = productionRepo_.findAllAreas();
+
+    // Pre-calculate total competencies to avoid repeated queries
+    cachedTotalCompetencies_ = 0;
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            cachedTotalCompetencies_ += competencies.size();
+        }
+    }
+
     updateTrendsData();
     updateShiftComparisonData();
     updateAutomatedInsights();
@@ -560,16 +575,16 @@ AnalyticsWidget::PredictionData AnalyticsWidget::calculatePrediction()
     result.change = 0.0;
     result.trend = "stable";
 
-    QList<Assessment> assessments = assessmentRepo_.findAll();
-    if (assessments.isEmpty()) {
+    // OPTIMIZATION: Use cached data
+    if (cachedAssessments_.isEmpty()) {
         return result;
     }
 
     // Calculate current completion rate
     int totalScore = 0;
-    int maxPossibleScore = assessments.size() * 3;  // Max score is 3 per assessment
+    int maxPossibleScore = cachedAssessments_.size() * 3;  // Max score is 3 per assessment
 
-    for (const Assessment& assessment : assessments) {
+    for (const Assessment& assessment : cachedAssessments_) {
         totalScore += assessment.score();
     }
 
@@ -593,23 +608,11 @@ AnalyticsWidget::PredictionData AnalyticsWidget::calculatePrediction()
 
 QList<AnalyticsWidget::ShiftStats> AnalyticsWidget::calculateShiftComparison()
 {
+    // OPTIMIZATION: Use cached data
     QMap<QString, ShiftStats> shiftsMap;
-    QList<Engineer> engineers = engineerRepo_.findAll();
-    QList<Assessment> assessments = assessmentRepo_.findAll();
-
-    // Count total possible competencies
-    int totalCompetenciesPerEngineer = 0;
-    QList<ProductionArea> areas = productionRepo_.findAllAreas();
-    for (const ProductionArea& area : areas) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        for (const Machine& machine : machines) {
-            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            totalCompetenciesPerEngineer += competencies.size();
-        }
-    }
 
     // Group engineers by shift
-    for (const Engineer& engineer : engineers) {
+    for (const Engineer& engineer : cachedEngineers_) {
         QString shift = engineer.shift();
         if (shift.isEmpty()) shift = "Unassigned";
 
@@ -625,8 +628,8 @@ QList<AnalyticsWidget::ShiftStats> AnalyticsWidget::calculateShiftComparison()
 
         shiftsMap[shift].engineerCount++;
 
-        // Calculate scores for this engineer
-        for (const Assessment& assessment : assessments) {
+        // Calculate scores for this engineer using cached assessments
+        for (const Assessment& assessment : cachedAssessments_) {
             if (assessment.engineerId() == engineer.id()) {
                 shiftsMap[shift].totalScore += assessment.score();
                 shiftsMap[shift].maxScore += 3;
@@ -655,6 +658,7 @@ QList<AnalyticsWidget::ShiftStats> AnalyticsWidget::calculateShiftComparison()
 
 QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
 {
+    // OPTIMIZATION: Use cached data and reuse already calculated results
     QList<Insight> insights;
 
     PredictionData prediction = calculatePrediction();
@@ -695,17 +699,16 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
         }
     }
 
-    // Low competency alert
-    QList<Assessment> assessments = assessmentRepo_.findAll();
+    // Low competency alert - use cached assessments
     int lowScores = 0;
-    for (const Assessment& assessment : assessments) {
+    for (const Assessment& assessment : cachedAssessments_) {
         if (assessment.score() < 2) {
             lowScores++;
         }
     }
 
-    if (!assessments.isEmpty()) {
-        double lowPercentage = (lowScores * 100.0) / assessments.size();
+    if (!cachedAssessments_.isEmpty()) {
+        double lowPercentage = (lowScores * 100.0) / cachedAssessments_.size();
         if (lowPercentage > 30.0) {
             Insight insight;
             insight.type = "warning";
@@ -717,20 +720,19 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
         }
     }
 
-    // Top performer recognition
-    QList<Engineer> engineers = engineerRepo_.findAll();
-    if (!engineers.isEmpty()) {
+    // Top performer recognition - use cached data
+    if (!cachedEngineers_.isEmpty()) {
         struct EngineerScore {
             QString name;
             double percentage;
         };
         QList<EngineerScore> engineerScores;
 
-        for (const Engineer& engineer : engineers) {
+        for (const Engineer& engineer : cachedEngineers_) {
             int totalScore = 0;
             int maxScore = 0;
 
-            for (const Assessment& assessment : assessments) {
+            for (const Assessment& assessment : cachedAssessments_) {
                 if (assessment.engineerId() == engineer.id()) {
                     totalScore += assessment.score();
                     maxScore += 3;

@@ -87,6 +87,12 @@ private:
     EngineerRepository engineerRepo_;
     ProductionRepository productionRepo_;
 
+    // Cached data for performance optimization
+    QList<Engineer> cachedEngineers_;
+    QList<Assessment> cachedAssessments_;
+    QList<ProductionArea> cachedAreas_;
+    int cachedTotalCompetencies_;
+
 private slots:
     void onTabChanged(int tabIndex);
     void onRefreshClicked();

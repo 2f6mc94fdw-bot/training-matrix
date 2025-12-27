@@ -116,7 +116,47 @@ void AssessmentWidget::loadEngineerCards()
     scoreButtonGroups_.clear();
 
     int filterAreaId = areaFilterCombo_->currentData().toInt();
+
+    // OPTIMIZATION: Load all data once instead of in nested loops
     QList<Engineer> engineers = engineerRepo_.findAll();
+    QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
+    QList<Assessment> allAssessments = assessmentRepo_.findAll();
+
+    // Build assessment lookup map for O(1) access
+    QMap<QString, int> assessmentScores;  // key: "engineerId_areaId_machineId_competencyId"
+    for (const Assessment& assessment : allAssessments) {
+        QString key = QString("%1_%2_%3_%4")
+            .arg(assessment.engineerId())
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        assessmentScores[key] = assessment.score();
+    }
+
+    // Pre-load all machines and competencies
+    struct MachineData {
+        Machine machine;
+        QList<Competency> competencies;
+    };
+    QMap<int, QList<MachineData>> areaToMachines;  // areaId -> machines with competencies
+
+    for (const ProductionArea& area : allAreas) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<MachineData> machineDataList;
+
+        for (const Machine& machine : machines) {
+            MachineData data;
+            data.machine = machine;
+            data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            if (!data.competencies.isEmpty()) {
+                machineDataList.append(data);
+            }
+        }
+
+        if (!machineDataList.isEmpty()) {
+            areaToMachines[area.id()] = machineDataList;
+        }
+    }
 
     // Sort engineers by name
     std::sort(engineers.begin(), engineers.end(),
@@ -161,20 +201,22 @@ void AssessmentWidget::loadEngineerCards()
 
         cardLayout->addLayout(headerLayout);
 
-        // Load competencies organized by area → machine
-        QList<ProductionArea> areas = productionRepo_.findAllAreas();
-
+        // Use pre-loaded data
         bool hasContent = false;
-        for (const ProductionArea& area : areas) {
+        int totalCompetencies = 0;
+        int trainedCompetencies = 0;
+
+        for (const ProductionArea& area : allAreas) {
             // Skip if filtering and doesn't match
             if (filterAreaId != 0 && area.id() != filterAreaId) {
                 continue;
             }
 
-            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-            if (machines.isEmpty()) {
+            if (!areaToMachines.contains(area.id())) {
                 continue;
             }
+
+            const QList<MachineData>& machines = areaToMachines[area.id()];
 
             // Area header
             QLabel* areaLabel = new QLabel(area.name(), this);
@@ -185,17 +227,11 @@ void AssessmentWidget::loadEngineerCards()
             areaLabel->setStyleSheet("color: #334155; margin-top: 8px;");
             cardLayout->addWidget(areaLabel);
 
-            for (const Machine& machine : machines) {
-                QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-
-                if (competencies.isEmpty()) {
-                    continue;
-                }
-
+            for (const MachineData& machineData : machines) {
                 hasContent = true;
 
                 // Machine header
-                QLabel* machineLabel = new QLabel("  " + machine.name(), this);
+                QLabel* machineLabel = new QLabel("  " + machineData.machine.name(), this);
                 QFont machineFont = machineLabel->font();
                 machineFont.setPointSize(14);
                 machineFont.setWeight(QFont::Medium);
@@ -204,7 +240,9 @@ void AssessmentWidget::loadEngineerCards()
                 cardLayout->addWidget(machineLabel);
 
                 // Competencies grid
-                for (const Competency& competency : competencies) {
+                for (const Competency& competency : machineData.competencies) {
+                    totalCompetencies++;
+
                     QHBoxLayout* compLayout = new QHBoxLayout();
                     compLayout->setSpacing(12);
                     compLayout->setContentsMargins(32, 4, 0, 4);
@@ -217,24 +255,24 @@ void AssessmentWidget::loadEngineerCards()
                     compLabel->setWordWrap(true);
                     compLabel->setMinimumWidth(250);
                     compLabel->setMaximumWidth(500);
-                    compLayout->addWidget(compLabel, 1);  // Stretch factor of 1
+                    compLayout->addWidget(compLabel, 1);
 
                     compLayout->addStretch();
 
-                    // Get current score
-                    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineer.id());
-                    int currentScore = -1;
-                    for (const Assessment& assessment : assessments) {
-                        if (assessment.productionAreaId() == area.id() &&
-                            assessment.machineId() == machine.id() &&
-                            assessment.competencyId() == competency.id()) {
-                            currentScore = assessment.score();
-                            break;
-                        }
+                    // Get current score from cache
+                    QString key = QString("%1_%2_%3_%4")
+                        .arg(engineer.id())
+                        .arg(area.id())
+                        .arg(machineData.machine.id())
+                        .arg(competency.id());
+                    int currentScore = assessmentScores.value(key, -1);
+
+                    if (currentScore > 0) {
+                        trainedCompetencies++;
                     }
 
                     // Create score buttons (0-3)
-                    createScoreButtons(compLayout, engineer.id(), area.id(), machine.id(),
+                    createScoreButtons(compLayout, engineer.id(), area.id(), machineData.machine.id(),
                                      competency.id(), currentScore);
 
                     cardLayout->addLayout(compLayout);
@@ -244,8 +282,11 @@ void AssessmentWidget::loadEngineerCards()
 
         // Only add card if it has content
         if (hasContent) {
-            // Update summary after building the card
-            updateEngineerSummary(engineer.id(), summaryLabel);
+            // Update summary using already calculated values
+            QString summaryText = QString("%1/%2 competencies trained")
+                                     .arg(trainedCompetencies)
+                                     .arg(totalCompetencies);
+            summaryLabel->setText(summaryText);
             engineersLayout_->insertWidget(engineersLayout_->count() - 1, engineerCard);
         } else {
             delete engineerCard;
@@ -461,13 +502,22 @@ void AssessmentWidget::onScoreButtonClicked()
 
 void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* summaryLabel)
 {
-    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
-
+    // OPTIMIZATION: Use cached data instead of repeated database queries
     int filterAreaId = areaFilterCombo_->currentData().toInt();
 
-    // Count total competencies for this engineer (considering filter)
+    // Load assessment scores once
+    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
+    QMap<QString, int> assessmentScores;
+    for (const Assessment& assessment : assessments) {
+        QString key = QString("%1_%2_%3")
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        assessmentScores[key] = assessment.score();
+    }
+
     int totalCompetencies = 0;
-    int trainedCompetencies = 0;  // score > 0
+    int trainedCompetencies = 0;
 
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
     for (const ProductionArea& area : areas) {
@@ -478,17 +528,17 @@ void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* 
         QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
         for (const Machine& machine : machines) {
             QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            totalCompetencies += competencies.size();
 
             for (const Competency& competency : competencies) {
-                for (const Assessment& assessment : assessments) {
-                    if (assessment.productionAreaId() == area.id() &&
-                        assessment.machineId() == machine.id() &&
-                        assessment.competencyId() == competency.id() &&
-                        assessment.score() > 0) {
-                        trainedCompetencies++;
-                        break;
-                    }
+                totalCompetencies++;
+
+                QString key = QString("%1_%2_%3")
+                    .arg(area.id())
+                    .arg(machine.id())
+                    .arg(competency.id());
+
+                if (assessmentScores.value(key, 0) > 0) {
+                    trainedCompetencies++;
                 }
             }
         }
