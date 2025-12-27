@@ -157,6 +157,10 @@ void CoreSkillsWidget::loadCoreSkills()
     // QTableWidget has a bug where cell widgets get lost when sorting is applied.
     // Keep sorting disabled to ensure buttons remain visible.
 
+    // Force Qt to recalculate column and row sizes based on cell widgets
+    skillsTable_->resizeColumnsToContents();
+    skillsTable_->resizeRowsToContents();
+
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
 }
 
