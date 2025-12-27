@@ -120,16 +120,12 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // Create score buttons widget
-                QWidget* buttonWidget = new QWidget(this);
-                QHBoxLayout* buttonLayout = new QHBoxLayout();
-                buttonLayout->setContentsMargins(4, 2, 4, 2);
-                buttonLayout->setSpacing(6);
+                // DIAGNOSTIC TEST: Simple label instead of buttons
+                QLabel* testLabel = new QLabel("TEST", this);
+                testLabel->setStyleSheet("background-color: red; color: white; padding: 5px;");
+                skillsTable_->setCellWidget(row, 2, testLabel);
 
-                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
-
-                buttonWidget->setLayout(buttonLayout);
-                skillsTable_->setCellWidget(row, 2, buttonWidget);
+                // TODO: Restore button creation after test
 
                 row++;
             }
