@@ -7,6 +7,7 @@
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QTimer>
+#include <QtConcurrent>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
@@ -33,8 +34,14 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftChartView_(nullptr)
     , insightsList_(nullptr)
     , isFirstShow_(true)
+    , dataWatcher_(nullptr)
 {
     setupUI();
+
+    // Initialize background data loader
+    dataWatcher_ = new QFutureWatcher<LoadedData>(this);
+    connect(dataWatcher_, &QFutureWatcher<LoadedData>::finished, this, &AnalyticsWidget::onDataLoaded);
+
     // Don't load analytics here - wait for showEvent() (lazy loading)
     Logger::instance().info("AnalyticsWidget", "Analytics widget initialized");
 }
@@ -352,28 +359,36 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
 
 void AnalyticsWidget::loadAnalytics()
 {
-    // CRITICAL FIX: Defer database loading to prevent UI freeze
-    // This allows the tab to show immediately before blocking on database queries
-    QTimer::singleShot(50, this, [this]() {
-        // OPTIMIZATION: Load all data once and cache it
-        cachedEngineers_ = engineerRepo_.findAll();
-        cachedAssessments_ = assessmentRepo_.findAll();
-        cachedAreas_ = productionRepo_.findAllAreas();
+    Logger::instance().info("AnalyticsWidget", "Starting background data load...");
+
+    // Load data on background thread to avoid UI freeze
+    QFuture<LoadedData> future = QtConcurrent::run([this]() -> LoadedData {
+        LoadedData data;
+
+        // Create temporary repositories (thread-safe copies)
+        EngineerRepository engineerRepo;
+        AssessmentRepository assessmentRepo;
+        ProductionRepository productionRepo;
+
+        // Load all data from database
+        data.engineers = engineerRepo.findAll();
+        data.assessments = assessmentRepo.findAll();
+        data.areas = productionRepo.findAllAreas();
 
         // Pre-calculate total competencies to avoid repeated queries
-        cachedTotalCompetencies_ = 0;
-        for (const ProductionArea& area : cachedAreas_) {
-            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        data.totalCompetencies = 0;
+        for (const ProductionArea& area : data.areas) {
+            QList<Machine> machines = productionRepo.findMachinesByArea(area.id());
             for (const Machine& machine : machines) {
-                QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-                cachedTotalCompetencies_ += competencies.size();
+                QList<Competency> competencies = productionRepo.findCompetenciesByMachine(machine.id());
+                data.totalCompetencies += competencies.size();
             }
         }
 
-        updateTrendsData();
-        updateShiftComparisonData();
-        updateAutomatedInsights();
+        return data;
     });
+
+    dataWatcher_->setFuture(future);
 }
 
 void AnalyticsWidget::updateTrendsData()
@@ -821,6 +836,30 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
     shiftsButton_->setStyleSheet(tabIndex == 1 ? activeStyle : inactiveStyle);
     insightsButton_->setStyleSheet(tabIndex == 2 ? activeStyle : inactiveStyle);
+}
+
+void AnalyticsWidget::onDataLoaded()
+{
+    // Get the loaded data from the background thread
+    LoadedData data = dataWatcher_->result();
+
+    Logger::instance().info("AnalyticsWidget",
+        QString("Background load complete. Processing %1 engineers, %2 assessments...")
+            .arg(data.engineers.size())
+            .arg(data.assessments.size()));
+
+    // Store loaded data in member variables
+    cachedEngineers_ = data.engineers;
+    cachedAssessments_ = data.assessments;
+    cachedAreas_ = data.areas;
+    cachedTotalCompetencies_ = data.totalCompetencies;
+
+    // Update all analytics views with the loaded data
+    updateTrendsData();
+    updateShiftComparisonData();
+    updateAutomatedInsights();
+
+    Logger::instance().info("AnalyticsWidget", "Analytics data updated successfully");
 }
 
 void AnalyticsWidget::onRefreshClicked()
