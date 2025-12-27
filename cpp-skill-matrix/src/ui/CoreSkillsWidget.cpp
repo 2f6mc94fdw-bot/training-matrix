@@ -56,7 +56,13 @@ void CoreSkillsWidget::setupUI()
     skillsTable_ = new QTableWidget(this);
     skillsTable_->setColumnCount(4);
     skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score", "IDs"});
-    skillsTable_->horizontalHeader()->setStretchLastSection(true);
+
+    // Configure column sizing for proper display
+    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
+    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
+    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
+    skillsTable_->setColumnWidth(2, 100);  // Set Score column width
+
     skillsTable_->setAlternatingRowColors(true);
     skillsTable_->setSortingEnabled(true);  // Enable column sorting
     skillsTable_->sortByColumn(0, Qt::AscendingOrder);  // Default sort by Category
