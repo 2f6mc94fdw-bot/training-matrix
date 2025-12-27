@@ -104,8 +104,6 @@ void MyAssessmentsWidget::loadAssessments()
 
     // Load production data
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
-    QList<Machine> allMachines = productionRepo_.findAllMachines();
-    QList<Competency> allCompetencies = productionRepo_.findAllCompetencies();
 
     // Load this engineer's assessments
     QList<Assessment> assessments = assessmentRepo_.findAll();
@@ -115,7 +113,7 @@ void MyAssessmentsWidget::loadAssessments()
     for (const Assessment& assessment : assessments) {
         if (assessment.engineerId() == engineerId_) {
             QString key = QString("%1_%2_%3")
-                .arg(assessment.areaId())
+                .arg(assessment.productionAreaId())
                 .arg(assessment.machineId())
                 .arg(assessment.competencyId());
             assessmentScores[key] = assessment.score();
@@ -129,12 +127,7 @@ void MyAssessmentsWidget::loadAssessments()
     // Create a card for each production area
     for (const ProductionArea& area : areas) {
         // Get machines for this area
-        QList<Machine> areaMachines;
-        for (const Machine& machine : allMachines) {
-            if (machine.areaId() == area.id()) {
-                areaMachines.append(machine);
-            }
-        }
+        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
 
         if (areaMachines.isEmpty()) {
             continue;
@@ -180,42 +173,42 @@ void MyAssessmentsWidget::loadAssessments()
             cardLayout->addWidget(machineLabel);
 
             // Get competencies for this machine
-            for (const Competency& competency : allCompetencies) {
-                if (competency.machineId() == machine.id()) {
-                    totalCompetencies++;
+            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
 
-                    QHBoxLayout* compLayout = new QHBoxLayout();
-                    compLayout->setSpacing(12);
-                    compLayout->setContentsMargins(32, 4, 0, 4);
+            for (const Competency& competency : competencies) {
+                totalCompetencies++;
 
-                    // Competency name
-                    QLabel* compLabel = new QLabel(competency.name(), this);
-                    QFont compFont = compLabel->font();
-                    compFont.setPointSize(13);
-                    compLabel->setFont(compFont);
-                    compLabel->setWordWrap(true);
-                    compLabel->setMinimumWidth(250);
-                    compLabel->setMaximumWidth(500);
-                    compLayout->addWidget(compLabel, 1);
+                QHBoxLayout* compLayout = new QHBoxLayout();
+                compLayout->setSpacing(12);
+                compLayout->setContentsMargins(32, 4, 0, 4);
 
-                    compLayout->addStretch();
+                // Competency name
+                QLabel* compLabel = new QLabel(competency.name(), this);
+                QFont compFont = compLabel->font();
+                compFont.setPointSize(13);
+                compLabel->setFont(compFont);
+                compLabel->setWordWrap(true);
+                compLabel->setMinimumWidth(250);
+                compLabel->setMaximumWidth(500);
+                compLayout->addWidget(compLabel, 1);
 
-                    // Get current score
-                    QString key = QString("%1_%2_%3")
-                        .arg(area.id())
-                        .arg(machine.id())
-                        .arg(competency.id());
-                    int currentScore = assessmentScores.value(key, 0);
+                compLayout->addStretch();
 
-                    if (currentScore > 0) {
-                        trainedCompetencies++;
-                    }
+                // Get current score
+                QString key = QString("%1_%2_%3")
+                    .arg(area.id())
+                    .arg(machine.id())
+                    .arg(competency.id());
+                int currentScore = assessmentScores.value(key, 0);
 
-                    // Create score buttons (0-3)
-                    createScoreButtons(compLayout, area.id(), machine.id(), competency.id(), currentScore);
-
-                    cardLayout->addLayout(compLayout);
+                if (currentScore > 0) {
+                    trainedCompetencies++;
                 }
+
+                // Create score buttons (0-3)
+                createScoreButtons(compLayout, area.id(), machine.id(), competency.id(), currentScore);
+
+                cardLayout->addLayout(compLayout);
             }
         }
 
