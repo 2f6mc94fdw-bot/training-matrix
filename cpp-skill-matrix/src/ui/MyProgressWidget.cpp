@@ -231,10 +231,10 @@ void MyProgressWidget::loadProgressData()
     }
 
     // Load snapshots
-    snapshots_ = snapshotRepo_.findAllSnapshots();
+    snapshots_ = snapshotRepo_.findAll();
 
     // Load certifications
-    certifications_ = certificationRepo_.findByEngineerId(engineerId_);
+    certifications_ = certificationRepo_.findByEngineer(engineerId_);
 
     // Update all sections
     createSkillProgressChart();
