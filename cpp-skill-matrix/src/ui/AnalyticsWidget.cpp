@@ -351,24 +351,28 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
 
 void AnalyticsWidget::loadAnalytics()
 {
-    // OPTIMIZATION: Load all data once and cache it
-    cachedEngineers_ = engineerRepo_.findAll();
-    cachedAssessments_ = assessmentRepo_.findAll();
-    cachedAreas_ = productionRepo_.findAllAreas();
+    // CRITICAL FIX: Defer database loading to prevent UI freeze
+    // This allows the tab to show immediately before blocking on database queries
+    QTimer::singleShot(50, this, [this]() {
+        // OPTIMIZATION: Load all data once and cache it
+        cachedEngineers_ = engineerRepo_.findAll();
+        cachedAssessments_ = assessmentRepo_.findAll();
+        cachedAreas_ = productionRepo_.findAllAreas();
 
-    // Pre-calculate total competencies to avoid repeated queries
-    cachedTotalCompetencies_ = 0;
-    for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        for (const Machine& machine : machines) {
-            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            cachedTotalCompetencies_ += competencies.size();
+        // Pre-calculate total competencies to avoid repeated queries
+        cachedTotalCompetencies_ = 0;
+        for (const ProductionArea& area : cachedAreas_) {
+            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+            for (const Machine& machine : machines) {
+                QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+                cachedTotalCompetencies_ += competencies.size();
+            }
         }
-    }
 
-    updateTrendsData();
-    updateShiftComparisonData();
-    updateAutomatedInsights();
+        updateTrendsData();
+        updateShiftComparisonData();
+        updateAutomatedInsights();
+    });
 }
 
 void AnalyticsWidget::updateTrendsData()

@@ -132,9 +132,9 @@ void AssessmentWidget::showEvent(QShowEvent* event)
 
 void AssessmentWidget::loadEngineerCards()
 {
-    // Show loading label
+    // Show loading label IMMEDIATELY (before any blocking work)
     loadingLabel_->setVisible(true);
-    loadingLabel_->setText("Loading engineers... Please wait");
+    loadingLabel_->setText("Loading data from database...");
 
     // Clear existing cards
     QLayoutItem* item;
@@ -152,73 +152,77 @@ void AssessmentWidget::loadEngineerCards()
         loadTimer_->deleteLater();
     }
 
-    // PHASE 1: Load and cache all data (fast - database queries only)
-    Logger::instance().info("AssessmentWidget", "Loading assessment data from database...");
+    // CRITICAL FIX: Defer database loading to a timer callback
+    // This allows the UI to render the loading label before blocking
+    QTimer::singleShot(50, this, [this]() {
+        // PHASE 1: Load and cache all data (fast - database queries only)
+        Logger::instance().info("AssessmentWidget", "Loading assessment data from database...");
 
-    cachedEngineers_ = engineerRepo_.findAll();
-    QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
-    QList<Assessment> allAssessments = assessmentRepo_.findAll();
+        cachedEngineers_ = engineerRepo_.findAll();
+        QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
+        QList<Assessment> allAssessments = assessmentRepo_.findAll();
 
-    // Build assessment lookup map for O(1) access
-    cachedAssessmentScores_.clear();
-    for (const Assessment& assessment : allAssessments) {
-        QString key = QString("%1_%2_%3_%4")
-            .arg(assessment.engineerId())
-            .arg(assessment.productionAreaId())
-            .arg(assessment.machineId())
-            .arg(assessment.competencyId());
-        cachedAssessmentScores_[key] = assessment.score();
-    }
+        // Build assessment lookup map for O(1) access
+        cachedAssessmentScores_.clear();
+        for (const Assessment& assessment : allAssessments) {
+            QString key = QString("%1_%2_%3_%4")
+                .arg(assessment.engineerId())
+                .arg(assessment.productionAreaId())
+                .arg(assessment.machineId())
+                .arg(assessment.competencyId());
+            cachedAssessmentScores_[key] = assessment.score();
+        }
 
-    // Pre-load all machines and competencies
-    // Also build area ID to name lookup map
-    QMap<int, QString> areaNames;
-    cachedAreaToMachines_.clear();
-    for (const ProductionArea& area : allAreas) {
-        areaNames[area.id()] = area.name();
+        // Pre-load all machines and competencies
+        // Also build area ID to name lookup map
+        QMap<int, QString> areaNames;
+        cachedAreaToMachines_.clear();
+        for (const ProductionArea& area : allAreas) {
+            areaNames[area.id()] = area.name();
 
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        QList<MachineData> machineDataList;
+            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+            QList<MachineData> machineDataList;
 
-        for (const Machine& machine : machines) {
-            MachineData data;
-            data.machine = machine;
-            data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            if (!data.competencies.isEmpty()) {
-                machineDataList.append(data);
+            for (const Machine& machine : machines) {
+                MachineData data;
+                data.machine = machine;
+                data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+                if (!data.competencies.isEmpty()) {
+                    machineDataList.append(data);
+                }
+            }
+
+            if (!machineDataList.isEmpty()) {
+                cachedAreaToMachines_[area.id()] = machineDataList;
             }
         }
 
-        if (!machineDataList.isEmpty()) {
-            cachedAreaToMachines_[area.id()] = machineDataList;
+        // Store area names for use in loadNextEngineerCard
+        cachedAreaNames_ = areaNames;
+
+        // Sort engineers by name
+        std::sort(cachedEngineers_.begin(), cachedEngineers_.end(),
+                  [](const Engineer& a, const Engineer& b) {
+                      return a.name() < b.name();
+                  });
+
+        Logger::instance().info("AssessmentWidget",
+            QString("Loaded %1 engineers from database. Starting progressive UI creation...")
+                .arg(cachedEngineers_.size()));
+
+        // PHASE 2: Create UI cards progressively (slow - UI creation)
+        currentEngineerIndex_ = 0;
+
+        if (cachedEngineers_.isEmpty()) {
+            loadingLabel_->setText("No engineers found");
+            return;
         }
-    }
 
-    // Store area names for use in loadNextEngineerCard
-    cachedAreaNames_ = areaNames;
-
-    // Sort engineers by name
-    std::sort(cachedEngineers_.begin(), cachedEngineers_.end(),
-              [](const Engineer& a, const Engineer& b) {
-                  return a.name() < b.name();
-              });
-
-    Logger::instance().info("AssessmentWidget",
-        QString("Loaded %1 engineers from database. Starting progressive UI creation...")
-            .arg(cachedEngineers_.size()));
-
-    // PHASE 2: Create UI cards progressively (slow - UI creation)
-    currentEngineerIndex_ = 0;
-
-    if (cachedEngineers_.isEmpty()) {
-        loadingLabel_->setText("No engineers found");
-        return;
-    }
-
-    // Create timer to load one engineer card at a time
-    loadTimer_ = new QTimer(this);
-    connect(loadTimer_, &QTimer::timeout, this, &AssessmentWidget::loadNextEngineerCard);
-    loadTimer_->start(10);  // Load one card every 10ms (fast but non-blocking)
+        // Create timer to load one engineer card at a time
+        loadTimer_ = new QTimer(this);
+        connect(loadTimer_, &QTimer::timeout, this, &AssessmentWidget::loadNextEngineerCard);
+        loadTimer_->start(10);  // Load one card every 10ms (fast but non-blocking)
+    });  // End of QTimer::singleShot lambda
 }
 
 void AssessmentWidget::loadNextEngineerCard()
