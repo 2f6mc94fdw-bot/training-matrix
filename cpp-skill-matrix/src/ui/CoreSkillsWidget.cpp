@@ -3,16 +3,17 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
-#include <QHeaderView>
 #include <QMessageBox>
 #include <QLabel>
 #include <QGroupBox>
+#include <QScrollArea>
 #include <QShowEvent>
 
 CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCombo_(nullptr)
-    , skillsTable_(nullptr)
+    , skillsLayout_(nullptr)
+    , skillsContainer_(nullptr)
     , saveButton_(nullptr)
     , refreshButton_(nullptr)
 {
@@ -61,27 +62,22 @@ void CoreSkillsWidget::setupUI()
     formLayout->addRow("Engineer:", engineerCombo_);
     mainLayout->addWidget(selectionGroup);
 
-    // Skills Table
-    QLabel* tableLabel = new QLabel("Core Skills (0 = No skill, 1 = Basic, 2 = Intermediate, 3 = Advanced)", this);
-    mainLayout->addWidget(tableLabel);
+    // Description
+    QLabel* descLabel = new QLabel("Core Skills (0 = No skill, 1 = Basic, 2 = Intermediate, 3 = Advanced)", this);
+    mainLayout->addWidget(descLabel);
 
-    skillsTable_ = new QTableWidget(this);
-    skillsTable_->setColumnCount(3);
-    skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score"});
+    // Scrollable skills container (like AssessmentWidget)
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
 
-    // Configure column sizing
-    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    skillsContainer_ = new QWidget();
+    skillsLayout_ = new QVBoxLayout(skillsContainer_);
+    skillsLayout_->setSpacing(16);
+    skillsLayout_->setContentsMargins(0, 0, 0, 0);
 
-    // Configure row sizing
-    skillsTable_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-    skillsTable_->setAlternatingRowColors(true);
-    // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
-    skillsTable_->setSortingEnabled(false);
-
-    mainLayout->addWidget(skillsTable_);
+    scrollArea->setWidget(skillsContainer_);
+    mainLayout->addWidget(scrollArea);
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -115,9 +111,14 @@ void CoreSkillsWidget::loadEngineers()
 
 void CoreSkillsWidget::loadCoreSkills()
 {
-    // Disable sorting while loading to improve performance and prevent issues
-    skillsTable_->setSortingEnabled(false);
-    skillsTable_->setRowCount(0);
+    // Clear existing widgets
+    QLayoutItem* item;
+    while ((item = skillsLayout_->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
     scoreButtonGroups_.clear();
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
@@ -125,43 +126,77 @@ void CoreSkillsWidget::loadCoreSkills()
 
     QString engineerId = engineerCombo_->currentData().toString();
 
-    int row = 0;
+    // Create a card for each category (like AssessmentWidget creates cards for each engineer)
     for (const CoreSkillCategory& category : categories) {
-        // Find skills for this category
+        // Create category card
+        QGroupBox* categoryCard = new QGroupBox(this);
+        categoryCard->setStyleSheet(
+            "QGroupBox {"
+            "    border: 2px solid #e2e8f0;"
+            "    border-radius: 8px;"
+            "    padding: 16px;"
+            "    background-color: transparent;"
+            "    margin-top: 12px;"
+            "}"
+            "QGroupBox::title {"
+            "    subcontrol-origin: margin;"
+            "    left: 16px;"
+            "    padding: 0 8px 0 8px;"
+            "}"
+        );
+
+        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        cardLayout->setSpacing(12);
+
+        // Category title
+        QLabel* categoryLabel = new QLabel(category.name(), this);
+        QFont categoryFont = categoryLabel->font();
+        categoryFont.setPointSize(14);
+        categoryFont.setBold(true);
+        categoryLabel->setFont(categoryFont);
+        cardLayout->addWidget(categoryLabel);
+
+        // Add skills for this category
+        bool hasSkills = false;
         for (const CoreSkill& skill : skills) {
             if (skill.categoryId() == category.id()) {
-                skillsTable_->insertRow(row);
+                hasSkills = true;
 
-                skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
-                skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
+                QHBoxLayout* skillLayout = new QHBoxLayout();
+                skillLayout->setSpacing(12);
+                skillLayout->setContentsMargins(0, 4, 0, 4);
 
-                // Create score buttons widget
-                QWidget* buttonWidget = new QWidget(skillsTable_);
-                QHBoxLayout* buttonLayout = new QHBoxLayout();
-                buttonLayout->setContentsMargins(8, 4, 8, 4);
-                buttonLayout->setSpacing(8);
+                // Skill name
+                QLabel* skillLabel = new QLabel(skill.name(), this);
+                QFont skillFont = skillLabel->font();
+                skillFont.setPointSize(13);
+                skillLabel->setFont(skillFont);
+                skillLabel->setWordWrap(true);
+                skillLabel->setMinimumWidth(250);
+                skillLabel->setMaximumWidth(500);
+                skillLayout->addWidget(skillLabel, 1);
 
-                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+                skillLayout->addStretch();
 
-                buttonLayout->addStretch();  // Push buttons to the left
-                buttonWidget->setLayout(buttonLayout);
+                // Create score buttons (0-3)
+                createScoreButtons(skillLayout, engineerId, category.id(), skill.id(), 0);
 
-                skillsTable_->setCellWidget(row, 2, buttonWidget);
-
-                row++;
+                cardLayout->addLayout(skillLayout);
             }
+        }
+
+        // Only add the card if it has skills
+        if (hasSkills) {
+            skillsLayout_->addWidget(categoryCard);
+        } else {
+            delete categoryCard;
         }
     }
 
-    // NOTE: Do NOT re-enable sorting after setting cell widgets!
-    // QTableWidget has a bug where cell widgets get lost when sorting is applied.
-    // Keep sorting disabled to ensure buttons remain visible.
+    // Add stretch at the end
+    skillsLayout_->addStretch();
 
-    // Force Qt to recalculate column and row sizes based on cell widgets
-    skillsTable_->resizeColumnsToContents();
-    skillsTable_->resizeRowsToContents();
-
-    Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
+    Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 categories").arg(categories.size()));
 }
 
 void CoreSkillsWidget::loadAssessments()
