@@ -45,7 +45,7 @@ int ProductionController::createProductionArea(const QString& name)
     return area.id();
 }
 
-bool ProductionController::updateArea(int id, const QString& name)
+bool ProductionController::updateProductionArea(int id, const QString& name)
 {
     lastError_.clear();
 
