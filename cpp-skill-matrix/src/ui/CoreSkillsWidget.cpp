@@ -63,8 +63,8 @@ void CoreSkillsWidget::setupUI()
     skillsTable_->setColumnWidth(2, 180);  // Set Score column width for button group
 
     skillsTable_->setAlternatingRowColors(true);
-    skillsTable_->setSortingEnabled(true);  // Enable column sorting
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);  // Default sort by Category
+    // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
+    skillsTable_->setSortingEnabled(false);
 
     mainLayout->addWidget(skillsTable_);
 
@@ -126,7 +126,7 @@ void CoreSkillsWidget::loadCoreSkills()
                 buttonLayout->setContentsMargins(4, 2, 4, 2);
                 buttonLayout->setSpacing(6);
 
-                createScoreButtons(buttonLayout, buttonWidget, engineerId, category.id(), skill.id(), 0);
+                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
 
                 buttonWidget->setLayout(buttonLayout);
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
@@ -136,9 +136,9 @@ void CoreSkillsWidget::loadCoreSkills()
         }
     }
 
-    // Re-enable sorting and apply default sort
-    skillsTable_->setSortingEnabled(true);
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);
+    // NOTE: Do NOT re-enable sorting after setting cell widgets!
+    // QTableWidget has a bug where cell widgets get lost when sorting is applied.
+    // Keep sorting disabled to ensure buttons remain visible.
 
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
 }
@@ -338,8 +338,7 @@ void CoreSkillsWidget::onRefreshClicked()
     }
 }
 
-void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, QWidget* parentWidget,
-                                         const QString& engineerId,
+void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
                                          const QString& categoryId, const QString& skillId,
                                          int currentScore)
 {
@@ -362,7 +361,7 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, QWidget* parentWi
     buttonGroup.skillId = skillId;
 
     for (int score = 0; score < 4; score++) {
-        QPushButton* button = new QPushButton(scoreInfos[score].label, parentWidget);
+        QPushButton* button = new QPushButton(scoreInfos[score].label, this);
         button->setFixedSize(32, 32);
         button->setCursor(Qt::PointingHandCursor);
 

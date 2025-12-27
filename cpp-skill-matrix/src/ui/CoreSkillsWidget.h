@@ -29,8 +29,7 @@ private:
     void loadCoreSkills();
     void loadEngineers();
     void loadAssessments();
-    void createScoreButtons(QHBoxLayout* layout, QWidget* parentWidget,
-                           const QString& engineerId,
+    void createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
                            const QString& categoryId, const QString& skillId,
                            int currentScore);
 
