@@ -5,9 +5,9 @@
 #include <QFormLayout>
 #include <QHeaderView>
 #include <QMessageBox>
-#include <QSpinBox>
 #include <QLabel>
 #include <QGroupBox>
+#include <QShowEvent>
 
 CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
     : QWidget(parent)
@@ -18,12 +18,24 @@ CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
 {
     setupUI();
     loadEngineers();
-    loadCoreSkills();
+    // Don't load core skills here - wait for showEvent() (lazy loading like AssessmentWidget)
     Logger::instance().info("CoreSkillsWidget", "Core Skills widget initialized");
 }
 
 CoreSkillsWidget::~CoreSkillsWidget()
 {
+}
+
+void CoreSkillsWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+
+    // Lazy loading: only load data on first show (like AssessmentWidget)
+    if (isFirstShow_) {
+        isFirstShow_ = false;
+        Logger::instance().info("CoreSkillsWidget", "First show - loading core skills");
+        loadCoreSkills();
+    }
 }
 
 void CoreSkillsWidget::setupUI()
@@ -54,13 +66,19 @@ void CoreSkillsWidget::setupUI()
     mainLayout->addWidget(tableLabel);
 
     skillsTable_ = new QTableWidget(this);
-    skillsTable_->setColumnCount(4);
-    skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score", "IDs"});
-    skillsTable_->horizontalHeader()->setStretchLastSection(true);
+    skillsTable_->setColumnCount(3);
+    skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score"});
+
+    // Configure column sizing for proper display
+    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
+    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
+    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
+    // Score column width: 4 buttons (32px each) + 3 gaps (6px each) + margins (4+4) = 154px, use 180px for comfort
+    skillsTable_->setColumnWidth(2, 180);
+
     skillsTable_->setAlternatingRowColors(true);
-    skillsTable_->setSortingEnabled(true);  // Enable column sorting
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);  // Default sort by Category
-    skillsTable_->hideColumn(3); // Hide IDs column
+    // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
+    skillsTable_->setSortingEnabled(false);
 
     mainLayout->addWidget(skillsTable_);
 
@@ -99,9 +117,12 @@ void CoreSkillsWidget::loadCoreSkills()
     // Disable sorting while loading to improve performance and prevent issues
     skillsTable_->setSortingEnabled(false);
     skillsTable_->setRowCount(0);
+    scoreButtonGroups_.clear();
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
     QList<CoreSkill> skills = coreSkillsRepo_.findAllSkills();
+
+    QString engineerId = engineerCombo_->currentData().toString();
 
     int row = 0;
     for (const CoreSkillCategory& category : categories) {
@@ -113,24 +134,32 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // Score spinner
-                QSpinBox* scoreSpinner = new QSpinBox(this);
-                scoreSpinner->setRange(0, 3);
-                scoreSpinner->setValue(0);
-                skillsTable_->setCellWidget(row, 2, scoreSpinner);
+                // Set row height to accommodate 32px buttons + top/bottom margins (2px each) + padding
+                skillsTable_->setRowHeight(row, 44);
 
-                // Store IDs (hidden)
-                QString ids = QString("%1|%2").arg(category.id()).arg(skill.id());
-                skillsTable_->setItem(row, 3, new QTableWidgetItem(ids));
+                // Create score buttons widget
+                QWidget* buttonWidget = new QWidget();
+                QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
+                buttonLayout->setContentsMargins(4, 4, 4, 4);
+                buttonLayout->setSpacing(6);
+
+                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+
+                // Ensure widget is properly sized and visible
+                buttonWidget->setMinimumSize(154, 40);  // Width: 4*32 + 3*6 + 4+4 = 154px, Height: 32 + 4+4 = 40px
+                buttonWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+                buttonWidget->show();  // Explicitly show widget (same pattern as working TEST label)
+
+                skillsTable_->setCellWidget(row, 2, buttonWidget);
 
                 row++;
             }
         }
     }
 
-    // Re-enable sorting and apply default sort
-    skillsTable_->setSortingEnabled(true);
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);
+    // NOTE: Do NOT re-enable sorting after setting cell widgets!
+    // QTableWidget has a bug where cell widgets get lost when sorting is applied.
+    // Keep sorting disabled to ensure buttons remain visible.
 
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
 }
@@ -145,28 +174,65 @@ void CoreSkillsWidget::loadAssessments()
 
     QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAllAssessments();
 
-    // Update table with existing scores
-    for (int row = 0; row < skillsTable_->rowCount(); ++row) {
-        QString ids = skillsTable_->item(row, 3)->text();
-        QStringList parts = ids.split('|');
+    // Color scheme for score buttons
+    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};  // Red, Yellow, Blue, Green
 
-        if (parts.size() == 2) {
-            QString categoryId = parts[0];
-            QString skillId = parts[1];
+    // Update button groups with existing scores
+    for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
+        if (buttonGroup.engineerId != engineerId) {
+            continue;
+        }
 
-            // Find matching assessment
-            for (const CoreSkillAssessment& assessment : assessments) {
-                if (assessment.engineerId() == engineerId &&
-                    assessment.categoryId() == categoryId &&
-                    assessment.skillId() == skillId) {
+        int currentScore = 0;
 
-                    QSpinBox* spinner = qobject_cast<QSpinBox*>(skillsTable_->cellWidget(row, 2));
-                    if (spinner) {
-                        spinner->setValue(assessment.score());
-                    }
-                    break;
-                }
+        // Find matching assessment
+        for (const CoreSkillAssessment& assessment : assessments) {
+            if (assessment.engineerId() == engineerId &&
+                assessment.categoryId() == buttonGroup.categoryId &&
+                assessment.skillId() == buttonGroup.skillId) {
+                currentScore = assessment.score();
+                break;
             }
+        }
+
+        // Update button styles
+        for (int score = 0; score < 4; score++) {
+            QPushButton* button = buttonGroup.buttons[score];
+            bool isSelected = (score == currentScore);
+
+            QString buttonStyle;
+            if (isSelected) {
+                buttonStyle = QString(
+                    "QPushButton {"
+                    "    background-color: %1;"
+                    "    color: white;"
+                    "    border: 2px solid %1;"
+                    "    border-radius: 16px;"
+                    "    font-weight: bold;"
+                    "    font-size: 12px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "    opacity: 0.9;"
+                    "}"
+                ).arg(scoreColors[score]);
+            } else {
+                buttonStyle = QString(
+                    "QPushButton {"
+                    "    background-color: transparent;"
+                    "    color: #64748b;"
+                    "    border: 2px solid #e2e8f0;"
+                    "    border-radius: 16px;"
+                    "    font-size: 12px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "    border-color: %1;"
+                    "    color: %1;"
+                    "    background-color: rgba(255, 255, 255, 0.05);"
+                    "}"
+                ).arg(scoreColors[score]);
+            }
+
+            button->setStyleSheet(buttonStyle);
         }
     }
 
@@ -175,16 +241,58 @@ void CoreSkillsWidget::loadAssessments()
 
 void CoreSkillsWidget::onEngineerChanged(int index)
 {
+    QString newEngineerId = engineerCombo_->currentData().toString();
+
+    // Update all button groups with new engineer ID and reset to score 0
+    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
+
+    for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
+        buttonGroup.engineerId = newEngineerId;
+
+        // Reset all buttons to unselected state, with button 0 selected
+        for (int score = 0; score < 4; score++) {
+            QPushButton* button = buttonGroup.buttons[score];
+            button->setProperty("engineerId", newEngineerId);
+
+            bool isSelected = (score == 0);  // Default to score 0
+            QString buttonStyle;
+            if (isSelected) {
+                buttonStyle = QString(
+                    "QPushButton {"
+                    "    background-color: %1;"
+                    "    color: white;"
+                    "    border: 2px solid %1;"
+                    "    border-radius: 16px;"
+                    "    font-weight: bold;"
+                    "    font-size: 12px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "    opacity: 0.9;"
+                    "}"
+                ).arg(scoreColors[score]);
+            } else {
+                buttonStyle = QString(
+                    "QPushButton {"
+                    "    background-color: transparent;"
+                    "    color: #64748b;"
+                    "    border: 2px solid #e2e8f0;"
+                    "    border-radius: 16px;"
+                    "    font-size: 12px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "    border-color: %1;"
+                    "    color: %1;"
+                    "    background-color: rgba(255, 255, 255, 0.05);"
+                    "}"
+                ).arg(scoreColors[score]);
+            }
+            button->setStyleSheet(buttonStyle);
+        }
+    }
+
+    // If an engineer is selected, load their assessments
     if (index > 0) {
         loadAssessments();
-    } else {
-        // Reset scores
-        for (int row = 0; row < skillsTable_->rowCount(); ++row) {
-            QSpinBox* spinner = qobject_cast<QSpinBox*>(skillsTable_->cellWidget(row, 2));
-            if (spinner) {
-                spinner->setValue(0);
-            }
-        }
     }
 }
 
@@ -200,32 +308,35 @@ void CoreSkillsWidget::onSaveClicked()
     int savedCount = 0;
     int errorCount = 0;
 
-    for (int row = 0; row < skillsTable_->rowCount(); ++row) {
-        QString ids = skillsTable_->item(row, 3)->text();
-        QStringList parts = ids.split('|');
+    // Loop through all button groups and find selected score for each skill
+    for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
+        if (buttonGroup.engineerId != engineerId) {
+            continue;
+        }
 
-        if (parts.size() == 2) {
-            QString categoryId = parts[0];
-            QString skillId = parts[1];
-
-            QSpinBox* spinner = qobject_cast<QSpinBox*>(skillsTable_->cellWidget(row, 2));
-            if (spinner) {
-                int score = spinner->value();
-
-                CoreSkillAssessment assessment;
-                assessment.setEngineerId(engineerId);
-                assessment.setCategoryId(categoryId);
-                assessment.setSkillId(skillId);
-                assessment.setScore(score);
-
-                if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
-                    savedCount++;
-                } else {
-                    errorCount++;
-                    Logger::instance().error("CoreSkillsWidget",
-                        QString("Failed to save assessment: %1").arg(coreSkillsRepo_.lastError()));
-                }
+        // Find which button is selected (has the score property and colored background)
+        int selectedScore = 0;
+        for (int score = 0; score < 4; score++) {
+            QPushButton* button = buttonGroup.buttons[score];
+            // Check if button has a colored background (contains "background-color: #" in style)
+            if (button->styleSheet().contains("background-color: #")) {
+                selectedScore = score;
+                break;
             }
+        }
+
+        CoreSkillAssessment assessment;
+        assessment.setEngineerId(engineerId);
+        assessment.setCategoryId(buttonGroup.categoryId);
+        assessment.setSkillId(buttonGroup.skillId);
+        assessment.setScore(selectedScore);
+
+        if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
+            savedCount++;
+        } else {
+            errorCount++;
+            Logger::instance().error("CoreSkillsWidget",
+                QString("Failed to save assessment: %1").arg(coreSkillsRepo_.lastError()));
         }
     }
 
@@ -245,5 +356,159 @@ void CoreSkillsWidget::onRefreshClicked()
     loadCoreSkills();
     if (engineerCombo_->currentIndex() > 0) {
         loadAssessments();
+    }
+}
+
+void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
+                                         const QString& categoryId, const QString& skillId,
+                                         int currentScore)
+{
+    // Score labels and colors
+    struct ScoreInfo {
+        QString label;
+        QString color;
+    };
+
+    QList<ScoreInfo> scoreInfos = {
+        {"0", "#ff6b6b"},  // Not Trained - Red
+        {"1", "#fbbf24"},  // Basic - Yellow
+        {"2", "#60a5fa"},  // Competent - Blue
+        {"3", "#4ade80"}   // Expert - Green
+    };
+
+    ScoreButtonGroup buttonGroup;
+    buttonGroup.engineerId = engineerId;
+    buttonGroup.categoryId = categoryId;
+    buttonGroup.skillId = skillId;
+
+    for (int score = 0; score < 4; score++) {
+        QPushButton* button = new QPushButton(scoreInfos[score].label);
+        button->setFixedSize(32, 32);
+        button->setCursor(Qt::PointingHandCursor);
+
+        // Store metadata
+        button->setProperty("engineerId", engineerId);
+        button->setProperty("categoryId", categoryId);
+        button->setProperty("skillId", skillId);
+        button->setProperty("score", score);
+
+        // Style button based on whether it's selected
+        bool isSelected = (score == currentScore);
+
+        QString buttonStyle;
+        if (isSelected) {
+            // Active button: colored background, white text
+            buttonStyle = QString(
+                "QPushButton {"
+                "    background-color: %1;"
+                "    color: white;"
+                "    border: 2px solid %1;"
+                "    border-radius: 16px;"
+                "    font-weight: bold;"
+                "    font-size: 12px;"
+                "}"
+                "QPushButton:hover {"
+                "    opacity: 0.9;"
+                "}"
+            ).arg(scoreInfos[score].color);
+        } else {
+            // Inactive button: transparent background, colored border
+            buttonStyle = QString(
+                "QPushButton {"
+                "    background-color: transparent;"
+                "    color: #64748b;"
+                "    border: 2px solid #e2e8f0;"
+                "    border-radius: 16px;"
+                "    font-size: 12px;"
+                "}"
+                "QPushButton:hover {"
+                "    border-color: %1;"
+                "    color: %1;"
+                "    background-color: rgba(255, 255, 255, 0.05);"
+                "}"
+            ).arg(scoreInfos[score].color);
+        }
+
+        button->setStyleSheet(buttonStyle);
+
+        connect(button, &QPushButton::clicked, this, &CoreSkillsWidget::onScoreButtonClicked);
+
+        layout->addWidget(button);
+        buttonGroup.buttons[score] = button;
+    }
+
+    scoreButtonGroups_.append(buttonGroup);
+}
+
+void CoreSkillsWidget::onScoreButtonClicked()
+{
+    QPushButton* clickedButton = qobject_cast<QPushButton*>(sender());
+    if (!clickedButton) {
+        return;
+    }
+
+    QString engineerId = clickedButton->property("engineerId").toString();
+    QString categoryId = clickedButton->property("categoryId").toString();
+    QString skillId = clickedButton->property("skillId").toString();
+    int score = clickedButton->property("score").toInt();
+
+    // Color scheme
+    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
+
+    // Find the button group and update all buttons in that group
+    for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
+        if (buttonGroup.engineerId == engineerId &&
+            buttonGroup.categoryId == categoryId &&
+            buttonGroup.skillId == skillId) {
+
+            // Update styles for all buttons in this group
+            for (int i = 0; i < 4; i++) {
+                QPushButton* button = buttonGroup.buttons[i];
+                bool isSelected = (i == score);
+
+                QString buttonStyle;
+                if (isSelected) {
+                    buttonStyle = QString(
+                        "QPushButton {"
+                        "    background-color: %1;"
+                        "    color: white;"
+                        "    border: 2px solid %1;"
+                        "    border-radius: 16px;"
+                        "    font-weight: bold;"
+                        "    font-size: 12px;"
+                        "}"
+                        "QPushButton:hover {"
+                        "    opacity: 0.9;"
+                        "}"
+                    ).arg(scoreColors[i]);
+                } else {
+                    buttonStyle = QString(
+                        "QPushButton {"
+                        "    background-color: transparent;"
+                        "    color: #64748b;"
+                        "    border: 2px solid #e2e8f0;"
+                        "    border-radius: 16px;"
+                        "    font-size: 12px;"
+                        "}"
+                        "QPushButton:hover {"
+                        "    border-color: %1;"
+                        "    color: %1;"
+                        "    background-color: rgba(255, 255, 255, 0.05);"
+                        "}"
+                    ).arg(scoreColors[i]);
+                }
+
+                button->setStyleSheet(buttonStyle);
+            }
+
+            // Log the score change
+            Logger::instance().info("CoreSkillsWidget",
+                QString("Score changed to %1 for skill %2 (engineer %3)")
+                    .arg(score)
+                    .arg(skillId)
+                    .arg(engineerId));
+
+            break;
+        }
     }
 }

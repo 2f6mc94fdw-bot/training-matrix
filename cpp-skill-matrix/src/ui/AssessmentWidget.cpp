@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QScrollArea>
 #include <QMessageBox>
+#include <QShowEvent>
 #include <algorithm>
 
 AssessmentWidget::AssessmentWidget(QWidget* parent)
@@ -14,8 +15,11 @@ AssessmentWidget::AssessmentWidget(QWidget* parent)
     , areaFilterCombo_(nullptr)
     , engineersLayout_(nullptr)
     , engineersContainer_(nullptr)
+    , isFirstShow_(true)
+    , loadingLabel_(nullptr)
 {
     setupUI();
+
     Logger::instance().info("AssessmentWidget", "Assessment widget initialized");
 }
 
@@ -97,34 +101,115 @@ void AssessmentWidget::setupUI()
     scrollArea->setWidget(engineersContainer_);
     mainLayout->addWidget(scrollArea);
 
+    // Add loading label (initially hidden)
+    loadingLabel_ = new QLabel("Loading engineers...", this);
+    QFont loadingFont = loadingLabel_->font();
+    loadingFont.setPointSize(16);
+    loadingFont.setBold(true);
+    loadingLabel_->setFont(loadingFont);
+    loadingLabel_->setAlignment(Qt::AlignCenter);
+    loadingLabel_->setStyleSheet("color: #64748b; padding: 40px;");
+    loadingLabel_->setVisible(false);
+    engineersLayout_->insertWidget(0, loadingLabel_);
+
     setLayout(mainLayout);
 
-    // Load initial data
-    loadEngineerCards();
+    // Don't load data here - wait for showEvent() (lazy loading)
+    // This makes tab switching instant
+}
+
+void AssessmentWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+
+    // Lazy loading: only load data on first show
+    if (isFirstShow_) {
+        isFirstShow_ = false;
+        loadEngineerCards();
+    }
 }
 
 void AssessmentWidget::loadEngineerCards()
 {
+    // Show loading label IMMEDIATELY (before any blocking work)
+    loadingLabel_->setVisible(true);
+    loadingLabel_->setText("Loading data from database...");
+
     // Clear existing cards
     QLayoutItem* item;
     while ((item = engineersLayout_->takeAt(0)) != nullptr) {
-        if (item->widget()) {
+        if (item->widget() && item->widget() != loadingLabel_) {
             item->widget()->deleteLater();
         }
         delete item;
     }
     scoreButtonGroups_.clear();
 
-    int filterAreaId = areaFilterCombo_->currentData().toInt();
-    QList<Engineer> engineers = engineerRepo_.findAll();
+    Logger::instance().info("AssessmentWidget", "Loading assessment data...");
+
+    // Load all data from database (optimized with caching)
+    cachedEngineers_ = engineerRepo_.findAll();
+    QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
+    QList<Assessment> allAssessments = assessmentRepo_.findAll();
+
+    // Build assessment lookup map for O(1) access
+    cachedAssessmentScores_.clear();
+    for (const Assessment& assessment : allAssessments) {
+        QString key = QString("%1_%2_%3_%4")
+            .arg(assessment.engineerId())
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        cachedAssessmentScores_[key] = assessment.score();
+    }
+
+    // Pre-load all machines and competencies
+    QMap<int, QString> areaNames;
+    cachedAreaToMachines_.clear();
+    for (const ProductionArea& area : allAreas) {
+        areaNames[area.id()] = area.name();
+
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<MachineData> machineDataList;
+
+        for (const Machine& machine : machines) {
+            MachineData data;
+            data.machine = machine;
+            data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            if (!data.competencies.isEmpty()) {
+                machineDataList.append(data);
+            }
+        }
+
+        if (!machineDataList.isEmpty()) {
+            cachedAreaToMachines_[area.id()] = machineDataList;
+        }
+    }
+
+    cachedAreaNames_ = areaNames;
 
     // Sort engineers by name
-    std::sort(engineers.begin(), engineers.end(),
+    std::sort(cachedEngineers_.begin(), cachedEngineers_.end(),
               [](const Engineer& a, const Engineer& b) {
                   return a.name() < b.name();
               });
 
-    for (const Engineer& engineer : engineers) {
+    Logger::instance().info("AssessmentWidget",
+        QString("Loaded %1 engineers from database. Creating UI...")
+            .arg(cachedEngineers_.size()));
+
+    if (cachedEngineers_.isEmpty()) {
+        loadingLabel_->setText("No engineers found");
+        return;
+    }
+
+    // Option A: Load all cards at once (brief freeze, zero jutter)
+    // Professional apps load everything in one go for smooth experience
+    int filterAreaId = areaFilterCombo_->currentData().toInt();
+
+    for (int i = 0; i < cachedEngineers_.size(); i++) {
+        const Engineer& engineer = cachedEngineers_[i];
+
         // Create engineer card
         QGroupBox* engineerCard = new QGroupBox(this);
         engineerCard->setStyleSheet(
@@ -161,23 +246,27 @@ void AssessmentWidget::loadEngineerCards()
 
         cardLayout->addLayout(headerLayout);
 
-        // Load competencies organized by area → machine
-        QList<ProductionArea> areas = productionRepo_.findAllAreas();
-
+        // Use cached data
         bool hasContent = false;
-        for (const ProductionArea& area : areas) {
+        int totalCompetencies = 0;
+        int trainedCompetencies = 0;
+
+        // Iterate through cached area-to-machines mapping
+        for (auto it = cachedAreaToMachines_.constBegin(); it != cachedAreaToMachines_.constEnd(); ++it) {
+            int areaId = it.key();
+
             // Skip if filtering and doesn't match
-            if (filterAreaId != 0 && area.id() != filterAreaId) {
+            if (filterAreaId != 0 && areaId != filterAreaId) {
                 continue;
             }
 
-            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-            if (machines.isEmpty()) {
-                continue;
-            }
+            const QList<MachineData>& machines = it.value();
+
+            // Get area name from cache (O(1) lookup, no database query)
+            QString areaName = cachedAreaNames_.value(areaId, "Unknown Area");
 
             // Area header
-            QLabel* areaLabel = new QLabel(area.name(), this);
+            QLabel* areaLabel = new QLabel(areaName, this);
             QFont areaFont = areaLabel->font();
             areaFont.setPointSize(16);
             areaFont.setBold(true);
@@ -185,17 +274,11 @@ void AssessmentWidget::loadEngineerCards()
             areaLabel->setStyleSheet("color: #334155; margin-top: 8px;");
             cardLayout->addWidget(areaLabel);
 
-            for (const Machine& machine : machines) {
-                QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-
-                if (competencies.isEmpty()) {
-                    continue;
-                }
-
+            for (const MachineData& machineData : machines) {
                 hasContent = true;
 
                 // Machine header
-                QLabel* machineLabel = new QLabel("  " + machine.name(), this);
+                QLabel* machineLabel = new QLabel("  " + machineData.machine.name(), this);
                 QFont machineFont = machineLabel->font();
                 machineFont.setPointSize(14);
                 machineFont.setWeight(QFont::Medium);
@@ -204,7 +287,9 @@ void AssessmentWidget::loadEngineerCards()
                 cardLayout->addWidget(machineLabel);
 
                 // Competencies grid
-                for (const Competency& competency : competencies) {
+                for (const Competency& competency : machineData.competencies) {
+                    totalCompetencies++;
+
                     QHBoxLayout* compLayout = new QHBoxLayout();
                     compLayout->setSpacing(12);
                     compLayout->setContentsMargins(32, 4, 0, 4);
@@ -217,24 +302,24 @@ void AssessmentWidget::loadEngineerCards()
                     compLabel->setWordWrap(true);
                     compLabel->setMinimumWidth(250);
                     compLabel->setMaximumWidth(500);
-                    compLayout->addWidget(compLabel, 1);  // Stretch factor of 1
+                    compLayout->addWidget(compLabel, 1);
 
                     compLayout->addStretch();
 
-                    // Get current score
-                    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineer.id());
-                    int currentScore = -1;
-                    for (const Assessment& assessment : assessments) {
-                        if (assessment.productionAreaId() == area.id() &&
-                            assessment.machineId() == machine.id() &&
-                            assessment.competencyId() == competency.id()) {
-                            currentScore = assessment.score();
-                            break;
-                        }
+                    // Get current score from cached data
+                    QString key = QString("%1_%2_%3_%4")
+                        .arg(engineer.id())
+                        .arg(areaId)
+                        .arg(machineData.machine.id())
+                        .arg(competency.id());
+                    int currentScore = cachedAssessmentScores_.value(key, -1);
+
+                    if (currentScore > 0) {
+                        trainedCompetencies++;
                     }
 
                     // Create score buttons (0-3)
-                    createScoreButtons(compLayout, engineer.id(), area.id(), machine.id(),
+                    createScoreButtons(compLayout, engineer.id(), areaId, machineData.machine.id(),
                                      competency.id(), currentScore);
 
                     cardLayout->addLayout(compLayout);
@@ -244,17 +329,24 @@ void AssessmentWidget::loadEngineerCards()
 
         // Only add card if it has content
         if (hasContent) {
-            // Update summary after building the card
-            updateEngineerSummary(engineer.id(), summaryLabel);
+            // Update summary using already calculated values
+            QString summaryText = QString("%1/%2 competencies trained")
+                                     .arg(trainedCompetencies)
+                                     .arg(totalCompetencies);
+            summaryLabel->setText(summaryText);
             engineersLayout_->insertWidget(engineersLayout_->count() - 1, engineerCard);
         } else {
             delete engineerCard;
         }
     }
 
+    // Hide loading label - all done
+    loadingLabel_->setVisible(false);
+
     Logger::instance().info("AssessmentWidget",
-        QString("Loaded %1 engineer cards").arg(engineersLayout_->count() - 1));
+        QString("Created %1 engineer cards").arg(cachedEngineers_.size()));
 }
+
 
 void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
                                          int areaId, int machineId, int competencyId,
@@ -461,13 +553,22 @@ void AssessmentWidget::onScoreButtonClicked()
 
 void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* summaryLabel)
 {
-    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
-
+    // OPTIMIZATION: Use cached data instead of repeated database queries
     int filterAreaId = areaFilterCombo_->currentData().toInt();
 
-    // Count total competencies for this engineer (considering filter)
+    // Load assessment scores once
+    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
+    QMap<QString, int> assessmentScores;
+    for (const Assessment& assessment : assessments) {
+        QString key = QString("%1_%2_%3")
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        assessmentScores[key] = assessment.score();
+    }
+
     int totalCompetencies = 0;
-    int trainedCompetencies = 0;  // score > 0
+    int trainedCompetencies = 0;
 
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
     for (const ProductionArea& area : areas) {
@@ -478,17 +579,17 @@ void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* 
         QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
         for (const Machine& machine : machines) {
             QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            totalCompetencies += competencies.size();
 
             for (const Competency& competency : competencies) {
-                for (const Assessment& assessment : assessments) {
-                    if (assessment.productionAreaId() == area.id() &&
-                        assessment.machineId() == machine.id() &&
-                        assessment.competencyId() == competency.id() &&
-                        assessment.score() > 0) {
-                        trainedCompetencies++;
-                        break;
-                    }
+                totalCompetencies++;
+
+                QString key = QString("%1_%2_%3")
+                    .arg(area.id())
+                    .arg(machine.id())
+                    .arg(competency.id());
+
+                if (assessmentScores.value(key, 0) > 0) {
+                    trainedCompetencies++;
                 }
             }
         }

@@ -42,10 +42,12 @@ bool Application::initialize(int argc, char* argv[])
     // Create Qt application
     qApp_ = new QApplication(argc, argv);
 
-    // Add Qt plugin paths for SQL drivers
-    // This is needed when app is launched from Dock/Finder
+    // Add Qt plugin paths for SQL drivers (platform-specific)
+#ifdef Q_OS_MACOS
+    // macOS: Add Homebrew Qt plugin paths when app is launched from Dock/Finder
     QCoreApplication::addLibraryPath("/opt/homebrew/Cellar/qtbase/6.9.3_1/share/qt/plugins");
     QCoreApplication::addLibraryPath("/opt/homebrew/opt/qtbase/share/qt/plugins");
+#endif
 
     Logger::instance().info("Application", QString("Qt plugin paths: %1").arg(
         QCoreApplication::libraryPaths().join(", ")));
@@ -232,9 +234,11 @@ void Application::onUserLogout()
     Logger::instance().info("Application", "User logged out: " + username);
     emit userLoggedOut();
 
-    // Close main window and show login again
+    // Close and delete main window
     if (mainWindow_) {
         mainWindow_->close();
+        delete mainWindow_;
+        mainWindow_ = nullptr;
     }
 
     // Show login dialog

@@ -19,8 +19,18 @@ public:
     explicit AnalyticsWidget(QWidget* parent = nullptr);
     ~AnalyticsWidget();
 
+protected:
+    void showEvent(QShowEvent* event) override;
+
+signals:
+    void dataLoadingFinished();
+
 public slots:
     void refresh() { loadAnalytics(); }  // Public refresh method
+
+private slots:
+    void onTabChanged(int tabIndex);
+    void onRefreshClicked();
 
 private:
     void setupUI();
@@ -87,9 +97,14 @@ private:
     EngineerRepository engineerRepo_;
     ProductionRepository productionRepo_;
 
-private slots:
-    void onTabChanged(int tabIndex);
-    void onRefreshClicked();
+    // Cached data for performance optimization
+    QList<Engineer> cachedEngineers_;
+    QList<Assessment> cachedAssessments_;
+    QList<ProductionArea> cachedAreas_;
+    int cachedTotalCompetencies_;
+
+    // Lazy loading state
+    bool isFirstShow_;
 };
 
 #endif // ANALYTICSWIDGET_H

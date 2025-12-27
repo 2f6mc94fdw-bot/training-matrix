@@ -19,6 +19,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Charts
     PrintSupport
     Network
+    Concurrent
 )
 
 # Include directories
@@ -221,6 +222,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Charts
     Qt6::PrintSupport
     Qt6::Network
+    Qt6::Concurrent
 )
 
 # Platform-specific settings

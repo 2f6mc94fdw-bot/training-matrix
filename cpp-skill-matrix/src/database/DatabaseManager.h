@@ -65,6 +65,9 @@ public:
 
     /**
      * @brief Execute SQL query (for utility/testing)
+     * @warning DEPRECATED: This method accepts raw SQL strings which can lead to SQL injection.
+     * Use QSqlQuery with prepared statements and parameter binding instead.
+     * This method should only be used for DDL operations or when absolutely necessary.
      * @param query SQL query string
      * @return true if successful
      */

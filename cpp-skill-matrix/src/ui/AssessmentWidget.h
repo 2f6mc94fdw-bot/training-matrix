@@ -22,6 +22,12 @@ public:
     explicit AssessmentWidget(QWidget* parent = nullptr);
     ~AssessmentWidget();
 
+protected:
+    void showEvent(QShowEvent* event) override;
+
+signals:
+    void dataLoadingFinished();
+
 private slots:
     void onAreaFilterChanged(int index);
     void onScoreButtonClicked();
@@ -49,6 +55,20 @@ private:
     EngineerRepository engineerRepo_;
     ProductionRepository productionRepo_;
     AssessmentRepository assessmentRepo_;
+
+    // Lazy loading state
+    bool isFirstShow_;
+    QLabel* loadingLabel_;
+
+    // Cached data for performance
+    QList<Engineer> cachedEngineers_;
+    QMap<QString, int> cachedAssessmentScores_;
+    QMap<int, QString> cachedAreaNames_;  // areaId -> areaName lookup
+    struct MachineData {
+        Machine machine;
+        QList<Competency> competencies;
+    };
+    QMap<int, QList<MachineData>> cachedAreaToMachines_;
 };
 
 #endif // ASSESSMENTWIDGET_H
