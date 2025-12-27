@@ -69,20 +69,17 @@ void CoreSkillsWidget::setupUI()
     skillsTable_->setColumnCount(3);
     skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score"});
 
-    // Configure column sizing for proper display
-    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
-    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
-    // Score column width: 4 buttons (32px each) + 3 gaps (6px each) + margins (4+4) = 154px, use 180px for comfort
-    skillsTable_->setColumnWidth(2, 180);
+    // Configure column sizing
+    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+    // Configure row sizing
+    skillsTable_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     skillsTable_->setAlternatingRowColors(true);
     // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
     skillsTable_->setSortingEnabled(false);
-
-    // Configure vertical header to respect manual row heights
-    skillsTable_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    skillsTable_->verticalHeader()->setDefaultSectionSize(44);  // Default height for all rows
 
     mainLayout->addWidget(skillsTable_);
 
@@ -139,12 +136,15 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
                 // Create score buttons widget
-                QWidget* buttonWidget = new QWidget();
-                QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
-                buttonLayout->setContentsMargins(6, 6, 6, 6);
-                buttonLayout->setSpacing(6);
+                QWidget* buttonWidget = new QWidget(skillsTable_);
+                QHBoxLayout* buttonLayout = new QHBoxLayout();
+                buttonLayout->setContentsMargins(8, 4, 8, 4);
+                buttonLayout->setSpacing(8);
 
                 createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+
+                buttonLayout->addStretch();  // Push buttons to the left
+                buttonWidget->setLayout(buttonLayout);
 
                 skillsTable_->setCellWidget(row, 2, buttonWidget);
 
