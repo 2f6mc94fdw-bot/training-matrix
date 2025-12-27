@@ -133,14 +133,16 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
-                // DIAGNOSTIC TEST: Try multiple approaches
-                QLabel* testLabel = new QLabel("TEST");
-                testLabel->setStyleSheet("background-color: red; color: white; padding: 5px;");
-                testLabel->setMinimumSize(50, 30);
-                testLabel->show();
-                skillsTable_->setCellWidget(row, 2, testLabel);
+                // Create score buttons widget
+                QWidget* buttonWidget = new QWidget();
+                QHBoxLayout* buttonLayout = new QHBoxLayout();
+                buttonLayout->setContentsMargins(4, 2, 4, 2);
+                buttonLayout->setSpacing(6);
 
-                Logger::instance().info("CoreSkillsWidget", QString("Set cell widget for row %1").arg(row));
+                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+
+                buttonWidget->setLayout(buttonLayout);
+                skillsTable_->setCellWidget(row, 2, buttonWidget);
 
                 row++;
             }
@@ -152,10 +154,6 @@ void CoreSkillsWidget::loadCoreSkills()
     // Keep sorting disabled to ensure buttons remain visible.
 
     Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
-
-    // Force table to update and show widgets
-    skillsTable_->viewport()->update();
-    skillsTable_->update();
 }
 
 void CoreSkillsWidget::loadAssessments()
