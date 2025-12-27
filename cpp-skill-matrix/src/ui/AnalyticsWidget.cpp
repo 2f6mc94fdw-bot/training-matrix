@@ -6,6 +6,7 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QShowEvent>
+#include <QTimer>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
