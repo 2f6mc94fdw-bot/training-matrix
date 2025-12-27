@@ -1,40 +1,39 @@
-#include "MyCoreSkillsWidget.h"
+#include "MyAssessmentsWidget.h"
 #include "../utils/Logger.h"
 #include "../core/Constants.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QHeaderView>
 #include <QGroupBox>
 #include <QFont>
 #include <QScrollArea>
 #include <QMessageBox>
 
-MyCoreSkillsWidget::MyCoreSkillsWidget(const QString& engineerId, QWidget* parent)
+MyAssessmentsWidget::MyAssessmentsWidget(const QString& engineerId, QWidget* parent)
     : QWidget(parent)
     , engineerId_(engineerId)
-    , skillsLayout_(nullptr)
-    , skillsContainer_(nullptr)
+    , assessmentsLayout_(nullptr)
+    , assessmentsContainer_(nullptr)
     , saveButton_(nullptr)
     , refreshButton_(nullptr)
     , summaryLabel_(nullptr)
 {
     setupUI();
-    loadCoreSkills();
-    Logger::instance().info("MyCoreSkillsWidget", QString("My Core Skills widget initialized for engineer: %1").arg(engineerId_));
+    loadAssessments();
+    Logger::instance().info("MyAssessmentsWidget", QString("My Assessments widget initialized for engineer: %1").arg(engineerId_));
 }
 
-MyCoreSkillsWidget::~MyCoreSkillsWidget()
+MyAssessmentsWidget::~MyAssessmentsWidget()
 {
 }
 
-void MyCoreSkillsWidget::setupUI()
+void MyAssessmentsWidget::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);
     mainLayout->setContentsMargins(30, 30, 30, 30);
 
     // Title
-    QLabel* titleLabel = new QLabel("My Core Skills", this);
+    QLabel* titleLabel = new QLabel("My Assessments", this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(20);
     titleFont.setBold(true);
@@ -42,7 +41,7 @@ void MyCoreSkillsWidget::setupUI()
     mainLayout->addWidget(titleLabel);
 
     // Description
-    QLabel* descLabel = new QLabel("View and update your core skill assessments across Mechanical, Electrical, and Software competencies.", this);
+    QLabel* descLabel = new QLabel("View and update your machine competency assessments.", this);
     descLabel->setWordWrap(true);
     mainLayout->addWidget(descLabel);
 
@@ -56,21 +55,21 @@ void MyCoreSkillsWidget::setupUI()
     mainLayout->addWidget(summaryLabel_);
 
     // Skill level legend
-    QLabel* legendLabel = new QLabel("Skill Levels: 0 = Not Assessed | 1 = Basic | 2 = Intermediate | 3 = Advanced", this);
+    QLabel* legendLabel = new QLabel("Competency Levels: 0 = Not Trained | 1 = Basic | 2 = Competent | 3 = Expert", this);
     legendLabel->setStyleSheet("QLabel { color: #666; font-size: 11pt; }");
     mainLayout->addWidget(legendLabel);
 
-    // Scrollable skills container
+    // Scrollable assessments container
     QScrollArea* scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
     scrollArea->setFrameShape(QFrame::NoFrame);
 
-    skillsContainer_ = new QWidget();
-    skillsLayout_ = new QVBoxLayout(skillsContainer_);
-    skillsLayout_->setSpacing(16);
-    skillsLayout_->setContentsMargins(0, 0, 0, 0);
+    assessmentsContainer_ = new QWidget();
+    assessmentsLayout_ = new QVBoxLayout(assessmentsContainer_);
+    assessmentsLayout_->setSpacing(16);
+    assessmentsLayout_->setContentsMargins(0, 0, 0, 0);
 
-    scrollArea->setWidget(skillsContainer_);
+    scrollArea->setWidget(assessmentsContainer_);
     mainLayout->addWidget(scrollArea);
 
     // Buttons
@@ -79,8 +78,8 @@ void MyCoreSkillsWidget::setupUI()
     saveButton_ = new QPushButton("Save My Assessments", this);
     refreshButton_ = new QPushButton("Refresh", this);
 
-    connect(saveButton_, &QPushButton::clicked, this, &MyCoreSkillsWidget::onSaveClicked);
-    connect(refreshButton_, &QPushButton::clicked, this, &MyCoreSkillsWidget::onRefreshClicked);
+    connect(saveButton_, &QPushButton::clicked, this, &MyAssessmentsWidget::onSaveClicked);
+    connect(refreshButton_, &QPushButton::clicked, this, &MyAssessmentsWidget::onRefreshClicked);
 
     buttonLayout->addWidget(saveButton_);
     buttonLayout->addStretch();
@@ -91,11 +90,11 @@ void MyCoreSkillsWidget::setupUI()
     setLayout(mainLayout);
 }
 
-void MyCoreSkillsWidget::loadCoreSkills()
+void MyAssessmentsWidget::loadAssessments()
 {
     // Clear existing widgets
     QLayoutItem* item;
-    while ((item = skillsLayout_->takeAt(0)) != nullptr) {
+    while ((item = assessmentsLayout_->takeAt(0)) != nullptr) {
         if (item->widget()) {
             item->widget()->deleteLater();
         }
@@ -103,32 +102,47 @@ void MyCoreSkillsWidget::loadCoreSkills()
     }
     scoreButtonGroups_.clear();
 
-    // Load all categories and skills
-    QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
-    QList<CoreSkill> skills = coreSkillsRepo_.findAllSkills();
+    // Load production data
+    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    QList<Machine> allMachines = productionRepo_.findAllMachines();
+    QList<Competency> allCompetencies = productionRepo_.findAllCompetencies();
 
     // Load this engineer's assessments
-    QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAllAssessments();
+    QList<Assessment> assessments = assessmentRepo_.findAll();
 
-    // Create a map of skill_id -> score for quick lookup
-    QMap<QString, int> skillScores;
-    for (const CoreSkillAssessment& assessment : assessments) {
+    // Create a map of assessment key -> score for quick lookup
+    QMap<QString, int> assessmentScores;
+    for (const Assessment& assessment : assessments) {
         if (assessment.engineerId() == engineerId_) {
-            skillScores[assessment.skillId()] = assessment.score();
+            QString key = QString("%1_%2_%3")
+                .arg(assessment.areaId())
+                .arg(assessment.machineId())
+                .arg(assessment.competencyId());
+            assessmentScores[key] = assessment.score();
         }
     }
 
     // Track statistics
-    int assessedCount = 0;
-    int totalScore = 0;
-    int maxPossibleScore = 0;
-    int totalSkills = 0;
+    int totalCompetencies = 0;
+    int trainedCompetencies = 0;
 
-    // Create a card for each category
-    for (const CoreSkillCategory& category : categories) {
-        // Create category card
-        QGroupBox* categoryCard = new QGroupBox(this);
-        categoryCard->setStyleSheet(
+    // Create a card for each production area
+    for (const ProductionArea& area : areas) {
+        // Get machines for this area
+        QList<Machine> areaMachines;
+        for (const Machine& machine : allMachines) {
+            if (machine.areaId() == area.id()) {
+                areaMachines.append(machine);
+            }
+        }
+
+        if (areaMachines.isEmpty()) {
+            continue;
+        }
+
+        // Create area card
+        QGroupBox* areaCard = new QGroupBox(this);
+        areaCard->setStyleSheet(
             "QGroupBox {"
             "    border: 2px solid #e2e8f0;"
             "    border-radius: 8px;"
@@ -143,91 +157,93 @@ void MyCoreSkillsWidget::loadCoreSkills()
             "}"
         );
 
-        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        QVBoxLayout* cardLayout = new QVBoxLayout(areaCard);
         cardLayout->setSpacing(12);
 
-        // Category title
-        QLabel* categoryLabel = new QLabel(category.name(), this);
-        QFont categoryFont = categoryLabel->font();
-        categoryFont.setPointSize(14);
-        categoryFont.setBold(true);
-        categoryLabel->setFont(categoryFont);
-        cardLayout->addWidget(categoryLabel);
+        // Area title
+        QLabel* areaLabel = new QLabel(area.name(), this);
+        QFont areaFont = areaLabel->font();
+        areaFont.setPointSize(14);
+        areaFont.setBold(true);
+        areaLabel->setFont(areaFont);
+        cardLayout->addWidget(areaLabel);
 
-        // Add skills for this category
-        bool hasSkills = false;
-        for (const CoreSkill& skill : skills) {
-            if (skill.categoryId() == category.id()) {
-                hasSkills = true;
-                totalSkills++;
+        // Add machines and competencies for this area
+        for (const Machine& machine : areaMachines) {
+            // Machine header
+            QLabel* machineLabel = new QLabel(machine.name(), this);
+            QFont machineFont = machineLabel->font();
+            machineFont.setPointSize(12);
+            machineFont.setBold(true);
+            machineLabel->setFont(machineFont);
+            machineLabel->setStyleSheet("QLabel { color: #4a5568; margin-top: 8px; }");
+            cardLayout->addWidget(machineLabel);
 
-                QHBoxLayout* skillLayout = new QHBoxLayout();
-                skillLayout->setSpacing(12);
-                skillLayout->setContentsMargins(0, 4, 0, 4);
+            // Get competencies for this machine
+            for (const Competency& competency : allCompetencies) {
+                if (competency.machineId() == machine.id()) {
+                    totalCompetencies++;
 
-                // Skill name
-                QLabel* skillLabel = new QLabel(skill.name(), this);
-                QFont skillFont = skillLabel->font();
-                skillFont.setPointSize(13);
-                skillLabel->setFont(skillFont);
-                skillLabel->setWordWrap(true);
-                skillLabel->setMinimumWidth(250);
-                skillLabel->setMaximumWidth(500);
-                skillLayout->addWidget(skillLabel, 1);
+                    QHBoxLayout* compLayout = new QHBoxLayout();
+                    compLayout->setSpacing(12);
+                    compLayout->setContentsMargins(32, 4, 0, 4);
 
-                skillLayout->addStretch();
+                    // Competency name
+                    QLabel* compLabel = new QLabel(competency.name(), this);
+                    QFont compFont = compLabel->font();
+                    compFont.setPointSize(13);
+                    compLabel->setFont(compFont);
+                    compLabel->setWordWrap(true);
+                    compLabel->setMinimumWidth(250);
+                    compLabel->setMaximumWidth(500);
+                    compLayout->addWidget(compLabel, 1);
 
-                // Get current score
-                int currentScore = skillScores.value(skill.id(), 0);
+                    compLayout->addStretch();
 
-                // Create score buttons (0-3)
-                createScoreButtons(skillLayout, category.id(), skill.id(), currentScore);
+                    // Get current score
+                    QString key = QString("%1_%2_%3")
+                        .arg(area.id())
+                        .arg(machine.id())
+                        .arg(competency.id());
+                    int currentScore = assessmentScores.value(key, 0);
 
-                cardLayout->addLayout(skillLayout);
+                    if (currentScore > 0) {
+                        trainedCompetencies++;
+                    }
 
-                // Track statistics
-                if (currentScore > 0) {
-                    assessedCount++;
-                    totalScore += currentScore;
+                    // Create score buttons (0-3)
+                    createScoreButtons(compLayout, area.id(), machine.id(), competency.id(), currentScore);
+
+                    cardLayout->addLayout(compLayout);
                 }
-                maxPossibleScore += skill.maxScore();
             }
         }
 
-        // Only add the card if it has skills
-        if (hasSkills) {
-            skillsLayout_->addWidget(categoryCard);
-        } else {
-            delete categoryCard;
-        }
+        assessmentsLayout_->addWidget(areaCard);
     }
 
     // Add stretch at the end
-    skillsLayout_->addStretch();
+    assessmentsLayout_->addStretch();
 
     // Update summary
-    double completionRate = totalSkills > 0 ? (double)assessedCount / totalSkills * 100.0 : 0.0;
-    double averageScore = assessedCount > 0 ? (double)totalScore / assessedCount : 0.0;
-    double overallScore = maxPossibleScore > 0 ? (double)totalScore / maxPossibleScore * 100.0 : 0.0;
+    double completionRate = totalCompetencies > 0 ? (double)trainedCompetencies / totalCompetencies * 100.0 : 0.0;
 
-    QString summaryText = QString("📊 %1 of %2 skills assessed (%.1%%) | Average Score: %.2 / 3 | Overall: %.1%%")
-        .arg(assessedCount)
-        .arg(totalSkills)
-        .arg(completionRate, 0, 'f', 1)
-        .arg(averageScore, 0, 'f', 2)
-        .arg(overallScore, 0, 'f', 1);
+    QString summaryText = QString("📊 %1 of %2 competencies trained (%.1%%)")
+        .arg(trainedCompetencies)
+        .arg(totalCompetencies)
+        .arg(completionRate, 0, 'f', 1);
 
     summaryLabel_->setText(summaryText);
 
-    Logger::instance().info("MyCoreSkillsWidget",
-        QString("Loaded %1 core skills (%2 assessed) for engineer %3")
-        .arg(totalSkills)
-        .arg(assessedCount)
+    Logger::instance().info("MyAssessmentsWidget",
+        QString("Loaded %1 competencies (%2 trained) for engineer %3")
+        .arg(totalCompetencies)
+        .arg(trainedCompetencies)
         .arg(engineerId_));
 }
 
-void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& categoryId,
-                                           const QString& skillId, int currentScore)
+void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, int machineId,
+                                             int competencyId, int currentScore)
 {
     // Score labels and colors
     struct ScoreInfo {
@@ -243,8 +259,9 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
     };
 
     ScoreButtonGroup buttonGroup;
-    buttonGroup.categoryId = categoryId;
-    buttonGroup.skillId = skillId;
+    buttonGroup.areaId = areaId;
+    buttonGroup.machineId = machineId;
+    buttonGroup.competencyId = competencyId;
 
     for (int score = 0; score < 4; score++) {
         QPushButton* button = new QPushButton(scoreInfos[score].label);
@@ -252,8 +269,9 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
         button->setCursor(Qt::PointingHandCursor);
 
         // Store metadata
-        button->setProperty("categoryId", categoryId);
-        button->setProperty("skillId", skillId);
+        button->setProperty("areaId", areaId);
+        button->setProperty("machineId", machineId);
+        button->setProperty("competencyId", competencyId);
         button->setProperty("score", score);
 
         // Style button based on whether it's selected
@@ -295,7 +313,7 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
 
         button->setStyleSheet(buttonStyle);
 
-        connect(button, &QPushButton::clicked, this, &MyCoreSkillsWidget::onScoreButtonClicked);
+        connect(button, &QPushButton::clicked, this, &MyAssessmentsWidget::onScoreButtonClicked);
 
         layout->addWidget(button);
         buttonGroup.buttons[score] = button;
@@ -304,15 +322,16 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
     scoreButtonGroups_.append(buttonGroup);
 }
 
-void MyCoreSkillsWidget::onScoreButtonClicked()
+void MyAssessmentsWidget::onScoreButtonClicked()
 {
     QPushButton* clickedButton = qobject_cast<QPushButton*>(sender());
     if (!clickedButton) {
         return;
     }
 
-    QString categoryId = clickedButton->property("categoryId").toString();
-    QString skillId = clickedButton->property("skillId").toString();
+    int areaId = clickedButton->property("areaId").toInt();
+    int machineId = clickedButton->property("machineId").toInt();
+    int competencyId = clickedButton->property("competencyId").toInt();
     int score = clickedButton->property("score").toInt();
 
     // Color scheme
@@ -320,8 +339,9 @@ void MyCoreSkillsWidget::onScoreButtonClicked()
 
     // Find the button group and update all buttons in that group
     for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
-        if (buttonGroup.categoryId == categoryId &&
-            buttonGroup.skillId == skillId) {
+        if (buttonGroup.areaId == areaId &&
+            buttonGroup.machineId == machineId &&
+            buttonGroup.competencyId == competencyId) {
 
             // Update styles for all buttons in this group
             for (int i = 0; i < 4; i++) {
@@ -364,22 +384,22 @@ void MyCoreSkillsWidget::onScoreButtonClicked()
             }
 
             // Log the score change
-            Logger::instance().info("MyCoreSkillsWidget",
-                QString("Score changed to %1 for skill %2")
+            Logger::instance().info("MyAssessmentsWidget",
+                QString("Score changed to %1 for competency %2")
                     .arg(score)
-                    .arg(skillId));
+                    .arg(competencyId));
 
             break;
         }
     }
 }
 
-void MyCoreSkillsWidget::onSaveClicked()
+void MyAssessmentsWidget::onSaveClicked()
 {
     int savedCount = 0;
     int errorCount = 0;
 
-    // Loop through all button groups and find selected score for each skill
+    // Loop through all button groups and find selected score for each competency
     for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
         // Find which button is selected (has the score property and colored background)
         int selectedScore = 0;
@@ -392,18 +412,15 @@ void MyCoreSkillsWidget::onSaveClicked()
             }
         }
 
-        CoreSkillAssessment assessment;
-        assessment.setEngineerId(engineerId_);
-        assessment.setCategoryId(buttonGroup.categoryId);
-        assessment.setSkillId(buttonGroup.skillId);
-        assessment.setScore(selectedScore);
+        Assessment assessment(0, engineerId_, buttonGroup.areaId, buttonGroup.machineId,
+                            buttonGroup.competencyId, selectedScore);
 
-        if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
+        if (assessmentRepo_.saveOrUpdate(assessment)) {
             savedCount++;
         } else {
             errorCount++;
-            Logger::instance().error("MyCoreSkillsWidget",
-                QString("Failed to save assessment: %1").arg(coreSkillsRepo_.lastError()));
+            Logger::instance().error("MyAssessmentsWidget",
+                QString("Failed to save assessment: %1").arg(assessmentRepo_.lastError()));
         }
     }
 
@@ -411,17 +428,17 @@ void MyCoreSkillsWidget::onSaveClicked()
         QMessageBox::warning(this, "Partial Success",
             QString("Saved %1 assessments, but %2 failed.").arg(savedCount).arg(errorCount));
     } else {
-        Logger::instance().info("MyCoreSkillsWidget", QString("Saved %1 core skill assessments").arg(savedCount));
+        Logger::instance().info("MyAssessmentsWidget", QString("Saved %1 assessments").arg(savedCount));
         QMessageBox::information(this, "Success",
-            QString("Successfully saved %1 core skill assessments.").arg(savedCount));
+            QString("Successfully saved %1 assessments.").arg(savedCount));
 
         // Refresh to update summary statistics
-        loadCoreSkills();
+        loadAssessments();
     }
 }
 
-void MyCoreSkillsWidget::onRefreshClicked()
+void MyAssessmentsWidget::onRefreshClicked()
 {
-    loadCoreSkills();
-    Logger::instance().info("MyCoreSkillsWidget", "Core skills refreshed");
+    loadAssessments();
+    Logger::instance().info("MyAssessmentsWidget", "Assessments refreshed");
 }

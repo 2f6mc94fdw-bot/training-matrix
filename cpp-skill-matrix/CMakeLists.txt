@@ -90,6 +90,7 @@ set(SOURCES
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
     src/ui/MyCoreSkillsWidget.cpp
+    src/ui/MyAssessmentsWidget.cpp
     src/ui/ReportsWidget.cpp
     src/ui/AnalyticsWidget.cpp
     src/ui/CertificationsWidget.cpp

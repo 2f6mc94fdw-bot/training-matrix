@@ -13,6 +13,7 @@
 #include "AssessmentWidget.h"
 #include "CoreSkillsWidget.h"
 #include "MyCoreSkillsWidget.h"
+#include "MyAssessmentsWidget.h"
 #include "ReportsWidget.h"
 #include "AnalyticsWidget.h"
 #include "CertificationsWidget.h"
@@ -181,7 +182,7 @@ void MainWindow::setupCentralWidget()
         contentStack_->addWidget(myDashboard);
 
         // My Assessments - shows only their assessments
-        QWidget* myAssessments = new QLabel("Your machine competency assessments will appear here.", this);
+        MyAssessmentsWidget* myAssessments = new MyAssessmentsWidget(engineerId, this);
         contentStack_->addWidget(myAssessments);
 
         // My Core Skills - shows only their core skills
