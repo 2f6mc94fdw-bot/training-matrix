@@ -1,4 +1,4 @@
-#ifndef MYCOREFKILLSWIDGET_H
+#ifndef MYCORESKILLSWIDGET_H
 #define MYCORESKILLSWIDGET_H
 
 #include <QWidget>

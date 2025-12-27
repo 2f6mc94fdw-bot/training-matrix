@@ -48,7 +48,7 @@ void MyCoreSkillsWidget::setupUI()
     summaryFont.setPointSize(12);
     summaryFont.setBold(true);
     summaryLabel_->setFont(summaryFont);
-    summaryLabel_->setStyleSheet("QLabel { color: " + QString(Constants::PRIMARY_COLOR) + "; padding: 10px; }");
+    summaryLabel_->setStyleSheet("QLabel { color: " + QString(Constants::BRAND_ACCENT) + "; padding: 10px; }");
     mainLayout->addWidget(summaryLabel_);
 
     // Skills Table
@@ -98,7 +98,7 @@ void MyCoreSkillsWidget::loadCoreSkills()
     QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAllAssessments();
 
     // Create a map of skill_id -> score for quick lookup
-    QMap<int, int> skillScores;
+    QMap<QString, int> skillScores;
     for (const CoreSkillAssessment& assessment : assessments) {
         if (assessment.engineerId() == engineerId_) {
             skillScores[assessment.skillId()] = assessment.score();
