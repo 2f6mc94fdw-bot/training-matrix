@@ -180,14 +180,13 @@ void MyDashboardWidget::loadDashboardData()
     currentEngineer_ = engineerRepo_.findById(engineerId_);
 
     // Load assessments
-    assessments_ = assessmentRepo_.findAllAssessments();
-    QList<Assessment> myAssessments;
-    for (const Assessment& assessment : assessments_) {
+    QList<Assessment> allAssessments = assessmentRepo_.findAll();
+    assessments_.clear();
+    for (const Assessment& assessment : allAssessments) {
         if (assessment.engineerId() == engineerId_) {
-            myAssessments.append(assessment);
+            assessments_.append(assessment);
         }
     }
-    assessments_ = myAssessments;
 
     // Load core skill assessments
     QList<CoreSkillAssessment> allCoreSkillAssessments = coreSkillsRepo_.findAllAssessments();
@@ -243,8 +242,19 @@ void MyDashboardWidget::updateAreasOfWeakness()
 
     // Find competencies with score 0 or 1
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
-    QList<Machine> allMachines = productionRepo_.findAllMachines();
-    QList<Competency> allCompetencies = productionRepo_.findAllCompetencies();
+
+    // Build list of all machines and competencies
+    QList<Machine> allMachines;
+    QList<Competency> allCompetencies;
+    for (const ProductionArea& area : areas) {
+        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        allMachines.append(areaMachines);
+
+        for (const Machine& machine : areaMachines) {
+            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
+        }
+    }
 
     for (const Assessment& assessment : assessments_) {
         if (assessment.score() <= 1) {

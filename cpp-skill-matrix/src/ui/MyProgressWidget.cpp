@@ -213,7 +213,7 @@ void MyProgressWidget::loadProgressData()
     currentEngineer_ = engineerRepo_.findById(engineerId_);
 
     // Load current assessments
-    QList<Assessment> allAssessments = assessmentRepo_.findAllAssessments();
+    QList<Assessment> allAssessments = assessmentRepo_.findAll();
     assessments_.clear();
     for (const Assessment& assessment : allAssessments) {
         if (assessment.engineerId() == engineerId_) {
