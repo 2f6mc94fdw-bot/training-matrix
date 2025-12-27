@@ -72,8 +72,7 @@ void CoreSkillsWidget::setupUI()
     // Configure column sizing for proper display
     skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
     skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
-    skillsTable_->setColumnWidth(2, 180);  // Set Score column width for button group
+    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Score (auto-adjust to button size)
 
     skillsTable_->setAlternatingRowColors(true);
     // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
