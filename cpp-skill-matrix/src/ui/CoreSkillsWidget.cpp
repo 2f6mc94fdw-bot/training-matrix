@@ -133,6 +133,9 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
                 skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
 
+                // Set row height to accommodate 32px buttons + margins
+                skillsTable_->setRowHeight(row, 40);
+
                 // Create score buttons widget
                 QWidget* buttonWidget = new QWidget();
                 QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
