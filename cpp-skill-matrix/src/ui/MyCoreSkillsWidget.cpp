@@ -6,11 +6,13 @@
 #include <QHeaderView>
 #include <QGroupBox>
 #include <QFont>
+#include <QScrollArea>
 
 MyCoreSkillsWidget::MyCoreSkillsWidget(const QString& engineerId, QWidget* parent)
     : QWidget(parent)
     , engineerId_(engineerId)
-    , skillsTable_(nullptr)
+    , skillsLayout_(nullptr)
+    , skillsContainer_(nullptr)
     , refreshButton_(nullptr)
     , summaryLabel_(nullptr)
 {
@@ -51,25 +53,23 @@ void MyCoreSkillsWidget::setupUI()
     summaryLabel_->setStyleSheet("QLabel { color: " + QString(Constants::BRAND_ACCENT) + "; padding: 10px; }");
     mainLayout->addWidget(summaryLabel_);
 
-    // Skills Table
-    QLabel* tableLabel = new QLabel("Skill Levels: 0 = Not Assessed | 1 = Basic | 2 = Intermediate | 3 = Advanced", this);
-    tableLabel->setStyleSheet("QLabel { color: #666; font-size: 11pt; }");
-    mainLayout->addWidget(tableLabel);
+    // Skill level legend
+    QLabel* legendLabel = new QLabel("Skill Levels: 0 = Not Assessed | 1 = Basic | 2 = Intermediate | 3 = Advanced", this);
+    legendLabel->setStyleSheet("QLabel { color: #666; font-size: 11pt; }");
+    mainLayout->addWidget(legendLabel);
 
-    skillsTable_ = new QTableWidget(this);
-    skillsTable_->setColumnCount(3);
-    skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Your Score"});
-    skillsTable_->horizontalHeader()->setStretchLastSection(true);
-    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    skillsTable_->setAlternatingRowColors(true);
-    skillsTable_->setSortingEnabled(true);
-    skillsTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);  // Read-only
-    skillsTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);
+    // Scrollable skills container
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
 
-    mainLayout->addWidget(skillsTable_);
+    skillsContainer_ = new QWidget();
+    skillsLayout_ = new QVBoxLayout(skillsContainer_);
+    skillsLayout_->setSpacing(16);
+    skillsLayout_->setContentsMargins(0, 0, 0, 0);
+
+    scrollArea->setWidget(skillsContainer_);
+    mainLayout->addWidget(scrollArea);
 
     // Refresh Button
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -86,9 +86,14 @@ void MyCoreSkillsWidget::setupUI()
 
 void MyCoreSkillsWidget::loadCoreSkills()
 {
-    // Disable sorting while loading
-    skillsTable_->setSortingEnabled(false);
-    skillsTable_->setRowCount(0);
+    // Clear existing widgets
+    QLayoutItem* item;
+    while ((item = skillsLayout_->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
 
     // Load all categories and skills
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
@@ -105,47 +110,94 @@ void MyCoreSkillsWidget::loadCoreSkills()
         }
     }
 
-    // Build the table
-    int row = 0;
+    // Track statistics
     int assessedCount = 0;
     int totalScore = 0;
     int maxPossibleScore = 0;
+    int totalSkills = 0;
 
+    // Score colors
+    QStringList scoreColors = {"#999999", "#f59e0b", "#3b82f6", "#10b981"};  // Gray, Orange, Blue, Green
+    QStringList scoreLabels = {"Not Assessed", "Basic", "Intermediate", "Advanced"};
+
+    // Create a card for each category
     for (const CoreSkillCategory& category : categories) {
+        // Create category card
+        QGroupBox* categoryCard = new QGroupBox(this);
+        categoryCard->setStyleSheet(
+            "QGroupBox {"
+            "    border: 2px solid #e2e8f0;"
+            "    border-radius: 8px;"
+            "    padding: 16px;"
+            "    background-color: transparent;"
+            "    margin-top: 12px;"
+            "}"
+            "QGroupBox::title {"
+            "    subcontrol-origin: margin;"
+            "    left: 16px;"
+            "    padding: 0 8px 0 8px;"
+            "}"
+        );
+
+        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        cardLayout->setSpacing(12);
+
+        // Category title
+        QLabel* categoryLabel = new QLabel(category.name(), this);
+        QFont categoryFont = categoryLabel->font();
+        categoryFont.setPointSize(14);
+        categoryFont.setBold(true);
+        categoryLabel->setFont(categoryFont);
+        cardLayout->addWidget(categoryLabel);
+
+        // Add skills for this category
+        bool hasSkills = false;
         for (const CoreSkill& skill : skills) {
             if (skill.categoryId() == category.id()) {
-                skillsTable_->insertRow(row);
+                hasSkills = true;
+                totalSkills++;
 
-                // Category
-                QTableWidgetItem* categoryItem = new QTableWidgetItem(category.name());
-                skillsTable_->setItem(row, 0, categoryItem);
+                QHBoxLayout* skillLayout = new QHBoxLayout();
+                skillLayout->setSpacing(12);
+                skillLayout->setContentsMargins(0, 4, 0, 4);
 
                 // Skill name
-                QTableWidgetItem* skillItem = new QTableWidgetItem(skill.name());
-                skillsTable_->setItem(row, 1, skillItem);
+                QLabel* skillLabel = new QLabel(skill.name(), this);
+                QFont skillFont = skillLabel->font();
+                skillFont.setPointSize(13);
+                skillLabel->setFont(skillFont);
+                skillLabel->setWordWrap(true);
+                skillLabel->setMinimumWidth(250);
+                skillLabel->setMaximumWidth(500);
+                skillLayout->addWidget(skillLabel, 1);
 
-                // Score
+                skillLayout->addStretch();
+
+                // Score badge
                 int score = skillScores.value(skill.id(), 0);
-                QTableWidgetItem* scoreItem = new QTableWidgetItem(QString::number(score));
-                scoreItem->setTextAlignment(Qt::AlignCenter);
 
-                // Color code the score
-                if (score == 0) {
-                    scoreItem->setForeground(QBrush(QColor("#999")));  // Gray for not assessed
-                } else if (score == 1) {
-                    scoreItem->setForeground(QBrush(QColor("#f59e0b")));  // Orange for basic
-                } else if (score == 2) {
-                    scoreItem->setForeground(QBrush(QColor("#3b82f6")));  // Blue for intermediate
-                } else if (score == 3) {
-                    scoreItem->setForeground(QBrush(QColor("#10b981")));  // Green for advanced
-                }
+                QLabel* scoreLabel = new QLabel(scoreLabels[score], this);
+                scoreLabel->setAlignment(Qt::AlignCenter);
+                scoreLabel->setFixedSize(120, 32);
 
-                QFont scoreFont = scoreItem->font();
-                scoreFont.setBold(true);
-                scoreFont.setPointSize(12);
-                scoreItem->setFont(scoreFont);
+                QFont scoreLabelFont = scoreLabel->font();
+                scoreLabelFont.setBold(true);
+                scoreLabelFont.setPointSize(12);
+                scoreLabel->setFont(scoreLabelFont);
 
-                skillsTable_->setItem(row, 2, scoreItem);
+                QString scoreBadgeStyle = QString(
+                    "QLabel {"
+                    "    background-color: %1;"
+                    "    color: white;"
+                    "    border-radius: 16px;"
+                    "    padding: 4px 12px;"
+                    "}"
+                ).arg(scoreColors[score]);
+
+                scoreLabel->setStyleSheet(scoreBadgeStyle);
+                skillLayout->addWidget(scoreLabel);
+
+                cardLayout->addLayout(skillLayout);
 
                 // Track statistics
                 if (score > 0) {
@@ -153,18 +205,21 @@ void MyCoreSkillsWidget::loadCoreSkills()
                     totalScore += score;
                 }
                 maxPossibleScore += skill.maxScore();
-
-                row++;
             }
+        }
+
+        // Only add the card if it has skills
+        if (hasSkills) {
+            skillsLayout_->addWidget(categoryCard);
+        } else {
+            delete categoryCard;
         }
     }
 
-    // Re-enable sorting
-    skillsTable_->setSortingEnabled(true);
-    skillsTable_->sortByColumn(0, Qt::AscendingOrder);
+    // Add stretch at the end
+    skillsLayout_->addStretch();
 
     // Update summary
-    int totalSkills = row;
     double completionRate = totalSkills > 0 ? (double)assessedCount / totalSkills * 100.0 : 0.0;
     double averageScore = assessedCount > 0 ? (double)totalScore / assessedCount : 0.0;
     double overallScore = maxPossibleScore > 0 ? (double)totalScore / maxPossibleScore * 100.0 : 0.0;

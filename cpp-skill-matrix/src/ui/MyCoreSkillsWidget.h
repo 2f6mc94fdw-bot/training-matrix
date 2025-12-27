@@ -2,9 +2,10 @@
 #define MYCORESKILLSWIDGET_H
 
 #include <QWidget>
-#include <QTableWidget>
 #include <QPushButton>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QScrollArea>
 #include "../database/CoreSkillsRepository.h"
 
 class MyCoreSkillsWidget : public QWidget
@@ -23,7 +24,8 @@ private:
     void loadCoreSkills();
 
     QString engineerId_;
-    QTableWidget* skillsTable_;
+    QVBoxLayout* skillsLayout_;
+    QWidget* skillsContainer_;
     QPushButton* refreshButton_;
     QLabel* summaryLabel_;
 
