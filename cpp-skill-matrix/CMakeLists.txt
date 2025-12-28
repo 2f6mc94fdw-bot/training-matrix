@@ -243,16 +243,17 @@ endif()
 
 if(APPLE)
     # macOS: Create app bundle with icon
-    set(MACOSX_BUNDLE_ICON_FILE aptitude.icns)
-    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/aptitude.icns)
-    set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
-        MACOSX_PACKAGE_LOCATION "Resources"
-    )
-    target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_MACOSX})
+    # TODO: Uncomment when aptitude.icns is created
+    # set(MACOSX_BUNDLE_ICON_FILE aptitude.icns)
+    # set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/aptitude.icns)
+    # set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
+    #     MACOSX_PACKAGE_LOCATION "Resources"
+    # )
+    # target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_MACOSX})
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_ICON_FILE aptitude.icns
+        # MACOSX_BUNDLE_ICON_FILE aptitude.icns
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/resources/Info.plist
     )
 endif()
