@@ -281,19 +281,41 @@ void MyProgressWidget::loadProgressData()
 void MyProgressWidget::createSkillProgressChart()
 {
     QChart* chart = new QChart();
-    chart->setTitle("Average Competency Score Over Time");
+    chart->setTitle("Average Competency Score Over Time (Weighted)");
     chart->setAnimationOptions(QChart::SeriesAnimations);
 
     QLineSeries* series = new QLineSeries();
-    series->setName("Avg Score");
+    series->setName("Weighted Avg Score");
 
-    // Current point
-    if (!assessments_.isEmpty()) {
-        double currentAvg = 0.0;
-        for (const Assessment& assessment : assessments_) {
-            currentAvg += assessment.score();
+    // Load all competencies to get weights
+    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    QList<Competency> allCompetencies;
+    for (const ProductionArea& area : areas) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
         }
-        currentAvg /= assessments_.size();
+    }
+
+    // Current point (WEIGHTED)
+    if (!assessments_.isEmpty()) {
+        double weightedSum = 0.0;
+        double totalWeights = 0.0;
+
+        for (const Assessment& assessment : assessments_) {
+            // Find the competency to get its weight
+            for (const Competency& comp : allCompetencies) {
+                if (comp.id() == assessment.competencyId()) {
+                    double weight = comp.calculatedWeight();
+                    weightedSum += assessment.score() * weight;
+                    totalWeights += weight;
+                    break;
+                }
+            }
+        }
+
+        double currentAvg = (totalWeights > 0.0) ? (weightedSum / totalWeights) : 0.0;
 
         QDateTime now = QDateTime::currentDateTime();
         series->append(now.toMSecsSinceEpoch(), currentAvg);
@@ -352,19 +374,33 @@ void MyProgressWidget::createSkillProgressChart()
 void MyProgressWidget::createCoreSkillProgressChart()
 {
     QChart* chart = new QChart();
-    chart->setTitle("Average Core Skills Score Over Time");
+    chart->setTitle("Average Core Skills Score Over Time (Weighted)");
     chart->setAnimationOptions(QChart::SeriesAnimations);
 
     QLineSeries* series = new QLineSeries();
-    series->setName("Avg Core Skills Score");
+    series->setName("Weighted Avg Core Skills Score");
 
-    // Current point
+    // Load all core skills to get weights
+    QList<CoreSkill> allCoreSkills = coreSkillsRepo_.findAllSkills();
+
+    // Current point (WEIGHTED)
     if (!coreSkillAssessments_.isEmpty()) {
-        double currentAvg = 0.0;
+        double weightedSum = 0.0;
+        double totalWeights = 0.0;
+
         for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
-            currentAvg += assessment.score();
+            // Find the core skill to get its weight
+            for (const CoreSkill& skill : allCoreSkills) {
+                if (skill.id() == assessment.skillId()) {
+                    double weight = skill.calculatedWeight();
+                    weightedSum += assessment.score() * weight;
+                    totalWeights += weight;
+                    break;
+                }
+            }
         }
-        currentAvg /= coreSkillAssessments_.size();
+
+        double currentAvg = (totalWeights > 0.0) ? (weightedSum / totalWeights) : 0.0;
 
         QDateTime now = QDateTime::currentDateTime();
         series->append(now.toMSecsSinceEpoch(), currentAvg);

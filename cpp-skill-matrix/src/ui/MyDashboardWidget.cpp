@@ -231,25 +231,64 @@ void MyDashboardWidget::updatePersonalStats()
     int totalAssessments = assessments_.size() + coreSkillAssessments_.size();
     totalAssessmentsLabel_->setText(QString::number(totalAssessments));
 
-    // Average competency skill level
+    // Average competency skill level (WEIGHTED)
     double avgCompetency = 0.0;
     if (!assessments_.isEmpty()) {
-        int totalScore = 0;
-        for (const Assessment& assessment : assessments_) {
-            totalScore += assessment.score();
+        // Load all competencies to get weights
+        QList<ProductionArea> areas = productionRepo_.findAllAreas();
+        QList<Competency> allCompetencies;
+        for (const ProductionArea& area : areas) {
+            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+            for (const Machine& machine : machines) {
+                QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+                allCompetencies.append(machineCompetencies);
+            }
         }
-        avgCompetency = static_cast<double>(totalScore) / assessments_.size();
+
+        double weightedSum = 0.0;
+        double totalWeights = 0.0;
+
+        for (const Assessment& assessment : assessments_) {
+            // Find the competency to get its weight
+            for (const Competency& comp : allCompetencies) {
+                if (comp.id() == assessment.competencyId()) {
+                    double weight = comp.calculatedWeight();
+                    weightedSum += assessment.score() * weight;
+                    totalWeights += weight;
+                    break;
+                }
+            }
+        }
+
+        if (totalWeights > 0.0) {
+            avgCompetency = weightedSum / totalWeights;
+        }
     }
     avgSkillLevelLabel_->setText(QString::number(avgCompetency, 'f', 2));
 
-    // Average core skills
+    // Average core skills (WEIGHTED)
     double avgCoreSkills = 0.0;
     if (!coreSkillAssessments_.isEmpty()) {
-        int totalScore = 0;
+        QList<CoreSkill> allCoreSkills = coreSkillsRepo_.findAllSkills();
+
+        double weightedSum = 0.0;
+        double totalWeights = 0.0;
+
         for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
-            totalScore += assessment.score();
+            // Find the core skill to get its weight
+            for (const CoreSkill& skill : allCoreSkills) {
+                if (skill.id() == assessment.skillId()) {
+                    double weight = skill.calculatedWeight();
+                    weightedSum += assessment.score() * weight;
+                    totalWeights += weight;
+                    break;
+                }
+            }
         }
-        avgCoreSkills = static_cast<double>(totalScore) / coreSkillAssessments_.size();
+
+        if (totalWeights > 0.0) {
+            avgCoreSkills = weightedSum / totalWeights;
+        }
     }
     coreSkillsAvgLabel_->setText(QString::number(avgCoreSkills, 'f', 2));
 
@@ -356,35 +395,55 @@ void MyDashboardWidget::updateAreasOfWeakness()
 
 void MyDashboardWidget::createProductionAreaRadarChart()
 {
-    // Calculate average score per production area
-    QMap<QString, double> areaScores;
-    QMap<QString, int> areaCounts;
+    // Calculate WEIGHTED average score per production area
+    QMap<QString, double> areaWeightedScores;
+    QMap<QString, double> areaTotalWeights;
 
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
 
     // Initialize maps
     for (const ProductionArea& area : areas) {
-        areaScores[area.name()] = 0.0;
-        areaCounts[area.name()] = 0;
+        areaWeightedScores[area.name()] = 0.0;
+        areaTotalWeights[area.name()] = 0.0;
     }
 
-    // Calculate averages
+    // Load all competencies to get weights
+    QList<Competency> allCompetencies;
+    for (const ProductionArea& area : areas) {
+        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
+        }
+    }
+
+    // Calculate weighted sums
     for (const Assessment& assessment : assessments_) {
         int areaId = assessment.productionAreaId();
+
+        // Find the competency to get its weight
+        double weight = 3.0; // Default weight if not found
+        for (const Competency& comp : allCompetencies) {
+            if (comp.id() == assessment.competencyId()) {
+                weight = comp.calculatedWeight();
+                break;
+            }
+        }
+
         for (const ProductionArea& area : areas) {
             if (area.id() == areaId) {
-                areaScores[area.name()] += assessment.score();
-                areaCounts[area.name()]++;
+                areaWeightedScores[area.name()] += assessment.score() * weight;
+                areaTotalWeights[area.name()] += weight;
                 break;
             }
         }
     }
 
-    // Compute averages
+    // Compute weighted averages
     QMap<QString, double> averages;
-    for (const QString& areaName : areaScores.keys()) {
-        if (areaCounts[areaName] > 0) {
-            averages[areaName] = areaScores[areaName] / areaCounts[areaName];
+    for (const QString& areaName : areaWeightedScores.keys()) {
+        if (areaTotalWeights[areaName] > 0.0) {
+            averages[areaName] = areaWeightedScores[areaName] / areaTotalWeights[areaName];
         } else {
             averages[areaName] = 0.0;
         }
@@ -396,35 +455,48 @@ void MyDashboardWidget::createProductionAreaRadarChart()
 
 void MyDashboardWidget::createCoreSkillsRadarChart()
 {
-    // Calculate average score per core skill category
-    QMap<QString, double> categoryScores;
-    QMap<QString, int> categoryCounts;
+    // Calculate WEIGHTED average score per core skill category
+    QMap<QString, double> categoryWeightedScores;
+    QMap<QString, double> categoryTotalWeights;
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
 
     // Initialize maps
     for (const CoreSkillCategory& category : categories) {
-        categoryScores[category.name()] = 0.0;
-        categoryCounts[category.name()] = 0;
+        categoryWeightedScores[category.name()] = 0.0;
+        categoryTotalWeights[category.name()] = 0.0;
     }
 
-    // Calculate averages
+    // Load all core skills to get weights
+    QList<CoreSkill> allCoreSkills = coreSkillsRepo_.findAllSkills();
+
+    // Calculate weighted sums
     for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
         QString categoryId = assessment.categoryId();
+
+        // Find the core skill to get its weight
+        double weight = 3.0; // Default weight if not found
+        for (const CoreSkill& skill : allCoreSkills) {
+            if (skill.id() == assessment.skillId()) {
+                weight = skill.calculatedWeight();
+                break;
+            }
+        }
+
         for (const CoreSkillCategory& category : categories) {
             if (category.id() == categoryId) {
-                categoryScores[category.name()] += assessment.score();
-                categoryCounts[category.name()]++;
+                categoryWeightedScores[category.name()] += assessment.score() * weight;
+                categoryTotalWeights[category.name()] += weight;
                 break;
             }
         }
     }
 
-    // Compute averages
+    // Compute weighted averages
     QMap<QString, double> averages;
-    for (const QString& categoryName : categoryScores.keys()) {
-        if (categoryCounts[categoryName] > 0) {
-            averages[categoryName] = categoryScores[categoryName] / categoryCounts[categoryName];
+    for (const QString& categoryName : categoryWeightedScores.keys()) {
+        if (categoryTotalWeights[categoryName] > 0.0) {
+            averages[categoryName] = categoryWeightedScores[categoryName] / categoryTotalWeights[categoryName];
         } else {
             averages[categoryName] = 0.0;
         }

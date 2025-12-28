@@ -10,6 +10,7 @@
 #include <QtCharts/QChartView>
 #include "../database/EngineerRepository.h"
 #include "../database/AssessmentRepository.h"
+#include "../database/ProductionRepository.h"
 #include "../database/CoreSkillsRepository.h"
 #include "../database/SnapshotRepository.h"
 #include "../database/CertificationRepository.h"
@@ -73,6 +74,7 @@ private:
     // Repositories
     EngineerRepository engineerRepo_;
     AssessmentRepository assessmentRepo_;
+    ProductionRepository productionRepo_;
     CoreSkillsRepository coreSkillsRepo_;
     SnapshotRepository snapshotRepo_;
     CertificationRepository certificationRepo_;
