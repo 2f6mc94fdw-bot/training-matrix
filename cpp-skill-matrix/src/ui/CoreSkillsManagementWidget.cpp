@@ -105,41 +105,52 @@ void CoreSkillsManagementWidget::loadCoreSkills()
     // Load all skills
     QList<CoreSkill> allSkills = repository_.findAllSkills();
 
-    // Build tree
-    for (const CoreSkillCategory& category : allCategories_) {
-        // Apply filter
-        if (!selectedCategoryId.isEmpty() && category.id() != selectedCategoryId) {
-            continue;
+    if (selectedCategoryId.isEmpty()) {
+        // Show all categories with their skills
+        for (const CoreSkillCategory& category : allCategories_) {
+            QTreeWidgetItem* categoryItem = new QTreeWidgetItem(treeWidget_);
+            categoryItem->setText(0, category.name());
+            categoryItem->setText(1, category.id());
+            categoryItem->setText(2, "");
+            categoryItem->setData(0, Qt::UserRole, CategoryItem);
+            categoryItem->setData(1, Qt::UserRole, category.id());
+
+            QFont boldFont = categoryItem->font(0);
+            boldFont.setBold(true);
+            categoryItem->setFont(0, boldFont);
+
+            // Add skills for this category
+            for (const CoreSkill& skill : allSkills) {
+                if (skill.categoryId() == category.id()) {
+                    QTreeWidgetItem* skillItem = new QTreeWidgetItem(categoryItem);
+                    skillItem->setText(0, skill.name());
+                    skillItem->setText(1, skill.id());
+                    skillItem->setText(2, QString::number(skill.maxScore()));
+                    skillItem->setData(0, Qt::UserRole, SkillItem);
+                    skillItem->setData(1, Qt::UserRole, skill.id());
+                    skillItem->setData(2, Qt::UserRole, category.id());
+                }
+            }
+
+            categoryItem->setExpanded(true);
         }
-
-        QTreeWidgetItem* categoryItem = new QTreeWidgetItem(treeWidget_);
-        categoryItem->setText(0, category.name());
-        categoryItem->setText(1, category.id());
-        categoryItem->setText(2, "");
-        categoryItem->setData(0, Qt::UserRole, CategoryItem);
-        categoryItem->setData(1, Qt::UserRole, category.id());
-
-        QFont boldFont = categoryItem->font(0);
-        boldFont.setBold(true);
-        categoryItem->setFont(0, boldFont);
-        categoryItem->setBackground(0, QColor(240, 240, 240));
-        categoryItem->setBackground(1, QColor(240, 240, 240));
-        categoryItem->setBackground(2, QColor(240, 240, 240));
-
-        // Add skills for this category
+    } else {
+        // Show only skills for selected category
         for (const CoreSkill& skill : allSkills) {
-            if (skill.categoryId() == category.id()) {
-                QTreeWidgetItem* skillItem = new QTreeWidgetItem(categoryItem);
+            if (skill.categoryId() == selectedCategoryId) {
+                QTreeWidgetItem* skillItem = new QTreeWidgetItem(treeWidget_);
                 skillItem->setText(0, skill.name());
                 skillItem->setText(1, skill.id());
                 skillItem->setText(2, QString::number(skill.maxScore()));
                 skillItem->setData(0, Qt::UserRole, SkillItem);
                 skillItem->setData(1, Qt::UserRole, skill.id());
-                skillItem->setData(2, Qt::UserRole, category.id());
+                skillItem->setData(2, Qt::UserRole, selectedCategoryId);
+
+                QFont boldFont = skillItem->font(0);
+                boldFont.setBold(true);
+                skillItem->setFont(0, boldFont);
             }
         }
-
-        categoryItem->setExpanded(true);
     }
 
     // Update category filter

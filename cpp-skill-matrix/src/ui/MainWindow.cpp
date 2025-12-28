@@ -107,7 +107,7 @@ void MainWindow::setupNavigationSidebar()
         navigationList_->addItem("Engineers");
         navigationList_->addItem("Users");
         navigationList_->addItem("Production Areas");
-        navigationList_->addItem("Assessments");
+        navigationList_->addItem("Production Assessments");
         navigationList_->addItem("Core Skills");
         navigationList_->addItem("Core Skills Management");
         navigationList_->addItem("Reports");
@@ -119,7 +119,7 @@ void MainWindow::setupNavigationSidebar()
     } else {
         // Engineer navigation - personal view only
         navigationList_->addItem("My Dashboard");
-        navigationList_->addItem("My Assessments");
+        navigationList_->addItem("My Production Assessments");
         navigationList_->addItem("My Core Skills");
         navigationList_->addItem("My Certifications");
         navigationList_->addItem("My Progress");
@@ -169,7 +169,7 @@ void MainWindow::setupCentralWidget()
         contentStack_->addWidget(new QWidget(this)); // 1 - Engineers (lazy)
         contentStack_->addWidget(new QWidget(this)); // 2 - Users (lazy)
         contentStack_->addWidget(new QWidget(this)); // 3 - Production Areas (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 4 - Assessments (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 4 - Production Assessments (lazy)
         contentStack_->addWidget(new QWidget(this)); // 5 - Core Skills (lazy)
         contentStack_->addWidget(new QWidget(this)); // 6 - Core Skills Management (lazy)
         contentStack_->addWidget(new QWidget(this)); // 7 - Reports (lazy)
@@ -187,7 +187,7 @@ void MainWindow::setupCentralWidget()
         MyDashboardWidget* myDashboard = new MyDashboardWidget(engineerId, this);
         contentStack_->addWidget(myDashboard);
 
-        // My Assessments - shows only their assessments
+        // My Production Assessments - shows only their assessments
         MyAssessmentsWidget* myAssessments = new MyAssessmentsWidget(engineerId, this);
         contentStack_->addWidget(myAssessments);
 
@@ -280,11 +280,11 @@ void MainWindow::onNavigationItemClicked(int index)
                         Logger::instance().debug("MainWindow", "Lazy-loaded Production Areas widget");
                     }
                     break;
-                case 4: // Assessments
+                case 4: // Production Assessments
                     if (!assessmentWidget_) {
                         assessmentWidget_ = new AssessmentWidget(this);
                         newWidget = assessmentWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Assessment widget");
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Assessment widget");
                     }
                     break;
                 case 5: // Core Skills
