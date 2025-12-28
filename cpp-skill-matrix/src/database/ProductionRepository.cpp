@@ -338,7 +338,8 @@ QList<Competency> ProductionRepository::findCompetenciesByMachine(int machineId)
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, machine_id, name, max_score, created_at, updated_at "
+    query.prepare("SELECT id, machine_id, name, max_score, created_at, updated_at, "
+                  "safety_impact, production_impact, frequency, complexity, future_value "
                   "FROM competencies WHERE machine_id = ? ORDER BY name");
     query.addBindValue(machineId);
 
@@ -356,6 +357,14 @@ QList<Competency> ProductionRepository::findCompetenciesByMachine(int machineId)
         competency.setMaxScore(query.value(3).toInt());
         competency.setCreatedAt(query.value(4).toDateTime());
         competency.setUpdatedAt(query.value(5).toDateTime());
+
+        // Multi-Criteria Weighting
+        competency.setSafetyImpact(query.value(6).toDouble());
+        competency.setProductionImpact(query.value(7).toDouble());
+        competency.setFrequency(query.value(8).toDouble());
+        competency.setComplexity(query.value(9).toDouble());
+        competency.setFutureValue(query.value(10).toDouble());
+
         competencies.append(competency);
     }
 
@@ -373,7 +382,8 @@ Competency ProductionRepository::findCompetencyById(int id)
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, machine_id, name, max_score, created_at, updated_at "
+    query.prepare("SELECT id, machine_id, name, max_score, created_at, updated_at, "
+                  "safety_impact, production_impact, frequency, complexity, future_value "
                   "FROM competencies WHERE id = ?");
     query.addBindValue(id);
 
@@ -391,6 +401,13 @@ Competency ProductionRepository::findCompetencyById(int id)
         competency.setMaxScore(query.value(3).toInt());
         competency.setCreatedAt(query.value(4).toDateTime());
         competency.setUpdatedAt(query.value(5).toDateTime());
+
+        // Multi-Criteria Weighting
+        competency.setSafetyImpact(query.value(6).toDouble());
+        competency.setProductionImpact(query.value(7).toDouble());
+        competency.setFrequency(query.value(8).toDouble());
+        competency.setComplexity(query.value(9).toDouble());
+        competency.setFutureValue(query.value(10).toDouble());
 
         Logger::instance().debug("ProductionRepository", "Found competency: " + competency.name());
         return competency;
@@ -410,12 +427,19 @@ bool ProductionRepository::saveCompetency(Competency& competency)
     }
 
     QSqlQuery query(db);
-    query.prepare("INSERT INTO competencies (machine_id, name, max_score, created_at, updated_at) "
-                  "VALUES (?, ?, ?, GETDATE(), GETDATE()); "
+    query.prepare("INSERT INTO competencies (machine_id, name, max_score, "
+                  "safety_impact, production_impact, frequency, complexity, future_value, "
+                  "created_at, updated_at) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); "
                   "SELECT SCOPE_IDENTITY();");
     query.addBindValue(competency.machineId());
     query.addBindValue(competency.name());
     query.addBindValue(competency.maxScore());
+    query.addBindValue(competency.safetyImpact());
+    query.addBindValue(competency.productionImpact());
+    query.addBindValue(competency.frequency());
+    query.addBindValue(competency.complexity());
+    query.addBindValue(competency.futureValue());
 
     if (!query.exec()) {
         lastError_ = query.lastError().text();
@@ -446,9 +470,16 @@ bool ProductionRepository::updateCompetency(const Competency& competency)
     }
 
     QSqlQuery query(db);
-    query.prepare("UPDATE competencies SET name = ?, max_score = ?, updated_at = GETDATE() WHERE id = ?");
+    query.prepare("UPDATE competencies SET name = ?, max_score = ?, "
+                  "safety_impact = ?, production_impact = ?, frequency = ?, "
+                  "complexity = ?, future_value = ?, updated_at = GETDATE() WHERE id = ?");
     query.addBindValue(competency.name());
     query.addBindValue(competency.maxScore());
+    query.addBindValue(competency.safetyImpact());
+    query.addBindValue(competency.productionImpact());
+    query.addBindValue(competency.frequency());
+    query.addBindValue(competency.complexity());
+    query.addBindValue(competency.futureValue());
     query.addBindValue(competency.id());
 
     if (!query.exec()) {

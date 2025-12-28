@@ -54,7 +54,9 @@ QList<CoreSkill> CoreSkillsRepository::findAllSkills()
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, category_id, name, max_score, created_at FROM core_skills ORDER BY category_id, name");
+    query.prepare("SELECT id, category_id, name, max_score, created_at, "
+                  "safety_impact, production_impact, frequency, complexity, future_value "
+                  "FROM core_skills ORDER BY category_id, name");
 
     if (!query.exec()) {
         lastError_ = query.lastError().text();
@@ -69,6 +71,14 @@ QList<CoreSkill> CoreSkillsRepository::findAllSkills()
         skill.setName(query.value(2).toString());
         skill.setMaxScore(query.value(3).toInt());
         skill.setCreatedAt(query.value(4).toDateTime());
+
+        // Multi-Criteria Weighting
+        skill.setSafetyImpact(query.value(5).toDouble());
+        skill.setProductionImpact(query.value(6).toDouble());
+        skill.setFrequency(query.value(7).toDouble());
+        skill.setComplexity(query.value(8).toDouble());
+        skill.setFutureValue(query.value(9).toDouble());
+
         skills.append(skill);
     }
 
@@ -299,10 +309,17 @@ bool CoreSkillsRepository::saveSkill(const CoreSkill& skill)
     if (query.next()) {
         // Update existing skill
         QSqlQuery updateQuery(db);
-        updateQuery.prepare("UPDATE core_skills SET category_id = ?, name = ?, max_score = ? WHERE id = ?");
+        updateQuery.prepare("UPDATE core_skills SET category_id = ?, name = ?, max_score = ?, "
+                           "safety_impact = ?, production_impact = ?, frequency = ?, "
+                           "complexity = ?, future_value = ? WHERE id = ?");
         updateQuery.addBindValue(skill.categoryId());
         updateQuery.addBindValue(skill.name());
         updateQuery.addBindValue(skill.maxScore());
+        updateQuery.addBindValue(skill.safetyImpact());
+        updateQuery.addBindValue(skill.productionImpact());
+        updateQuery.addBindValue(skill.frequency());
+        updateQuery.addBindValue(skill.complexity());
+        updateQuery.addBindValue(skill.futureValue());
         updateQuery.addBindValue(skill.id());
 
         if (!updateQuery.exec()) {
@@ -316,12 +333,19 @@ bool CoreSkillsRepository::saveSkill(const CoreSkill& skill)
     } else {
         // Insert new skill
         QSqlQuery insertQuery(db);
-        insertQuery.prepare("INSERT INTO core_skills (id, category_id, name, max_score, created_at) "
-                           "VALUES (?, ?, ?, ?, GETDATE())");
+        insertQuery.prepare("INSERT INTO core_skills (id, category_id, name, max_score, "
+                           "safety_impact, production_impact, frequency, complexity, future_value, "
+                           "created_at) "
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())");
         insertQuery.addBindValue(skill.id());
         insertQuery.addBindValue(skill.categoryId());
         insertQuery.addBindValue(skill.name());
         insertQuery.addBindValue(skill.maxScore());
+        insertQuery.addBindValue(skill.safetyImpact());
+        insertQuery.addBindValue(skill.productionImpact());
+        insertQuery.addBindValue(skill.frequency());
+        insertQuery.addBindValue(skill.complexity());
+        insertQuery.addBindValue(skill.futureValue());
 
         if (!insertQuery.exec()) {
             lastError_ = insertQuery.lastError().text();
