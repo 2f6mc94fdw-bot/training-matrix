@@ -12,6 +12,7 @@
 #include <QDoubleSpinBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QScrollArea>
 
 CoreSkillsManagementWidget::CoreSkillsManagementWidget(QWidget* parent)
     : QWidget(parent)
@@ -256,11 +257,22 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
 {
     QDialog dialog(this);
     dialog.setWindowTitle(skill ? "Edit Skill" : "Add Skill");
-    dialog.resize(500, 600);
+    dialog.resize(550, 700);
 
-    QVBoxLayout* layout = new QVBoxLayout(&dialog);
-    layout->setSpacing(12);
-    layout->setContentsMargins(16, 16, 16, 16);
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
+    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+
+    // Create scroll area for form content
+    QScrollArea* scrollArea = new QScrollArea(&dialog);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    // Create container widget for scroll area
+    QWidget* scrollWidget = new QWidget();
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollLayout->setSpacing(12);
+    scrollLayout->setContentsMargins(16, 16, 16, 16);
 
     QFormLayout* formLayout = new QFormLayout();
     formLayout->setSpacing(10);
@@ -308,10 +320,10 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
     maxScoreSpinBox->setValue(skill ? skill->maxScore() : 3);
     formLayout->addRow("Max Score:", maxScoreSpinBox);
 
-    layout->addLayout(formLayout);
+    scrollLayout->addLayout(formLayout);
 
     // Multi-Criteria Weighting Group
-    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", &dialog);
+    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", scrollWidget);
     QFormLayout* weightingLayout = new QFormLayout();
     weightingLayout->setSpacing(8);
 
@@ -366,13 +378,17 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
     weightingLayout->addRow(futureLabel, futureValueSpin);
 
     weightingGroup->setLayout(weightingLayout);
-    layout->addWidget(weightingGroup);
+    scrollLayout->addWidget(weightingGroup);
 
     // Calculated Weight Display
-    QLabel* calculatedWeightLabel = new QLabel(&dialog);
+    QLabel* calculatedWeightLabel = new QLabel(scrollWidget);
     calculatedWeightLabel->setStyleSheet("font-weight: bold; font-size: 12pt; padding: 8px; background-color: #1e293b; border-radius: 4px;");
     calculatedWeightLabel->setAlignment(Qt::AlignCenter);
-    layout->addWidget(calculatedWeightLabel);
+    scrollLayout->addWidget(calculatedWeightLabel);
+
+    // Set scroll widget and add to main layout
+    scrollArea->setWidget(scrollWidget);
+    mainLayout->addWidget(scrollArea);
 
     // Function to update calculated weight
     auto updateCalculatedWeight = [=]() {
@@ -403,12 +419,12 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
     // Initial calculated weight display
     updateCalculatedWeight();
 
-    // Buttons
+    // Buttons (outside scroll area)
     QDialogButtonBox* buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
     connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    layout->addWidget(buttonBox);
+    mainLayout->addWidget(buttonBox);
 
     if (dialog.exec() == QDialog::Accepted) {
         QString categoryId = categoryCombo->currentData().toString();
