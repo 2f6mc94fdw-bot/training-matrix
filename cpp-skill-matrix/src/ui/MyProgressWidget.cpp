@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QFrame>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QDateTimeAxis>
 #include <QtCharts/QValueAxis>
@@ -50,7 +51,19 @@ void MyProgressWidget::showEvent(QShowEvent* event)
 
 void MyProgressWidget::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    // Main layout for the widget
+    QVBoxLayout* widgetLayout = new QVBoxLayout(this);
+    widgetLayout->setContentsMargins(0, 0, 0, 0);
+    widgetLayout->setSpacing(0);
+
+    // Create scroll area
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    // Create container widget for scroll content
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* mainLayout = new QVBoxLayout(scrollContent);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
@@ -203,6 +216,10 @@ void MyProgressWidget::setupUI()
 
     mainLayout->addLayout(bottomSection);
     mainLayout->addStretch();
+
+    // Wire up scroll area
+    scrollArea->setWidget(scrollContent);
+    widgetLayout->addWidget(scrollArea);
 }
 
 void MyProgressWidget::loadProgressData()

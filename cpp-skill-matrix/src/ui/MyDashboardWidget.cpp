@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QFrame>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
 #include <QtCharts/QValueAxis>
@@ -43,7 +44,19 @@ void MyDashboardWidget::showEvent(QShowEvent* event)
 
 void MyDashboardWidget::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    // Main layout for the widget
+    QVBoxLayout* widgetLayout = new QVBoxLayout(this);
+    widgetLayout->setContentsMargins(0, 0, 0, 0);
+    widgetLayout->setSpacing(0);
+
+    // Create scroll area
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    // Create container widget for scroll content
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* mainLayout = new QVBoxLayout(scrollContent);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
@@ -137,10 +150,11 @@ void MyDashboardWidget::setupUI()
     prodChartTitle->setAlignment(Qt::AlignCenter);
     productionAreaChartView_ = new QChartView(this);
     productionAreaChartView_->setRenderHint(QPainter::Antialiasing);
-    productionAreaChartView_->setMinimumHeight(300);
+    productionAreaChartView_->setMinimumHeight(350);
+    productionAreaChartView_->setMinimumWidth(400);
     prodChartLayout->addWidget(prodChartTitle);
-    prodChartLayout->addWidget(productionAreaChartView_);
-    chartsLayout->addLayout(prodChartLayout);
+    prodChartLayout->addWidget(productionAreaChartView_, 1);
+    chartsLayout->addLayout(prodChartLayout, 1);
 
     // Core Skills Radar Chart
     QVBoxLayout* coreChartLayout = new QVBoxLayout();
@@ -149,10 +163,11 @@ void MyDashboardWidget::setupUI()
     coreChartTitle->setAlignment(Qt::AlignCenter);
     coreSkillsChartView_ = new QChartView(this);
     coreSkillsChartView_->setRenderHint(QPainter::Antialiasing);
-    coreSkillsChartView_->setMinimumHeight(300);
+    coreSkillsChartView_->setMinimumHeight(350);
+    coreSkillsChartView_->setMinimumWidth(400);
     coreChartLayout->addWidget(coreChartTitle);
-    coreChartLayout->addWidget(coreSkillsChartView_);
-    chartsLayout->addLayout(coreChartLayout);
+    coreChartLayout->addWidget(coreSkillsChartView_, 1);
+    chartsLayout->addLayout(coreChartLayout, 1);
 
     mainLayout->addWidget(chartsGroup);
 
@@ -170,6 +185,10 @@ void MyDashboardWidget::setupUI()
 
     mainLayout->addWidget(weaknessGroup);
     mainLayout->addStretch();
+
+    // Wire up scroll area
+    scrollArea->setWidget(scrollContent);
+    widgetLayout->addWidget(scrollArea);
 }
 
 void MyDashboardWidget::loadDashboardData()
