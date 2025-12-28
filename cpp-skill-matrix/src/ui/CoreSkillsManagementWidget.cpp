@@ -66,7 +66,8 @@ void CoreSkillsManagementWidget::setupUI()
     treeWidget_->setColumnWidth(0, 300);
     treeWidget_->setColumnWidth(1, 200);
     treeWidget_->setColumnWidth(2, 100);
-    treeWidget_->setAlternatingRowColors(true);
+    // Don't use alternating row colors - causes white text on white background in dark theme
+    // treeWidget_->setAlternatingRowColors(true);
     connect(treeWidget_, &QTreeWidget::itemDoubleClicked,
             this, &CoreSkillsManagementWidget::onTreeItemDoubleClicked);
     mainLayout->addWidget(treeWidget_);
