@@ -9,6 +9,7 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QDoubleSpinBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 
@@ -62,10 +63,11 @@ void CoreSkillsManagementWidget::setupUI()
 
     // Tree widget
     treeWidget_ = new QTreeWidget(this);
-    treeWidget_->setHeaderLabels({"Name", "ID", "Max Score"});
+    treeWidget_->setHeaderLabels({"Name", "ID", "Max Score", "Weight"});
     treeWidget_->setColumnWidth(0, 300);
     treeWidget_->setColumnWidth(1, 200);
     treeWidget_->setColumnWidth(2, 100);
+    treeWidget_->setColumnWidth(3, 100);
     // Don't use alternating row colors - causes white text on white background in dark theme
     // treeWidget_->setAlternatingRowColors(true);
     connect(treeWidget_, &QTreeWidget::itemDoubleClicked,
@@ -127,6 +129,7 @@ void CoreSkillsManagementWidget::loadCoreSkills()
                     skillItem->setText(0, skill.name());
                     skillItem->setText(1, skill.id());
                     skillItem->setText(2, QString::number(skill.maxScore()));
+                    skillItem->setText(3, QString::number(skill.calculatedWeight(), 'f', 2));
                     skillItem->setData(0, Qt::UserRole, SkillItem);
                     skillItem->setData(1, Qt::UserRole, skill.id());
                     skillItem->setData(2, Qt::UserRole, category.id());
@@ -143,6 +146,7 @@ void CoreSkillsManagementWidget::loadCoreSkills()
                 skillItem->setText(0, skill.name());
                 skillItem->setText(1, skill.id());
                 skillItem->setText(2, QString::number(skill.maxScore()));
+                skillItem->setText(3, QString::number(skill.calculatedWeight(), 'f', 2));
                 skillItem->setData(0, Qt::UserRole, SkillItem);
                 skillItem->setData(1, Qt::UserRole, skill.id());
                 skillItem->setData(2, Qt::UserRole, selectedCategoryId);
@@ -252,10 +256,14 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
 {
     QDialog dialog(this);
     dialog.setWindowTitle(skill ? "Edit Skill" : "Add Skill");
-    dialog.setMinimumWidth(400);
+    dialog.resize(500, 600);
 
     QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    layout->setSpacing(12);
+    layout->setContentsMargins(16, 16, 16, 16);
+
     QFormLayout* formLayout = new QFormLayout();
+    formLayout->setSpacing(10);
 
     // Category selection (if adding new skill)
     QComboBox* categoryCombo = new QComboBox(&dialog);
@@ -302,6 +310,99 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
 
     layout->addLayout(formLayout);
 
+    // Multi-Criteria Weighting Group
+    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", &dialog);
+    QFormLayout* weightingLayout = new QFormLayout();
+    weightingLayout->setSpacing(8);
+
+    // Safety Impact
+    QDoubleSpinBox* safetyImpactSpin = new QDoubleSpinBox(&dialog);
+    safetyImpactSpin->setRange(0.0, 5.0);
+    safetyImpactSpin->setSingleStep(0.5);
+    safetyImpactSpin->setValue(3.0);
+    safetyImpactSpin->setDecimals(1);
+    QLabel* safetyLabel = new QLabel("Safety Impact (30%):", &dialog);
+    safetyLabel->setToolTip("Risk if competency lacking");
+    weightingLayout->addRow(safetyLabel, safetyImpactSpin);
+
+    // Production Impact
+    QDoubleSpinBox* productionImpactSpin = new QDoubleSpinBox(&dialog);
+    productionImpactSpin->setRange(0.0, 5.0);
+    productionImpactSpin->setSingleStep(0.5);
+    productionImpactSpin->setValue(3.0);
+    productionImpactSpin->setDecimals(1);
+    QLabel* productionLabel = new QLabel("Production Impact (25%):", &dialog);
+    productionLabel->setToolTip("Effect on output/quality");
+    weightingLayout->addRow(productionLabel, productionImpactSpin);
+
+    // Frequency
+    QDoubleSpinBox* frequencySpin = new QDoubleSpinBox(&dialog);
+    frequencySpin->setRange(0.0, 5.0);
+    frequencySpin->setSingleStep(0.5);
+    frequencySpin->setValue(3.0);
+    frequencySpin->setDecimals(1);
+    QLabel* frequencyLabel = new QLabel("Frequency (20%):", &dialog);
+    frequencyLabel->setToolTip("How often used");
+    weightingLayout->addRow(frequencyLabel, frequencySpin);
+
+    // Complexity
+    QDoubleSpinBox* complexitySpin = new QDoubleSpinBox(&dialog);
+    complexitySpin->setRange(0.0, 5.0);
+    complexitySpin->setSingleStep(0.5);
+    complexitySpin->setValue(3.0);
+    complexitySpin->setDecimals(1);
+    QLabel* complexityLabel = new QLabel("Complexity (15%):", &dialog);
+    complexityLabel->setToolTip("Difficulty to master");
+    weightingLayout->addRow(complexityLabel, complexitySpin);
+
+    // Future Value
+    QDoubleSpinBox* futureValueSpin = new QDoubleSpinBox(&dialog);
+    futureValueSpin->setRange(0.0, 5.0);
+    futureValueSpin->setSingleStep(0.5);
+    futureValueSpin->setValue(3.0);
+    futureValueSpin->setDecimals(1);
+    QLabel* futureLabel = new QLabel("Future Value (10%):", &dialog);
+    futureLabel->setToolTip("Career/strategic importance");
+    weightingLayout->addRow(futureLabel, futureValueSpin);
+
+    weightingGroup->setLayout(weightingLayout);
+    layout->addWidget(weightingGroup);
+
+    // Calculated Weight Display
+    QLabel* calculatedWeightLabel = new QLabel(&dialog);
+    calculatedWeightLabel->setStyleSheet("font-weight: bold; font-size: 12pt; padding: 8px; background-color: #1e293b; border-radius: 4px;");
+    calculatedWeightLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(calculatedWeightLabel);
+
+    // Function to update calculated weight
+    auto updateCalculatedWeight = [=]() {
+        double weight = (safetyImpactSpin->value() * 0.30) +
+                       (productionImpactSpin->value() * 0.25) +
+                       (frequencySpin->value() * 0.20) +
+                       (complexitySpin->value() * 0.15) +
+                       (futureValueSpin->value() * 0.10);
+        calculatedWeightLabel->setText(QString("Calculated Weight: %1").arg(weight, 0, 'f', 2));
+    };
+
+    // Connect all spin boxes to update calculated weight
+    connect(safetyImpactSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(productionImpactSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(frequencySpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(complexitySpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(futureValueSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+
+    // Load existing values if editing
+    if (skill) {
+        safetyImpactSpin->setValue(skill->safetyImpact());
+        productionImpactSpin->setValue(skill->productionImpact());
+        frequencySpin->setValue(skill->frequency());
+        complexitySpin->setValue(skill->complexity());
+        futureValueSpin->setValue(skill->futureValue());
+    }
+
+    // Initial calculated weight display
+    updateCalculatedWeight();
+
     // Buttons
     QDialogButtonBox* buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
@@ -325,6 +426,11 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
         newSkill.setCategoryId(categoryId);
         newSkill.setName(name);
         newSkill.setMaxScore(maxScore);
+        newSkill.setSafetyImpact(safetyImpactSpin->value());
+        newSkill.setProductionImpact(productionImpactSpin->value());
+        newSkill.setFrequency(frequencySpin->value());
+        newSkill.setComplexity(complexitySpin->value());
+        newSkill.setFutureValue(futureValueSpin->value());
 
         if (repository_.saveSkill(newSkill)) {
             QMessageBox::information(this, "Success",

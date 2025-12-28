@@ -8,10 +8,12 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QDoubleSpinBox>
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QListWidget>
 #include <QPalette>
+#include <QGroupBox>
 
 ProductionAreasWidget::ProductionAreasWidget(QWidget* parent)
     : QWidget(parent)
@@ -233,7 +235,9 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
                     QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
                     competencyItem->setText(0, competency.name());
                     competencyItem->setText(1, "Competency");
-                    competencyItem->setText(2, QString("Max Score: %1").arg(competency.maxScore()));
+                    competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
+                        .arg(competency.maxScore())
+                        .arg(competency.calculatedWeight(), 0, 'f', 2));
                     competencyItem->setText(3, QString::number(competency.id()));
                     competencyItem->setData(0, Qt::UserRole, CompetencyItem);
                 }
@@ -265,7 +269,9 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
                 QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
                 competencyItem->setText(0, competency.name());
                 competencyItem->setText(1, "Competency");
-                competencyItem->setText(2, QString("Max Score: %1").arg(competency.maxScore()));
+                competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
+                    .arg(competency.maxScore())
+                    .arg(competency.calculatedWeight(), 0, 'f', 2));
                 competencyItem->setText(3, QString::number(competency.id()));
                 competencyItem->setData(0, Qt::UserRole, CompetencyItem);
             }
@@ -519,22 +525,119 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
 {
     QDialog dialog(this);
     dialog.setWindowTitle(competency ? "Edit Competency" : "Add Competency");
-    dialog.resize(400, 200);
+    dialog.resize(500, 550);
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
 
     QFormLayout* formLayout = new QFormLayout();
+    formLayout->setSpacing(10);
 
     QLineEdit* nameEdit = new QLineEdit(&dialog);
     QSpinBox* maxScoreSpin = new QSpinBox(&dialog);
     maxScoreSpin->setRange(1, 10);
     maxScoreSpin->setValue(3);
 
+    formLayout->addRow("Name:", nameEdit);
+    formLayout->addRow("Max Score:", maxScoreSpin);
+
+    mainLayout->addLayout(formLayout);
+
+    // Multi-Criteria Weighting Group
+    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", &dialog);
+    QFormLayout* weightingLayout = new QFormLayout();
+    weightingLayout->setSpacing(8);
+
+    // Safety Impact
+    QDoubleSpinBox* safetyImpactSpin = new QDoubleSpinBox(&dialog);
+    safetyImpactSpin->setRange(0.0, 5.0);
+    safetyImpactSpin->setSingleStep(0.5);
+    safetyImpactSpin->setValue(3.0);
+    safetyImpactSpin->setDecimals(1);
+    QLabel* safetyLabel = new QLabel("Safety Impact (30%):", &dialog);
+    safetyLabel->setToolTip("Risk if competency lacking");
+    weightingLayout->addRow(safetyLabel, safetyImpactSpin);
+
+    // Production Impact
+    QDoubleSpinBox* productionImpactSpin = new QDoubleSpinBox(&dialog);
+    productionImpactSpin->setRange(0.0, 5.0);
+    productionImpactSpin->setSingleStep(0.5);
+    productionImpactSpin->setValue(3.0);
+    productionImpactSpin->setDecimals(1);
+    QLabel* productionLabel = new QLabel("Production Impact (25%):", &dialog);
+    productionLabel->setToolTip("Effect on output/quality");
+    weightingLayout->addRow(productionLabel, productionImpactSpin);
+
+    // Frequency
+    QDoubleSpinBox* frequencySpin = new QDoubleSpinBox(&dialog);
+    frequencySpin->setRange(0.0, 5.0);
+    frequencySpin->setSingleStep(0.5);
+    frequencySpin->setValue(3.0);
+    frequencySpin->setDecimals(1);
+    QLabel* frequencyLabel = new QLabel("Frequency (20%):", &dialog);
+    frequencyLabel->setToolTip("How often used");
+    weightingLayout->addRow(frequencyLabel, frequencySpin);
+
+    // Complexity
+    QDoubleSpinBox* complexitySpin = new QDoubleSpinBox(&dialog);
+    complexitySpin->setRange(0.0, 5.0);
+    complexitySpin->setSingleStep(0.5);
+    complexitySpin->setValue(3.0);
+    complexitySpin->setDecimals(1);
+    QLabel* complexityLabel = new QLabel("Complexity (15%):", &dialog);
+    complexityLabel->setToolTip("Difficulty to master");
+    weightingLayout->addRow(complexityLabel, complexitySpin);
+
+    // Future Value
+    QDoubleSpinBox* futureValueSpin = new QDoubleSpinBox(&dialog);
+    futureValueSpin->setRange(0.0, 5.0);
+    futureValueSpin->setSingleStep(0.5);
+    futureValueSpin->setValue(3.0);
+    futureValueSpin->setDecimals(1);
+    QLabel* futureLabel = new QLabel("Future Value (10%):", &dialog);
+    futureLabel->setToolTip("Career/strategic importance");
+    weightingLayout->addRow(futureLabel, futureValueSpin);
+
+    weightingGroup->setLayout(weightingLayout);
+    mainLayout->addWidget(weightingGroup);
+
+    // Calculated Weight Display
+    QLabel* calculatedWeightLabel = new QLabel(&dialog);
+    calculatedWeightLabel->setStyleSheet("font-weight: bold; font-size: 12pt; padding: 8px; background-color: #1e293b; border-radius: 4px;");
+    calculatedWeightLabel->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(calculatedWeightLabel);
+
+    // Function to update calculated weight
+    auto updateCalculatedWeight = [=]() {
+        double weight = (safetyImpactSpin->value() * 0.30) +
+                       (productionImpactSpin->value() * 0.25) +
+                       (frequencySpin->value() * 0.20) +
+                       (complexitySpin->value() * 0.15) +
+                       (futureValueSpin->value() * 0.10);
+        calculatedWeightLabel->setText(QString("Calculated Weight: %1").arg(weight, 0, 'f', 2));
+    };
+
+    // Connect all spin boxes to update calculated weight
+    connect(safetyImpactSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(productionImpactSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(frequencySpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(complexitySpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+    connect(futureValueSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), updateCalculatedWeight);
+
+    // Load existing values if editing
     if (competency) {
         nameEdit->setText(competency->name());
         maxScoreSpin->setValue(competency->maxScore());
+        safetyImpactSpin->setValue(competency->safetyImpact());
+        productionImpactSpin->setValue(competency->productionImpact());
+        frequencySpin->setValue(competency->frequency());
+        complexitySpin->setValue(competency->complexity());
+        futureValueSpin->setValue(competency->futureValue());
     }
 
-    formLayout->addRow("Name:", nameEdit);
-    formLayout->addRow("Max Score:", maxScoreSpin);
+    // Initial calculated weight display
+    updateCalculatedWeight();
 
     QDialogButtonBox* buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
@@ -542,8 +645,6 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
     connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
-    mainLayout->addLayout(formLayout);
     mainLayout->addWidget(buttonBox);
     dialog.setLayout(mainLayout);
 
@@ -559,6 +660,11 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
         bool success = false;
         if (competency) {
             Competency updatedCompetency(competency->id(), parentMachineId, name, maxScore);
+            updatedCompetency.setSafetyImpact(safetyImpactSpin->value());
+            updatedCompetency.setProductionImpact(productionImpactSpin->value());
+            updatedCompetency.setFrequency(frequencySpin->value());
+            updatedCompetency.setComplexity(complexitySpin->value());
+            updatedCompetency.setFutureValue(futureValueSpin->value());
             success = repository_.updateCompetency(updatedCompetency);
             if (success) {
                 Logger::instance().info("ProductionAreasWidget", "Updated competency: " + name);
@@ -566,6 +672,11 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
             }
         } else {
             Competency newCompetency(0, parentMachineId, name, maxScore);
+            newCompetency.setSafetyImpact(safetyImpactSpin->value());
+            newCompetency.setProductionImpact(productionImpactSpin->value());
+            newCompetency.setFrequency(frequencySpin->value());
+            newCompetency.setComplexity(complexitySpin->value());
+            newCompetency.setFutureValue(futureValueSpin->value());
             success = repository_.saveCompetency(newCompetency);
             if (success) {
                 Logger::instance().info("ProductionAreasWidget", "Created competency: " + name);
