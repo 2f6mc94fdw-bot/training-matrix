@@ -89,6 +89,7 @@ set(SOURCES
     src/ui/ProductionAreasWidget.cpp
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
+    src/ui/CoreSkillsManagementWidget.cpp
     src/ui/MyCoreSkillsWidget.cpp
     src/ui/MyAssessmentsWidget.cpp
     src/ui/MyDashboardWidget.cpp
@@ -175,6 +176,7 @@ set(HEADERS
     src/ui/ProductionAreasWidget.h
     src/ui/AssessmentWidget.h
     src/ui/CoreSkillsWidget.h
+    src/ui/CoreSkillsManagementWidget.h
     src/ui/MyCoreSkillsWidget.h
     src/ui/MyAssessmentsWidget.h
     src/ui/MyDashboardWidget.h
