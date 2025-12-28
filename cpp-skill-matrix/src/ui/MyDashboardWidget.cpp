@@ -150,8 +150,9 @@ void MyDashboardWidget::setupUI()
     prodChartTitle->setAlignment(Qt::AlignCenter);
     productionAreaChartView_ = new QChartView(this);
     productionAreaChartView_->setRenderHint(QPainter::Antialiasing);
-    productionAreaChartView_->setMinimumHeight(350);
-    productionAreaChartView_->setMinimumWidth(400);
+    productionAreaChartView_->setMinimumHeight(500);
+    productionAreaChartView_->setMinimumWidth(500);
+    productionAreaChartView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     prodChartLayout->addWidget(prodChartTitle);
     prodChartLayout->addWidget(productionAreaChartView_, 1);
     chartsLayout->addLayout(prodChartLayout, 1);
@@ -163,8 +164,9 @@ void MyDashboardWidget::setupUI()
     coreChartTitle->setAlignment(Qt::AlignCenter);
     coreSkillsChartView_ = new QChartView(this);
     coreSkillsChartView_->setRenderHint(QPainter::Antialiasing);
-    coreSkillsChartView_->setMinimumHeight(350);
-    coreSkillsChartView_->setMinimumWidth(400);
+    coreSkillsChartView_->setMinimumHeight(500);
+    coreSkillsChartView_->setMinimumWidth(500);
+    coreSkillsChartView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     coreChartLayout->addWidget(coreChartTitle);
     coreChartLayout->addWidget(coreSkillsChartView_, 1);
     chartsLayout->addLayout(coreChartLayout, 1);

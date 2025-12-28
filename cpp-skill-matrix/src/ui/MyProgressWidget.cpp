@@ -154,18 +154,20 @@ void MyProgressWidget::setupUI()
     skillChartTitle->setStyleSheet("font-weight: bold; font-size: 14px;");
     skillProgressChartView_ = new QChartView(this);
     skillProgressChartView_->setRenderHint(QPainter::Antialiasing);
-    skillProgressChartView_->setMinimumHeight(250);
+    skillProgressChartView_->setMinimumHeight(400);
+    skillProgressChartView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(skillChartTitle);
-    chartsLayout->addWidget(skillProgressChartView_);
+    chartsLayout->addWidget(skillProgressChartView_, 1);
 
     // Core Skills Progress Chart
     QLabel* coreChartTitle = new QLabel("Core Skills Progress", this);
     coreChartTitle->setStyleSheet("font-weight: bold; font-size: 14px;");
     coreSkillProgressChartView_ = new QChartView(this);
     coreSkillProgressChartView_->setRenderHint(QPainter::Antialiasing);
-    coreSkillProgressChartView_->setMinimumHeight(250);
+    coreSkillProgressChartView_->setMinimumHeight(400);
+    coreSkillProgressChartView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(coreChartTitle);
-    chartsLayout->addWidget(coreSkillProgressChartView_);
+    chartsLayout->addWidget(coreSkillProgressChartView_, 1);
 
     mainLayout->addWidget(chartsGroup);
 
