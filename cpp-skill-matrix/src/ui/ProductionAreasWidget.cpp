@@ -15,6 +15,7 @@
 #include <QPalette>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QFrame>
 
 ProductionAreasWidget::ProductionAreasWidget(QWidget* parent)
     : QWidget(parent)
@@ -526,22 +527,11 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
 {
     QDialog dialog(this);
     dialog.setWindowTitle(competency ? "Edit Competency" : "Add Competency");
-    dialog.resize(550, 700);
+    dialog.resize(600, 750);
 
     QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-
-    // Create scroll area for form content
-    QScrollArea* scrollArea = new QScrollArea(&dialog);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-
-    // Create container widget for scroll area
-    QWidget* scrollWidget = new QWidget();
-    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
-    scrollLayout->setSpacing(12);
-    scrollLayout->setContentsMargins(16, 16, 16, 16);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
 
     QFormLayout* formLayout = new QFormLayout();
     formLayout->setSpacing(10);
@@ -554,10 +544,10 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
     formLayout->addRow("Name:", nameEdit);
     formLayout->addRow("Max Score:", maxScoreSpin);
 
-    scrollLayout->addLayout(formLayout);
+    mainLayout->addLayout(formLayout);
 
     // Multi-Criteria Weighting Group
-    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", scrollWidget);
+    QGroupBox* weightingGroup = new QGroupBox("Multi-Criteria Weighting (0.0 - 5.0)", &dialog);
     QFormLayout* weightingLayout = new QFormLayout();
     weightingLayout->setSpacing(8);
 
@@ -612,17 +602,13 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
     weightingLayout->addRow(futureLabel, futureValueSpin);
 
     weightingGroup->setLayout(weightingLayout);
-    scrollLayout->addWidget(weightingGroup);
+    mainLayout->addWidget(weightingGroup);
 
     // Calculated Weight Display
-    QLabel* calculatedWeightLabel = new QLabel(scrollWidget);
+    QLabel* calculatedWeightLabel = new QLabel(&dialog);
     calculatedWeightLabel->setStyleSheet("font-weight: bold; font-size: 12pt; padding: 8px; background-color: #1e293b; border-radius: 4px;");
     calculatedWeightLabel->setAlignment(Qt::AlignCenter);
-    scrollLayout->addWidget(calculatedWeightLabel);
-
-    // Set scroll widget and add to main layout
-    scrollArea->setWidget(scrollWidget);
-    mainLayout->addWidget(scrollArea);
+    mainLayout->addWidget(calculatedWeightLabel);
 
     // Function to update calculated weight
     auto updateCalculatedWeight = [=]() {
@@ -655,7 +641,7 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
     // Initial calculated weight display
     updateCalculatedWeight();
 
-    // Buttons (outside scroll area)
+    // Buttons
     QDialogButtonBox* buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
 
