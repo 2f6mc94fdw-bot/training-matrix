@@ -14,6 +14,8 @@
 #include "../database/ProductionRepository.h"
 #include "../database/CoreSkillsRepository.h"
 
+QT_CHARTS_USE_NAMESPACE
+
 class AnalyticsWidget : public QWidget
 {
     Q_OBJECT
@@ -82,9 +84,9 @@ private:
     QList<Insight> generateAutomatedInsights();
 
     // Radar chart helper methods
-    QtCharts::QPolarChart* createRadarChart(const QMap<QString, double>& data,
-                                            const QString& title,
-                                            const QColor& color);
+    QPolarChart* createRadarChart(const QMap<QString, double>& data,
+                                  const QString& title,
+                                  const QColor& color);
     QMap<QString, double> calculateEngineerProductionRadarData(const QString& engineerId);
     QMap<QString, double> calculateEngineerCoreSkillsRadarData(const QString& engineerId);
     QMap<QString, double> calculateShiftProductionRadarData(const QString& shift);
