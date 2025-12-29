@@ -971,7 +971,7 @@ void AnalyticsWidget::updateEngineerRadarData()
 
     // Calculate and display production areas radar
     QMap<QString, double> productionData = calculateEngineerProductionRadarData(engineerId);
-    QtCharts::QPolarChart* productionChart = createRadarChart(
+    QPolarChart* productionChart = createRadarChart(
         productionData,
         "Production Areas Performance",
         QColor("#2196F3")  // Blue
@@ -980,7 +980,7 @@ void AnalyticsWidget::updateEngineerRadarData()
 
     // Calculate and display core skills radar
     QMap<QString, double> coreSkillsData = calculateEngineerCoreSkillsRadarData(engineerId);
-    QtCharts::QPolarChart* coreSkillsChart = createRadarChart(
+    QPolarChart* coreSkillsChart = createRadarChart(
         coreSkillsData,
         "Core Skills Performance",
         QColor("#FF9800")  // Orange
@@ -1101,7 +1101,7 @@ void AnalyticsWidget::updateShiftOverviewData()
 
         // Production Areas Radar
         QMap<QString, double> productionData = calculateShiftProductionRadarData(shift);
-        QtCharts::QPolarChart* productionChart = createRadarChart(
+        QPolarChart* productionChart = createRadarChart(
             productionData,
             QString("Production Areas - %1").arg(shift),
             QColor("#2196F3")  // Blue
@@ -1114,7 +1114,7 @@ void AnalyticsWidget::updateShiftOverviewData()
 
         // Core Skills Radar
         QMap<QString, double> coreSkillsData = calculateShiftCoreSkillsRadarData(shift);
-        QtCharts::QPolarChart* coreSkillsChart = createRadarChart(
+        QPolarChart* coreSkillsChart = createRadarChart(
             coreSkillsData,
             QString("Core Skills - %1").arg(shift),
             QColor("#FF9800")  // Orange
@@ -1148,9 +1148,9 @@ void AnalyticsWidget::updateShiftOverviewData()
 // RADAR CHART HELPER METHODS
 // ============================================================================
 
-QtCharts::QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data,
-                                                          const QString& title,
-                                                          const QColor& color)
+QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data,
+                                                const QString& title,
+                                                const QColor& color)
 {
     using namespace QtCharts;
 
