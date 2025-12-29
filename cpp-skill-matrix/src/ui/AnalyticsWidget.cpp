@@ -940,13 +940,13 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     // Production Areas Radar
     engineerProductionRadarView_ = new QChartView(this);
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerProductionRadarView_->setMinimumHeight(600);
+    engineerProductionRadarView_->setMinimumHeight(850);
     chartsLayout->addWidget(engineerProductionRadarView_);
 
     // Core Skills Radar
     engineerCoreSkillsRadarView_ = new QChartView(this);
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerCoreSkillsRadarView_->setMinimumHeight(600);
+    engineerCoreSkillsRadarView_->setMinimumHeight(850);
     chartsLayout->addWidget(engineerCoreSkillsRadarView_);
 
     layout->addLayout(chartsLayout);
@@ -1123,7 +1123,7 @@ void AnalyticsWidget::updateShiftOverviewData()
         );
         QChartView* productionView = new QChartView(productionChart, this);
         productionView->setRenderHint(QPainter::Antialiasing);
-        productionView->setMinimumHeight(600);
+        productionView->setMinimumHeight(850);
         chartsLayout->addWidget(productionView);
         shiftRadarViews_.append(productionView);
 
@@ -1139,7 +1139,7 @@ void AnalyticsWidget::updateShiftOverviewData()
         );
         QChartView* coreSkillsView = new QChartView(coreSkillsChart, this);
         coreSkillsView->setRenderHint(QPainter::Antialiasing);
-        coreSkillsView->setMinimumHeight(600);
+        coreSkillsView->setMinimumHeight(850);
         chartsLayout->addWidget(coreSkillsView);
         shiftRadarViews_.append(coreSkillsView);
 
@@ -1222,7 +1222,7 @@ QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data
     QCategoryAxis* angularAxis = new QCategoryAxis();
     angularAxis->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
     for (int i = 0; i < labels.size(); i++) {
-        angularAxis->append(labels[i], i);
+        angularAxis->append(abbreviateLabel(labels[i]), i);
     }
     angularAxis->setRange(0, labels.size());
     chart->addAxis(angularAxis, QPolarChart::PolarOrientationAngular);
@@ -1341,7 +1341,7 @@ QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, 
     QCategoryAxis* angularAxis = new QCategoryAxis();
     angularAxis->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
     for (int i = 0; i < labels.size(); i++) {
-        angularAxis->append(labels[i], i);
+        angularAxis->append(abbreviateLabel(labels[i]), i);
     }
     angularAxis->setRange(0, labels.size());
     chart->addAxis(angularAxis, QPolarChart::PolarOrientationAngular);
@@ -1566,4 +1566,39 @@ QMap<QString, double> AnalyticsWidget::calculateShiftCoreSkillsRadarData(const Q
     }
 
     return aggregatedData;
+}
+
+QString AnalyticsWidget::abbreviateLabel(const QString& label) const
+{
+    // Production area abbreviations to save space
+    if (label.contains("Viaflo", Qt::CaseInsensitive)) {
+        if (label.contains("Packing", Qt::CaseInsensitive)) {
+            return "VFO P";
+        }
+        if (label.contains("Racking", Qt::CaseInsensitive)) {
+            return "VFO R";
+        }
+        if (label.contains("Fill", Qt::CaseInsensitive)) {
+            return "VFO F";
+        }
+        return "VFO";  // Generic Viaflo
+    }
+
+    if (label.contains("Line 6", Qt::CaseInsensitive) || label == "L6") {
+        return "L6";
+    }
+
+    if (label.contains("Line 7", Qt::CaseInsensitive)) {
+        if (label.contains("Packing", Qt::CaseInsensitive)) {
+            return "L7 P";
+        }
+        return "L7";
+    }
+
+    if (label.contains("Line 1", Qt::CaseInsensitive) || label == "L1") {
+        return "L1";
+    }
+
+    // If no abbreviation found, return original label
+    return label;
 }

@@ -92,6 +92,7 @@ private:
     QMap<QString, double> calculateEngineerCoreSkillsRadarData(const QString& engineerId);
     QMap<QString, double> calculateShiftProductionRadarData(const QString& shift);
     QMap<QString, double> calculateShiftCoreSkillsRadarData(const QString& shift);
+    QString abbreviateLabel(const QString& label) const;
 
 private:
     // Navigation
