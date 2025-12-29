@@ -942,16 +942,17 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     engineerProductionRadarView_ = new QChartView(this);
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
     engineerProductionRadarView_->setMinimumHeight(850);
-    chartsLayout->addWidget(engineerProductionRadarView_);
+    engineerProductionRadarView_->setMaximumHeight(850);
+    chartsLayout->addWidget(engineerProductionRadarView_, 1);
 
     // Core Skills Radar
     engineerCoreSkillsRadarView_ = new QChartView(this);
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
     engineerCoreSkillsRadarView_->setMinimumHeight(850);
-    chartsLayout->addWidget(engineerCoreSkillsRadarView_);
+    engineerCoreSkillsRadarView_->setMaximumHeight(850);
+    chartsLayout->addWidget(engineerCoreSkillsRadarView_, 1);
 
-    layout->addLayout(chartsLayout);
-    layout->addStretch();
+    layout->addLayout(chartsLayout, 1);
 }
 
 void AnalyticsWidget::onEngineerSelected(int index)
