@@ -7,14 +7,16 @@
 #include <QListWidget>
 #include <QStackedWidget>
 #include <QtCharts/QChartView>
-#include <QtCharts/QPolarChart>
 #include <QComboBox>
 #include "../database/AssessmentRepository.h"
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/CoreSkillsRepository.h"
 
-QT_CHARTS_USE_NAMESPACE
+// Forward declaration
+namespace QtCharts {
+    class QPolarChart;
+}
 
 class AnalyticsWidget : public QWidget
 {
@@ -84,9 +86,9 @@ private:
     QList<Insight> generateAutomatedInsights();
 
     // Radar chart helper methods
-    QPolarChart* createRadarChart(const QMap<QString, double>& data,
-                                  const QString& title,
-                                  const QColor& color);
+    QtCharts::QPolarChart* createRadarChart(const QMap<QString, double>& data,
+                                            const QString& title,
+                                            const QColor& color);
     QMap<QString, double> calculateEngineerProductionRadarData(const QString& engineerId);
     QMap<QString, double> calculateEngineerCoreSkillsRadarData(const QString& engineerId);
     QMap<QString, double> calculateShiftProductionRadarData(const QString& shift);
