@@ -1152,11 +1152,9 @@ QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data
                                                 const QString& title,
                                                 const QColor& color)
 {
-    using namespace QtCharts;
-
     QPolarChart* chart = new QPolarChart();
     chart->setTitle(title);
-    chart->setAnimationOptions(QChart::AllAnimations);
+    chart->setAnimationOptions(QPolarChart::AllAnimations);
 
     // Prepare data
     QStringList labels;
@@ -1242,9 +1240,17 @@ QMap<QString, double> AnalyticsWidget::calculateEngineerProductionRadarData(cons
         return radarData;
     }
 
-    // Get all competencies
-    QList<Competency> allCompetencies = productionRepo_.loadAllCompetencies();
-    QList<Machine> allMachines = productionRepo_.loadAllMachines();
+    // Get all competencies and machines
+    QList<Competency> allCompetencies;
+    QList<Machine> allMachines;
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        allMachines.append(areaMachines);
+        for (const Machine& machine : areaMachines) {
+            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
+        }
+    }
 
     // Group by production area
     QMap<QString, double> areaWeightedSum;
@@ -1291,15 +1297,21 @@ QMap<QString, double> AnalyticsWidget::calculateEngineerCoreSkillsRadarData(cons
     QMap<QString, double> radarData;
 
     // Get all core skill assessments for this engineer
-    QList<CoreSkillAssessment> engineerAssessments = coreSkillsRepo_.loadAssessmentsForEngineer(engineerId);
+    QList<CoreSkillAssessment> allAssessments = coreSkillsRepo_.findAllAssessments();
+    QList<CoreSkillAssessment> engineerAssessments;
+    for (const CoreSkillAssessment& assessment : allAssessments) {
+        if (assessment.engineerId() == engineerId) {
+            engineerAssessments.append(assessment);
+        }
+    }
 
     if (engineerAssessments.isEmpty()) {
         return radarData;
     }
 
     // Get all core skills and categories
-    QList<CoreSkill> allSkills = coreSkillsRepo_.loadAllSkills();
-    QList<CoreSkillCategory> allCategories = coreSkillsRepo_.loadAllCategories();
+    QList<CoreSkill> allSkills = coreSkillsRepo_.findAllSkills();
+    QList<CoreSkillCategory> allCategories = coreSkillsRepo_.findAllCategories();
 
     // Group by category
     QMap<QString, double> categoryWeightedSum;
