@@ -36,6 +36,7 @@ private slots:
     void onRefreshClicked();
     void onEngineerSelected(int index);
     void onShiftFilterChanged(int index);
+    void onShiftDataTypeChanged(int index);
 
 private:
     void setupUI();
@@ -123,6 +124,7 @@ private:
 
     // Shift Overview Tab Components
     QComboBox* shiftFilterCombo_;
+    QComboBox* shiftDataTypeCombo_;
     QWidget* shiftRadarContainer_;
     QList<QChartView*> shiftRadarViews_;
 

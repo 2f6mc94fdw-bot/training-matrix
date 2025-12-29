@@ -39,6 +39,7 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , engineerProductionRadarView_(nullptr)
     , engineerCoreSkillsRadarView_(nullptr)
     , shiftFilterCombo_(nullptr)
+    , shiftDataTypeCombo_(nullptr)
     , shiftRadarContainer_(nullptr)
     , isFirstShow_(true)
 {
@@ -1000,6 +1001,10 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     layout->setSpacing(16);
     layout->setContentsMargins(0, 0, 0, 0);
 
+    // Controls row (shift filter and data type toggle)
+    QHBoxLayout* controlsLayout = new QHBoxLayout();
+    controlsLayout->setSpacing(16);
+
     // Shift filter
     QGroupBox* filterGroup = new QGroupBox("Filter by Shift", this);
     filterGroup->setStyleSheet(
@@ -1024,7 +1029,34 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
             this, &AnalyticsWidget::onShiftFilterChanged);
     filterLayout->addWidget(shiftFilterCombo_);
 
-    layout->addWidget(filterGroup);
+    controlsLayout->addWidget(filterGroup);
+
+    // Data type toggle
+    QGroupBox* dataTypeGroup = new QGroupBox("Data Type", this);
+    dataTypeGroup->setStyleSheet(
+        "QGroupBox {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "    padding: 20px;"
+        "    font-size: 14px;"
+        "    font-weight: bold;"
+        "}"
+    );
+
+    QVBoxLayout* dataTypeLayout = new QVBoxLayout(dataTypeGroup);
+    shiftDataTypeCombo_ = new QComboBox(this);
+    shiftDataTypeCombo_->setMinimumHeight(40);
+    shiftDataTypeCombo_->setFont(comboFont);
+    shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
+    shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
+    connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AnalyticsWidget::onShiftDataTypeChanged);
+    dataTypeLayout->addWidget(shiftDataTypeCombo_);
+
+    controlsLayout->addWidget(dataTypeGroup);
+
+    layout->addLayout(controlsLayout);
 
     // Scroll area for shift radar charts
     QScrollArea* scrollArea = new QScrollArea(this);
@@ -1044,9 +1076,14 @@ void AnalyticsWidget::onShiftFilterChanged(int index)
     updateShiftOverviewData();
 }
 
+void AnalyticsWidget::onShiftDataTypeChanged(int index)
+{
+    updateShiftOverviewData();
+}
+
 void AnalyticsWidget::updateShiftOverviewData()
 {
-    if (!shiftRadarContainer_) {
+    if (!shiftRadarContainer_ || !shiftDataTypeCombo_) {
         return;
     }
 
@@ -1062,8 +1099,10 @@ void AnalyticsWidget::updateShiftOverviewData()
     }
     shiftRadarViews_.clear();
 
-    // Get selected shift filter
+    // Get selected shift filter and data type
     QString selectedShift = shiftFilterCombo_->currentData().toString();
+    QString dataType = shiftDataTypeCombo_->currentData().toString();
+    bool isProductionData = (dataType == "PRODUCTION");
 
     // Get unique shifts from cached engineers
     QSet<QString> shifts;
@@ -1083,7 +1122,7 @@ void AnalyticsWidget::updateShiftOverviewData()
         shiftList.append(selectedShift);
     }
 
-    // Create radar charts for each shift showing individual engineers
+    // Create single large radar chart for each shift showing individual engineers
     for (const QString& shift : shiftList) {
         // Get engineers in this shift
         QList<Engineer> shiftEngineers;
@@ -1106,44 +1145,28 @@ void AnalyticsWidget::updateShiftOverviewData()
         shiftLabel->setStyleSheet("color: #1e293b; padding: 12px 0;");
         shiftRadarContainer_->layout()->addWidget(shiftLabel);
 
-        // Radar charts row
-        QWidget* chartsWidget = new QWidget(this);
-        QHBoxLayout* chartsLayout = new QHBoxLayout(chartsWidget);
-        chartsLayout->setSpacing(16);
+        // Create single large chart based on selected data type
+        QMap<QString, QMap<QString, double>> engineerData;
+        QString chartTitle;
 
-        // Production Areas Radar - Multi-Engineer
-        QMap<QString, QMap<QString, double>> productionEngineerData;
-        for (const Engineer& engineer : shiftEngineers) {
-            productionEngineerData[engineer.name()] = calculateEngineerProductionRadarData(engineer.id());
+        if (isProductionData) {
+            for (const Engineer& engineer : shiftEngineers) {
+                engineerData[engineer.name()] = calculateEngineerProductionRadarData(engineer.id());
+            }
+            chartTitle = QString("Production Areas - %1").arg(shift);
+        } else {
+            for (const Engineer& engineer : shiftEngineers) {
+                engineerData[engineer.name()] = calculateEngineerCoreSkillsRadarData(engineer.id());
+            }
+            chartTitle = QString("Core Skills - %1").arg(shift);
         }
-        QPolarChart* productionChart = createMultiEngineerRadarChart(
-            productionEngineerData,
-            QString("Production Areas - %1").arg(shift),
-            true  // is production data
-        );
-        QChartView* productionView = new QChartView(productionChart, this);
-        productionView->setRenderHint(QPainter::Antialiasing);
-        productionView->setMinimumHeight(850);
-        chartsLayout->addWidget(productionView);
-        shiftRadarViews_.append(productionView);
 
-        // Core Skills Radar - Multi-Engineer
-        QMap<QString, QMap<QString, double>> coreSkillsEngineerData;
-        for (const Engineer& engineer : shiftEngineers) {
-            coreSkillsEngineerData[engineer.name()] = calculateEngineerCoreSkillsRadarData(engineer.id());
-        }
-        QPolarChart* coreSkillsChart = createMultiEngineerRadarChart(
-            coreSkillsEngineerData,
-            QString("Core Skills - %1").arg(shift),
-            false  // is core skills data
-        );
-        QChartView* coreSkillsView = new QChartView(coreSkillsChart, this);
-        coreSkillsView->setRenderHint(QPainter::Antialiasing);
-        coreSkillsView->setMinimumHeight(850);
-        chartsLayout->addWidget(coreSkillsView);
-        shiftRadarViews_.append(coreSkillsView);
-
-        shiftRadarContainer_->layout()->addWidget(chartsWidget);
+        QPolarChart* chart = createMultiEngineerRadarChart(engineerData, chartTitle, isProductionData);
+        QChartView* chartView = new QChartView(chart, this);
+        chartView->setRenderHint(QPainter::Antialiasing);
+        chartView->setMinimumHeight(1100);  // Much larger single chart
+        shiftRadarContainer_->layout()->addWidget(chartView);
+        shiftRadarViews_.append(chartView);
 
         // Divider
         QFrame* line = new QFrame(this);
@@ -1159,7 +1182,7 @@ void AnalyticsWidget::updateShiftOverviewData()
         containerLayout->addStretch();
     }
 
-    Logger::instance().info("AnalyticsWidget", QString("Updated shift overview for: %1").arg(selectedShift));
+    Logger::instance().info("AnalyticsWidget", QString("Updated shift overview for: %1, type: %2").arg(selectedShift).arg(dataType));
 }
 
 // ============================================================================
@@ -1328,9 +1351,9 @@ QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, 
         pen.setWidth(2);
         areaSeries->setPen(pen);
 
-        // Semi-transparent fill
+        // Semi-transparent fill for better overlap visibility
         QColor fillColor = engineerColor;
-        fillColor.setAlpha(80);  // 30% opacity for better overlap visibility
+        fillColor.setAlpha(50);  // ~20% opacity for better overlap visibility
         areaSeries->setBrush(fillColor);
 
         chart->addSeries(areaSeries);
