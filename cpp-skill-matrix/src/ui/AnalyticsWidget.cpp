@@ -943,6 +943,7 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
     engineerProductionRadarView_->setMinimumHeight(850);
     engineerProductionRadarView_->setMaximumHeight(850);
+    engineerProductionRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     chartsLayout->addWidget(engineerProductionRadarView_, 1);
 
     // Core Skills Radar
@@ -950,6 +951,7 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
     engineerCoreSkillsRadarView_->setMinimumHeight(850);
     engineerCoreSkillsRadarView_->setMaximumHeight(850);
+    engineerCoreSkillsRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     chartsLayout->addWidget(engineerCoreSkillsRadarView_, 1);
 
     layout->addLayout(chartsLayout, 1);
@@ -1263,6 +1265,9 @@ QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data
 
     chart->legend()->setVisible(false);
 
+    // Set consistent margins for all charts
+    chart->setMargins(QMargins(20, 20, 20, 20));
+
     return chart;
 }
 
@@ -1387,6 +1392,9 @@ QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, 
     // Enable legend to show engineer names
     chart->legend()->setVisible(true);
     chart->legend()->setAlignment(Qt::AlignBottom);
+
+    // Set consistent margins for all charts
+    chart->setMargins(QMargins(20, 20, 20, 20));
 
     return chart;
 }
