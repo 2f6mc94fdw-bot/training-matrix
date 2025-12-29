@@ -940,13 +940,13 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     // Production Areas Radar
     engineerProductionRadarView_ = new QChartView(this);
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerProductionRadarView_->setMinimumHeight(500);
+    engineerProductionRadarView_->setMinimumHeight(600);
     chartsLayout->addWidget(engineerProductionRadarView_);
 
     // Core Skills Radar
     engineerCoreSkillsRadarView_ = new QChartView(this);
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerCoreSkillsRadarView_->setMinimumHeight(500);
+    engineerCoreSkillsRadarView_->setMinimumHeight(600);
     chartsLayout->addWidget(engineerCoreSkillsRadarView_);
 
     layout->addLayout(chartsLayout);
@@ -1083,10 +1083,22 @@ void AnalyticsWidget::updateShiftOverviewData()
         shiftList.append(selectedShift);
     }
 
-    // Create radar charts for each shift
+    // Create radar charts for each shift showing individual engineers
     for (const QString& shift : shiftList) {
+        // Get engineers in this shift
+        QList<Engineer> shiftEngineers;
+        for (const Engineer& engineer : cachedEngineers_) {
+            if (engineer.shift() == shift) {
+                shiftEngineers.append(engineer);
+            }
+        }
+
+        if (shiftEngineers.isEmpty()) {
+            continue;
+        }
+
         // Shift header
-        QLabel* shiftLabel = new QLabel(QString("Shift: %1").arg(shift), this);
+        QLabel* shiftLabel = new QLabel(QString("Shift: %1 (%2 Engineers)").arg(shift).arg(shiftEngineers.size()), this);
         QFont headerFont = shiftLabel->font();
         headerFont.setPointSize(18);
         headerFont.setBold(true);
@@ -1099,29 +1111,35 @@ void AnalyticsWidget::updateShiftOverviewData()
         QHBoxLayout* chartsLayout = new QHBoxLayout(chartsWidget);
         chartsLayout->setSpacing(16);
 
-        // Production Areas Radar
-        QMap<QString, double> productionData = calculateShiftProductionRadarData(shift);
-        QPolarChart* productionChart = createRadarChart(
-            productionData,
+        // Production Areas Radar - Multi-Engineer
+        QMap<QString, QMap<QString, double>> productionEngineerData;
+        for (const Engineer& engineer : shiftEngineers) {
+            productionEngineerData[engineer.name()] = calculateEngineerProductionRadarData(engineer.id());
+        }
+        QPolarChart* productionChart = createMultiEngineerRadarChart(
+            productionEngineerData,
             QString("Production Areas - %1").arg(shift),
-            QColor("#2196F3")  // Blue
+            true  // is production data
         );
         QChartView* productionView = new QChartView(productionChart, this);
         productionView->setRenderHint(QPainter::Antialiasing);
-        productionView->setMinimumHeight(450);
+        productionView->setMinimumHeight(600);
         chartsLayout->addWidget(productionView);
         shiftRadarViews_.append(productionView);
 
-        // Core Skills Radar
-        QMap<QString, double> coreSkillsData = calculateShiftCoreSkillsRadarData(shift);
-        QPolarChart* coreSkillsChart = createRadarChart(
-            coreSkillsData,
+        // Core Skills Radar - Multi-Engineer
+        QMap<QString, QMap<QString, double>> coreSkillsEngineerData;
+        for (const Engineer& engineer : shiftEngineers) {
+            coreSkillsEngineerData[engineer.name()] = calculateEngineerCoreSkillsRadarData(engineer.id());
+        }
+        QPolarChart* coreSkillsChart = createMultiEngineerRadarChart(
+            coreSkillsEngineerData,
             QString("Core Skills - %1").arg(shift),
-            QColor("#FF9800")  // Orange
+            false  // is core skills data
         );
         QChartView* coreSkillsView = new QChartView(coreSkillsChart, this);
         coreSkillsView->setRenderHint(QPainter::Antialiasing);
-        coreSkillsView->setMinimumHeight(450);
+        coreSkillsView->setMinimumHeight(600);
         chartsLayout->addWidget(coreSkillsView);
         shiftRadarViews_.append(coreSkillsView);
 
@@ -1220,6 +1238,131 @@ QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data
     areaSeries->attachAxis(radialAxis);
 
     chart->legend()->setVisible(false);
+
+    return chart;
+}
+
+QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, QMap<QString, double>>& engineerDataMap,
+                                                             const QString& title,
+                                                             bool isProductionData)
+{
+    QPolarChart* chart = new QPolarChart();
+    chart->setTitle(title);
+    chart->setAnimationOptions(QPolarChart::AllAnimations);
+
+    if (engineerDataMap.isEmpty()) {
+        chart->setTitle(title + " (No Data)");
+        chart->legend()->setVisible(false);
+        return chart;
+    }
+
+    // Collect all unique labels from all engineers
+    QSet<QString> allLabelsSet;
+    for (auto it = engineerDataMap.constBegin(); it != engineerDataMap.constEnd(); ++it) {
+        const QMap<QString, double>& data = it.value();
+        for (auto labelIt = data.constBegin(); labelIt != data.constEnd(); ++labelIt) {
+            allLabelsSet.insert(labelIt.key());
+        }
+    }
+
+    QStringList labels = allLabelsSet.values();
+    std::sort(labels.begin(), labels.end());
+
+    if (labels.isEmpty()) {
+        chart->setTitle(title + " (No Data)");
+        chart->legend()->setVisible(false);
+        return chart;
+    }
+
+    // Predefined color palette for engineers
+    QList<QColor> colorPalette = {
+        QColor("#2196F3"), // Blue
+        QColor("#FF9800"), // Orange
+        QColor("#4CAF50"), // Green
+        QColor("#F44336"), // Red
+        QColor("#9C27B0"), // Purple
+        QColor("#00BCD4"), // Cyan
+        QColor("#FFEB3B"), // Yellow
+        QColor("#795548"), // Brown
+        QColor("#607D8B"), // Blue Grey
+        QColor("#E91E63")  // Pink
+    };
+
+    // Create a series for each engineer
+    int colorIndex = 0;
+    for (auto it = engineerDataMap.constBegin(); it != engineerDataMap.constEnd(); ++it) {
+        QString engineerName = it.key();
+        const QMap<QString, double>& data = it.value();
+
+        if (data.isEmpty()) {
+            continue;
+        }
+
+        // Create data points for this engineer (in same label order)
+        QLineSeries* series = new QLineSeries();
+        series->setName(engineerName);
+
+        for (int i = 0; i < labels.size(); i++) {
+            double value = data.value(labels[i], 0.0);  // Default to 0 if no data for this label
+            series->append(i, value);
+        }
+        // Close the polygon
+        if (!labels.isEmpty()) {
+            double firstValue = data.value(labels.first(), 0.0);
+            series->append(labels.size(), firstValue);
+        }
+
+        // Create lower bound at 0
+        QLineSeries* lowerSeries = new QLineSeries();
+        for (int i = 0; i <= labels.size(); i++) {
+            lowerSeries->append(i, 0);
+        }
+
+        // Create area series
+        QAreaSeries* areaSeries = new QAreaSeries(series, lowerSeries);
+        areaSeries->setName(engineerName);
+
+        // Assign color from palette
+        QColor engineerColor = colorPalette[colorIndex % colorPalette.size()];
+        QPen pen(engineerColor);
+        pen.setWidth(2);
+        areaSeries->setPen(pen);
+
+        // Semi-transparent fill
+        QColor fillColor = engineerColor;
+        fillColor.setAlpha(80);  // 30% opacity for better overlap visibility
+        areaSeries->setBrush(fillColor);
+
+        chart->addSeries(areaSeries);
+        colorIndex++;
+    }
+
+    // Angular axis (category labels)
+    QCategoryAxis* angularAxis = new QCategoryAxis();
+    angularAxis->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+    for (int i = 0; i < labels.size(); i++) {
+        angularAxis->append(labels[i], i);
+    }
+    angularAxis->setRange(0, labels.size());
+    chart->addAxis(angularAxis, QPolarChart::PolarOrientationAngular);
+
+    // Radial axis (values 0-3)
+    QValueAxis* radialAxis = new QValueAxis();
+    radialAxis->setRange(0, 3);
+    radialAxis->setTickCount(4);  // 0, 1, 2, 3
+    radialAxis->setLabelFormat("%.1f");
+    chart->addAxis(radialAxis, QPolarChart::PolarOrientationRadial);
+
+    // Attach axes to all series
+    const QList<QAbstractSeries*> allSeries = chart->series();
+    for (QAbstractSeries* series : allSeries) {
+        series->attachAxis(angularAxis);
+        series->attachAxis(radialAxis);
+    }
+
+    // Enable legend to show engineer names
+    chart->legend()->setVisible(true);
+    chart->legend()->setAlignment(Qt::AlignBottom);
 
     return chart;
 }

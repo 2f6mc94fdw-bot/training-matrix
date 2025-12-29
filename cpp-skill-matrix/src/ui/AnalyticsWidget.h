@@ -85,6 +85,9 @@ private:
     QPolarChart* createRadarChart(const QMap<QString, double>& data,
                                   const QString& title,
                                   const QColor& color);
+    QPolarChart* createMultiEngineerRadarChart(const QMap<QString, QMap<QString, double>>& engineerDataMap,
+                                               const QString& title,
+                                               bool isProductionData);
     QMap<QString, double> calculateEngineerProductionRadarData(const QString& engineerId);
     QMap<QString, double> calculateEngineerCoreSkillsRadarData(const QString& engineerId);
     QMap<QString, double> calculateShiftProductionRadarData(const QString& shift);
