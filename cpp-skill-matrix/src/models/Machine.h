@@ -12,7 +12,7 @@ class Machine
 {
 public:
     Machine();
-    Machine(int id, int productionAreaId, const QString& name, int importance = 1);
+    Machine(int id, int productionAreaId, const QString& name, int importance = 0);
     ~Machine();
 
     // Getters
@@ -45,7 +45,7 @@ private:
     int id_;
     int productionAreaId_;
     QString name_;
-    int importance_; // 1-10
+    int importance_; // 0-3: Production impact (0=No reduction, 1=>50%, 2=≤50%, 3=Stopped)
     QDateTime createdAt_;
     QDateTime updatedAt_;
 };

@@ -4,7 +4,7 @@ Machine::Machine()
     : id_(0)
     , productionAreaId_(0)
     , name_("")
-    , importance_(1)
+    , importance_(0)
     , createdAt_(QDateTime::currentDateTime())
     , updatedAt_(QDateTime::currentDateTime())
 {
@@ -27,7 +27,7 @@ Machine::~Machine()
 bool Machine::isValid() const
 {
     return id_ > 0 && productionAreaId_ > 0 && !name_.isEmpty() &&
-           importance_ >= 1 && importance_ <= 10;
+           importance_ >= 0 && importance_ <= 3;
 }
 
 QJsonObject Machine::toJson() const
@@ -48,7 +48,7 @@ Machine Machine::fromJson(const QJsonObject& json)
     machine.setId(json["id"].toInt());
     machine.setProductionAreaId(json["productionAreaId"].toInt());
     machine.setName(json["name"].toString());
-    machine.setImportance(json["importance"].toInt(1));
+    machine.setImportance(json["importance"].toInt(0));
 
     QString createdAtStr = json["createdAt"].toString();
     if (!createdAtStr.isEmpty()) {

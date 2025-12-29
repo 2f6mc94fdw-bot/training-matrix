@@ -1442,9 +1442,12 @@ QMap<QString, double> AnalyticsWidget::calculateEngineerProductionRadarData(cons
                         for (const ProductionArea& area : cachedAreas_) {
                             if (area.id() == machine.productionAreaId()) {
                                 QString areaName = area.name();
-                                double weight = comp.calculatedWeight();
-                                areaWeightedSum[areaName] += assessment.score() * weight;
-                                areaTotalWeights[areaName] += weight;
+                                // Combined weight: competency weight × machine production impact
+                                double competencyWeight = comp.calculatedWeight();
+                                double machineImpact = machine.importance(); // 0-3 scale
+                                double combinedWeight = competencyWeight * (machineImpact + 1); // +1 to avoid zero weight
+                                areaWeightedSum[areaName] += assessment.score() * combinedWeight;
+                                areaTotalWeights[areaName] += combinedWeight;
                                 break;
                             }
                         }

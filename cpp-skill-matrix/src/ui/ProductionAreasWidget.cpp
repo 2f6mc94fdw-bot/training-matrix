@@ -465,17 +465,20 @@ void ProductionAreasWidget::showMachineDialog(int parentAreaId, const Machine* m
     QFormLayout* formLayout = new QFormLayout();
 
     QLineEdit* nameEdit = new QLineEdit(&dialog);
-    QSpinBox* importanceSpin = new QSpinBox(&dialog);
-    importanceSpin->setRange(1, 10);
-    importanceSpin->setValue(1);
+    QComboBox* importanceCombo = new QComboBox(&dialog);
+    importanceCombo->addItem("0 - No reduction to production", 0);
+    importanceCombo->addItem("1 - Greater than 50% production", 1);
+    importanceCombo->addItem("2 - 50% or less production", 2);
+    importanceCombo->addItem("3 - Production stopped", 3);
+    importanceCombo->setCurrentIndex(0);
 
     if (machine) {
         nameEdit->setText(machine->name());
-        importanceSpin->setValue(machine->importance());
+        importanceCombo->setCurrentIndex(machine->importance());
     }
 
     formLayout->addRow("Name:", nameEdit);
-    formLayout->addRow("Importance (1-10):", importanceSpin);
+    formLayout->addRow("Production Impact:", importanceCombo);
 
     QDialogButtonBox* buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
@@ -490,7 +493,7 @@ void ProductionAreasWidget::showMachineDialog(int parentAreaId, const Machine* m
 
     if (dialog.exec() == QDialog::Accepted) {
         QString name = nameEdit->text().trimmed();
-        int importance = importanceSpin->value();
+        int importance = importanceCombo->currentData().toInt();
 
         if (name.isEmpty()) {
             QMessageBox::warning(this, "Validation Error", "Name is required.");
