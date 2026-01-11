@@ -897,33 +897,45 @@ void AnalyticsWidget::onRefreshClicked()
 void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
 {
     QVBoxLayout* layout = new QVBoxLayout(engineerRadarWidget);
-    layout->setSpacing(16);
+    layout->setSpacing(12);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Engineer selector
-    QGroupBox* selectorGroup = new QGroupBox("Select Engineer", this);
-    selectorGroup->setStyleSheet(
-        "QGroupBox {"
+    // Compact engineer selector - horizontal layout with label next to dropdown
+    QWidget* selectorWidget = new QWidget(this);
+    selectorWidget->setStyleSheet(
+        "QWidget {"
         "    background-color: white;"
         "    border: 2px solid #e2e8f0;"
         "    border-radius: 8px;"
-        "    padding: 20px;"
-        "    font-size: 14px;"
-        "    font-weight: bold;"
         "}"
     );
 
-    QVBoxLayout* selectorLayout = new QVBoxLayout(selectorGroup);
+    QHBoxLayout* selectorLayout = new QHBoxLayout(selectorWidget);
+    selectorLayout->setContentsMargins(16, 12, 16, 12);
+    selectorLayout->setSpacing(12);
+
+    QLabel* selectorLabel = new QLabel("Select Engineer:", this);
+    QFont labelFont = selectorLabel->font();
+    labelFont.setPointSize(13);
+    labelFont.setWeight(QFont::DemiBold);
+    selectorLabel->setFont(labelFont);
+    selectorLabel->setStyleSheet("color: #475569; border: none;");
+
     engineerSelector_ = new QComboBox(this);
-    engineerSelector_->setMinimumHeight(40);
+    engineerSelector_->setMinimumHeight(36);
+    engineerSelector_->setMinimumWidth(250);
     QFont comboFont = engineerSelector_->font();
-    comboFont.setPointSize(14);
+    comboFont.setPointSize(13);
     engineerSelector_->setFont(comboFont);
+    engineerSelector_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
     connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerSelected);
-    selectorLayout->addWidget(engineerSelector_);
 
-    layout->addWidget(selectorGroup);
+    selectorLayout->addWidget(selectorLabel);
+    selectorLayout->addWidget(engineerSelector_);
+    selectorLayout->addStretch();
+
+    layout->addWidget(selectorWidget);
 
     // Radar charts container - wrapped in scroll area for better display
     QScrollArea* scrollArea = new QScrollArea(this);
@@ -1001,65 +1013,65 @@ void AnalyticsWidget::updateEngineerRadarData()
 void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
 {
     QVBoxLayout* layout = new QVBoxLayout(shiftOverviewWidget);
-    layout->setSpacing(16);
+    layout->setSpacing(12);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Controls row (shift filter and data type toggle)
-    QHBoxLayout* controlsLayout = new QHBoxLayout();
-    controlsLayout->setSpacing(16);
-
-    // Shift filter
-    QGroupBox* filterGroup = new QGroupBox("Filter by Shift", this);
-    filterGroup->setStyleSheet(
-        "QGroupBox {"
+    // Compact controls row - horizontal layout with labels next to dropdowns
+    QWidget* controlsWidget = new QWidget(this);
+    controlsWidget->setStyleSheet(
+        "QWidget {"
         "    background-color: white;"
         "    border: 2px solid #e2e8f0;"
         "    border-radius: 8px;"
-        "    padding: 20px;"
-        "    font-size: 14px;"
-        "    font-weight: bold;"
         "}"
     );
 
-    QVBoxLayout* filterLayout = new QVBoxLayout(filterGroup);
+    QHBoxLayout* controlsLayout = new QHBoxLayout(controlsWidget);
+    controlsLayout->setContentsMargins(16, 12, 16, 12);
+    controlsLayout->setSpacing(24);
+
+    // Shift filter
+    QLabel* filterLabel = new QLabel("Filter by Shift:", this);
+    QFont labelFont = filterLabel->font();
+    labelFont.setPointSize(13);
+    labelFont.setWeight(QFont::DemiBold);
+    filterLabel->setFont(labelFont);
+    filterLabel->setStyleSheet("color: #475569; border: none;");
+
     shiftFilterCombo_ = new QComboBox(this);
-    shiftFilterCombo_->setMinimumHeight(40);
+    shiftFilterCombo_->setMinimumHeight(36);
+    shiftFilterCombo_->setMinimumWidth(180);
     QFont comboFont = shiftFilterCombo_->font();
-    comboFont.setPointSize(14);
+    comboFont.setPointSize(13);
     shiftFilterCombo_->setFont(comboFont);
+    shiftFilterCombo_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
     shiftFilterCombo_->addItem("All Shifts", "ALL");
     connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftFilterChanged);
-    filterLayout->addWidget(shiftFilterCombo_);
 
-    controlsLayout->addWidget(filterGroup);
+    controlsLayout->addWidget(filterLabel);
+    controlsLayout->addWidget(shiftFilterCombo_);
 
     // Data type toggle
-    QGroupBox* dataTypeGroup = new QGroupBox("Data Type", this);
-    dataTypeGroup->setStyleSheet(
-        "QGroupBox {"
-        "    background-color: white;"
-        "    border: 2px solid #e2e8f0;"
-        "    border-radius: 8px;"
-        "    padding: 20px;"
-        "    font-size: 14px;"
-        "    font-weight: bold;"
-        "}"
-    );
+    QLabel* dataTypeLabel = new QLabel("Data Type:", this);
+    dataTypeLabel->setFont(labelFont);
+    dataTypeLabel->setStyleSheet("color: #475569; border: none;");
 
-    QVBoxLayout* dataTypeLayout = new QVBoxLayout(dataTypeGroup);
     shiftDataTypeCombo_ = new QComboBox(this);
-    shiftDataTypeCombo_->setMinimumHeight(40);
+    shiftDataTypeCombo_->setMinimumHeight(36);
+    shiftDataTypeCombo_->setMinimumWidth(180);
     shiftDataTypeCombo_->setFont(comboFont);
+    shiftDataTypeCombo_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
     shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
     shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
     connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftDataTypeChanged);
-    dataTypeLayout->addWidget(shiftDataTypeCombo_);
 
-    controlsLayout->addWidget(dataTypeGroup);
+    controlsLayout->addWidget(dataTypeLabel);
+    controlsLayout->addWidget(shiftDataTypeCombo_);
+    controlsLayout->addStretch();
 
-    layout->addLayout(controlsLayout);
+    layout->addWidget(controlsWidget);
 
     // Scroll area for shift radar charts
     QScrollArea* scrollArea = new QScrollArea(this);
