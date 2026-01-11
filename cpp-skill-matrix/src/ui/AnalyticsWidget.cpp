@@ -1077,13 +1077,16 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     QScrollArea* scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
     scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     shiftRadarContainer_ = new QWidget();
     QVBoxLayout* containerLayout = new QVBoxLayout(shiftRadarContainer_);
     containerLayout->setSpacing(24);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
 
     scrollArea->setWidget(shiftRadarContainer_);
-    layout->addWidget(scrollArea);
+    layout->addWidget(scrollArea, 1);
 }
 
 void AnalyticsWidget::onShiftFilterChanged(int index)
@@ -1179,7 +1182,9 @@ void AnalyticsWidget::updateShiftOverviewData()
         QPolarChart* chart = createMultiEngineerRadarChart(engineerData, chartTitle, isProductionData);
         QChartView* chartView = new QChartView(chart, this);
         chartView->setRenderHint(QPainter::Antialiasing);
-        chartView->setMinimumHeight(1100);  // Much larger single chart
+        chartView->setMinimumHeight(900);
+        chartView->setMinimumWidth(800);
+        chartView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         shiftRadarContainer_->layout()->addWidget(chartView);
         shiftRadarViews_.append(chartView);
 
