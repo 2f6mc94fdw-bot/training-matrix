@@ -42,6 +42,8 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftDataTypeCombo_(nullptr)
     , shiftRadarContainer_(nullptr)
     , isFirstShow_(true)
+    , engineerRadarChartHeight_(700)
+    , shiftOverviewChartHeight_(900)
 {
     setupUI();
 
@@ -935,6 +937,48 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     selectorLayout->addWidget(engineerSelector_);
     selectorLayout->addStretch();
 
+    // Zoom controls
+    QLabel* zoomLabel = new QLabel("Chart Size:", this);
+    zoomLabel->setFont(labelFont);
+    zoomLabel->setStyleSheet("color: #475569; border: none;");
+    selectorLayout->addWidget(zoomLabel);
+
+    QPushButton* zoomOutBtn = new QPushButton("−", this);
+    zoomOutBtn->setFixedSize(36, 36);
+    zoomOutBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomOutBtn, &QPushButton::clicked, this, &AnalyticsWidget::onEngineerRadarZoomOut);
+    selectorLayout->addWidget(zoomOutBtn);
+
+    QPushButton* zoomInBtn = new QPushButton("+", this);
+    zoomInBtn->setFixedSize(36, 36);
+    zoomInBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomInBtn, &QPushButton::clicked, this, &AnalyticsWidget::onEngineerRadarZoomIn);
+    selectorLayout->addWidget(zoomInBtn);
+
     layout->addWidget(selectorWidget);
 
     // Radar charts container - wrapped in scroll area for better display
@@ -952,7 +996,7 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     // Production Areas Radar
     engineerProductionRadarView_ = new QChartView(this);
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerProductionRadarView_->setMinimumHeight(700);
+    engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
     engineerProductionRadarView_->setMinimumWidth(500);
     engineerProductionRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(engineerProductionRadarView_, 1);
@@ -960,7 +1004,7 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     // Core Skills Radar
     engineerCoreSkillsRadarView_ = new QChartView(this);
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerCoreSkillsRadarView_->setMinimumHeight(700);
+    engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
     engineerCoreSkillsRadarView_->setMinimumWidth(500);
     engineerCoreSkillsRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(engineerCoreSkillsRadarView_, 1);
@@ -1070,6 +1114,48 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     controlsLayout->addWidget(dataTypeLabel);
     controlsLayout->addWidget(shiftDataTypeCombo_);
     controlsLayout->addStretch();
+
+    // Zoom controls
+    QLabel* zoomLabel = new QLabel("Chart Size:", this);
+    zoomLabel->setFont(labelFont);
+    zoomLabel->setStyleSheet("color: #475569; border: none;");
+    controlsLayout->addWidget(zoomLabel);
+
+    QPushButton* zoomOutBtn = new QPushButton("−", this);
+    zoomOutBtn->setFixedSize(36, 36);
+    zoomOutBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomOutBtn, &QPushButton::clicked, this, &AnalyticsWidget::onShiftOverviewZoomOut);
+    controlsLayout->addWidget(zoomOutBtn);
+
+    QPushButton* zoomInBtn = new QPushButton("+", this);
+    zoomInBtn->setFixedSize(36, 36);
+    zoomInBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomInBtn, &QPushButton::clicked, this, &AnalyticsWidget::onShiftOverviewZoomIn);
+    controlsLayout->addWidget(zoomInBtn);
 
     layout->addWidget(controlsWidget);
 
@@ -1182,7 +1268,7 @@ void AnalyticsWidget::updateShiftOverviewData()
         QPolarChart* chart = createMultiEngineerRadarChart(engineerData, chartTitle, isProductionData);
         QChartView* chartView = new QChartView(chart, this);
         chartView->setRenderHint(QPainter::Antialiasing);
-        chartView->setMinimumHeight(900);
+        chartView->setMinimumHeight(shiftOverviewChartHeight_);
         chartView->setMinimumWidth(800);
         chartView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         shiftRadarContainer_->layout()->addWidget(chartView);
@@ -1653,4 +1739,72 @@ QString AnalyticsWidget::abbreviateLabel(const QString& label) const
 
     // If no abbreviation found, return original label
     return label;
+}
+
+void AnalyticsWidget::onEngineerRadarZoomIn()
+{
+    engineerRadarChartHeight_ += 100;
+    if (engineerRadarChartHeight_ > 1400) {
+        engineerRadarChartHeight_ = 1400;  // Max height
+    }
+
+    if (engineerProductionRadarView_) {
+        engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+    if (engineerCoreSkillsRadarView_) {
+        engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Engineer radar chart height: %1").arg(engineerRadarChartHeight_));
+}
+
+void AnalyticsWidget::onEngineerRadarZoomOut()
+{
+    engineerRadarChartHeight_ -= 100;
+    if (engineerRadarChartHeight_ < 400) {
+        engineerRadarChartHeight_ = 400;  // Min height
+    }
+
+    if (engineerProductionRadarView_) {
+        engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+    if (engineerCoreSkillsRadarView_) {
+        engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Engineer radar chart height: %1").arg(engineerRadarChartHeight_));
+}
+
+void AnalyticsWidget::onShiftOverviewZoomIn()
+{
+    shiftOverviewChartHeight_ += 100;
+    if (shiftOverviewChartHeight_ > 1600) {
+        shiftOverviewChartHeight_ = 1600;  // Max height
+    }
+
+    // Update all existing shift charts
+    for (QChartView* chartView : shiftRadarViews_) {
+        if (chartView) {
+            chartView->setMinimumHeight(shiftOverviewChartHeight_);
+        }
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Shift overview chart height: %1").arg(shiftOverviewChartHeight_));
+}
+
+void AnalyticsWidget::onShiftOverviewZoomOut()
+{
+    shiftOverviewChartHeight_ -= 100;
+    if (shiftOverviewChartHeight_ < 500) {
+        shiftOverviewChartHeight_ = 500;  // Min height
+    }
+
+    // Update all existing shift charts
+    for (QChartView* chartView : shiftRadarViews_) {
+        if (chartView) {
+            chartView->setMinimumHeight(shiftOverviewChartHeight_);
+        }
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Shift overview chart height: %1").arg(shiftOverviewChartHeight_));
 }

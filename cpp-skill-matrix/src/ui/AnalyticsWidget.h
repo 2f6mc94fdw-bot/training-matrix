@@ -37,6 +37,10 @@ private slots:
     void onEngineerSelected(int index);
     void onShiftFilterChanged(int index);
     void onShiftDataTypeChanged(int index);
+    void onEngineerRadarZoomIn();
+    void onEngineerRadarZoomOut();
+    void onShiftOverviewZoomIn();
+    void onShiftOverviewZoomOut();
 
 private:
     void setupUI();
@@ -142,6 +146,10 @@ private:
 
     // Lazy loading state
     bool isFirstShow_;
+
+    // Chart sizing state
+    int engineerRadarChartHeight_;
+    int shiftOverviewChartHeight_;
 };
 
 #endif // ANALYTICSWIDGET_H
