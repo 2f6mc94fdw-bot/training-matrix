@@ -42,8 +42,8 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftDataTypeCombo_(nullptr)
     , shiftRadarContainer_(nullptr)
     , isFirstShow_(true)
-    , engineerRadarChartHeight_(700)
-    , shiftOverviewChartHeight_(900)
+    , engineerRadarChartHeight_(400)
+    , shiftOverviewChartHeight_(500)
 {
     setupUI();
 
@@ -929,7 +929,34 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     QFont comboFont = engineerSelector_->font();
     comboFont.setPointSize(13);
     engineerSelector_->setFont(comboFont);
-    engineerSelector_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
+    engineerSelector_->setStyleSheet(
+        "QComboBox {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+        "QComboBox::drop-down {"
+        "    border: none;"
+        "}"
+        "QComboBox::down-arrow {"
+        "    image: none;"
+        "    border: 2px solid #64748b;"
+        "    width: 6px;"
+        "    height: 6px;"
+        "    border-top: none;"
+        "    border-right: none;"
+        "    transform: rotate(-45deg);"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    selection-background-color: #e0f2fe;"
+        "    selection-color: #0c4a6e;"
+        "    border: 1px solid #cbd5e1;"
+        "}"
+    );
     connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerSelected);
 
@@ -1088,7 +1115,34 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     QFont comboFont = shiftFilterCombo_->font();
     comboFont.setPointSize(13);
     shiftFilterCombo_->setFont(comboFont);
-    shiftFilterCombo_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
+    shiftFilterCombo_->setStyleSheet(
+        "QComboBox {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+        "QComboBox::drop-down {"
+        "    border: none;"
+        "}"
+        "QComboBox::down-arrow {"
+        "    image: none;"
+        "    border: 2px solid #64748b;"
+        "    width: 6px;"
+        "    height: 6px;"
+        "    border-top: none;"
+        "    border-right: none;"
+        "    transform: rotate(-45deg);"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    selection-background-color: #e0f2fe;"
+        "    selection-color: #0c4a6e;"
+        "    border: 1px solid #cbd5e1;"
+        "}"
+    );
     shiftFilterCombo_->addItem("All Shifts", "ALL");
     connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftFilterChanged);
@@ -1105,7 +1159,34 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     shiftDataTypeCombo_->setMinimumHeight(36);
     shiftDataTypeCombo_->setMinimumWidth(180);
     shiftDataTypeCombo_->setFont(comboFont);
-    shiftDataTypeCombo_->setStyleSheet("border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px;");
+    shiftDataTypeCombo_->setStyleSheet(
+        "QComboBox {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+        "QComboBox::drop-down {"
+        "    border: none;"
+        "}"
+        "QComboBox::down-arrow {"
+        "    image: none;"
+        "    border: 2px solid #64748b;"
+        "    width: 6px;"
+        "    height: 6px;"
+        "    border-top: none;"
+        "    border-right: none;"
+        "    transform: rotate(-45deg);"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    selection-background-color: #e0f2fe;"
+        "    selection-color: #0c4a6e;"
+        "    border: 1px solid #cbd5e1;"
+        "}"
+    );
     shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
     shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
     connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
