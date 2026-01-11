@@ -118,76 +118,69 @@ void AnalyticsWidget::setupUI()
     headerLayout->addWidget(refreshButton);
 
     mainLayout->addLayout(headerLayout);
-    mainLayout->addSpacing(16);
+    mainLayout->addSpacing(8);
 
-    // Content area with sidebar + tabs
-    QHBoxLayout* contentLayout = new QHBoxLayout();
-    contentLayout->setSpacing(16);
-
-    // Sidebar navigation
-    QWidget* sidebar = new QWidget(this);
-    sidebar->setFixedWidth(250);
-    sidebar->setStyleSheet(
+    // Horizontal tab navigation
+    QWidget* tabBar = new QWidget(this);
+    tabBar->setStyleSheet(
         "QWidget {"
-        "    background-color: white;"
-        "    border: 2px solid #e2e8f0;"
-        "    border-radius: 8px;"
+        "    background-color: transparent;"
         "}"
     );
 
-    QVBoxLayout* sidebarLayout = new QVBoxLayout(sidebar);
-    sidebarLayout->setSpacing(4);
-    sidebarLayout->setContentsMargins(12, 12, 12, 12);
+    QHBoxLayout* tabBarLayout = new QHBoxLayout(tabBar);
+    tabBarLayout->setSpacing(8);
+    tabBarLayout->setContentsMargins(0, 0, 0, 0);
 
-    QLabel* navLabel = new QLabel("ANALYTICS", this);
-    QFont navFont = navLabel->font();
-    navFont.setPointSize(11);
-    navFont.setWeight(QFont::Bold);
-    navLabel->setFont(navFont);
-    navLabel->setStyleSheet("color: #94a3b8; padding: 8px;");
-    sidebarLayout->addWidget(navLabel);
-
-    // Tab buttons
-    auto createTabButton = [this](const QString& icon, const QString& text) -> QPushButton* {
-        QPushButton* btn = new QPushButton(icon + "  " + text, this);
+    // Create horizontal tab button function
+    auto createTabButton = [this](const QString& text) -> QPushButton* {
+        QPushButton* btn = new QPushButton(text, this);
         QFont btnFont = btn->font();
-        btnFont.setPointSize(14);
+        btnFont.setPointSize(13);
+        btnFont.setWeight(QFont::DemiBold);
         btn->setFont(btnFont);
-        btn->setMinimumHeight(48);
+        btn->setMinimumHeight(44);
+        btn->setMinimumWidth(140);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(
             "QPushButton {"
-            "    text-align: left;"
-            "    padding-left: 16px;"
             "    border: none;"
             "    border-radius: 8px;"
-            "    background-color: transparent;"
-            "    color: #475569;"
+            "    background-color: #f1f5f9;"
+            "    color: #64748b;"
+            "    padding: 10px 20px;"
             "}"
             "QPushButton:hover {"
-            "    background-color: #f1f5f9;"
+            "    background-color: #e2e8f0;"
+            "    color: #475569;"
             "}"
         );
         return btn;
     };
 
-    trendsButton_ = createTabButton("📈", "Trends & Predictions");
-    shiftsButton_ = createTabButton("🔄", "Shift Comparison");
-    insightsButton_ = createTabButton("💡", "Automated Insights");
-    engineerRadarButton_ = createTabButton("👤", "Engineer Radar Charts");
-    shiftOverviewButton_ = createTabButton("📊", "Shift Overview");
+    trendsButton_ = createTabButton("Trends");
+    shiftsButton_ = createTabButton("Shift Comparison");
+    insightsButton_ = createTabButton("Insights");
+    engineerRadarButton_ = createTabButton("Engineer Radar");
+    shiftOverviewButton_ = createTabButton("Shift Overview");
 
-    sidebarLayout->addWidget(trendsButton_);
-    sidebarLayout->addWidget(shiftsButton_);
-    sidebarLayout->addWidget(insightsButton_);
-    sidebarLayout->addWidget(engineerRadarButton_);
-    sidebarLayout->addWidget(shiftOverviewButton_);
-    sidebarLayout->addStretch();
+    tabBarLayout->addWidget(trendsButton_);
+    tabBarLayout->addWidget(shiftsButton_);
+    tabBarLayout->addWidget(insightsButton_);
+    tabBarLayout->addWidget(engineerRadarButton_);
+    tabBarLayout->addWidget(shiftOverviewButton_);
+    tabBarLayout->addStretch();
 
-    contentLayout->addWidget(sidebar);
+    mainLayout->addWidget(tabBar);
+    mainLayout->addSpacing(16);
 
     // Stacked widget for tab content
     contentStack_ = new QStackedWidget(this);
+    contentStack_->setStyleSheet(
+        "QStackedWidget {"
+        "    background-color: transparent;"
+        "}"
+    );
 
     // Create tabs
     QWidget* trendsWidget = new QWidget();
@@ -214,8 +207,7 @@ void AnalyticsWidget::setupUI()
     connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
     connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
 
-    contentLayout->addWidget(contentStack_, 1);
-    mainLayout->addLayout(contentLayout);
+    mainLayout->addWidget(contentStack_, 1);
 
     setLayout(mainLayout);
 
@@ -851,15 +843,14 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
 {
     contentStack_->setCurrentIndex(tabIndex);
 
-    // Update button styles
+    // Update button styles for horizontal tabs
     QString activeStyle =
         "QPushButton {"
-        "    text-align: left;"
-        "    padding-left: 16px;"
         "    border: none;"
         "    border-radius: 8px;"
         "    background-color: #ff6b6b;"
         "    color: white;"
+        "    padding: 10px 20px;"
         "    font-weight: bold;"
         "}"
         "QPushButton:hover {"
@@ -868,15 +859,15 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
 
     QString inactiveStyle =
         "QPushButton {"
-        "    text-align: left;"
-        "    padding-left: 16px;"
         "    border: none;"
         "    border-radius: 8px;"
-        "    background-color: transparent;"
-        "    color: #475569;"
+        "    background-color: #f1f5f9;"
+        "    color: #64748b;"
+        "    padding: 10px 20px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #f1f5f9;"
+        "    background-color: #e2e8f0;"
+        "    color: #475569;"
         "}";
 
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
@@ -934,27 +925,36 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
 
     layout->addWidget(selectorGroup);
 
-    // Radar charts container
-    QHBoxLayout* chartsLayout = new QHBoxLayout();
+    // Radar charts container - wrapped in scroll area for better display
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    QWidget* chartsContainer = new QWidget();
+    QHBoxLayout* chartsLayout = new QHBoxLayout(chartsContainer);
     chartsLayout->setSpacing(16);
+    chartsLayout->setContentsMargins(0, 0, 0, 0);
 
     // Production Areas Radar
     engineerProductionRadarView_ = new QChartView(this);
     engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerProductionRadarView_->setMinimumHeight(850);
-    engineerProductionRadarView_->setMaximumHeight(850);
-    engineerProductionRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    engineerProductionRadarView_->setMinimumHeight(700);
+    engineerProductionRadarView_->setMinimumWidth(500);
+    engineerProductionRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(engineerProductionRadarView_, 1);
 
     // Core Skills Radar
     engineerCoreSkillsRadarView_ = new QChartView(this);
     engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
-    engineerCoreSkillsRadarView_->setMinimumHeight(850);
-    engineerCoreSkillsRadarView_->setMaximumHeight(850);
-    engineerCoreSkillsRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    engineerCoreSkillsRadarView_->setMinimumHeight(700);
+    engineerCoreSkillsRadarView_->setMinimumWidth(500);
+    engineerCoreSkillsRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     chartsLayout->addWidget(engineerCoreSkillsRadarView_, 1);
 
-    layout->addLayout(chartsLayout, 1);
+    scrollArea->setWidget(chartsContainer);
+    layout->addWidget(scrollArea, 1);
 }
 
 void AnalyticsWidget::onEngineerSelected(int index)
