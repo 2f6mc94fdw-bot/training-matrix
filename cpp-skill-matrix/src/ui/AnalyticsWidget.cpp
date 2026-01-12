@@ -939,6 +939,7 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
         "}"
         "QComboBox::drop-down {"
         "    border: none;"
+        "    width: 30px;"
         "}"
         "QComboBox::down-arrow {"
         "    image: none;"
@@ -955,8 +956,24 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
         "    selection-background-color: #e0f2fe;"
         "    selection-color: #0c4a6e;"
         "    border: 1px solid #cbd5e1;"
+        "    padding: 4px;"
+        "}"
+        "QComboBox QAbstractItemView::item {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    padding: 8px 12px;"
+        "    min-height: 30px;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #f1f5f9;"
+        "    color: #1e293b;"
+        "}"
+        "QComboBox QAbstractItemView::item:selected {"
+        "    background-color: #e0f2fe;"
+        "    color: #0c4a6e;"
         "}"
     );
+    engineerSelector_->setMaxVisibleItems(15);
     connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerSelected);
 
@@ -1125,6 +1142,7 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "}"
         "QComboBox::drop-down {"
         "    border: none;"
+        "    width: 30px;"
         "}"
         "QComboBox::down-arrow {"
         "    image: none;"
@@ -1141,8 +1159,24 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "    selection-background-color: #e0f2fe;"
         "    selection-color: #0c4a6e;"
         "    border: 1px solid #cbd5e1;"
+        "    padding: 4px;"
+        "}"
+        "QComboBox QAbstractItemView::item {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    padding: 8px 12px;"
+        "    min-height: 30px;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #f1f5f9;"
+        "    color: #1e293b;"
+        "}"
+        "QComboBox QAbstractItemView::item:selected {"
+        "    background-color: #e0f2fe;"
+        "    color: #0c4a6e;"
         "}"
     );
+    shiftFilterCombo_->setMaxVisibleItems(10);
     shiftFilterCombo_->addItem("All Shifts", "ALL");
     connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftFilterChanged);
@@ -1169,6 +1203,7 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "}"
         "QComboBox::drop-down {"
         "    border: none;"
+        "    width: 30px;"
         "}"
         "QComboBox::down-arrow {"
         "    image: none;"
@@ -1185,8 +1220,24 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "    selection-background-color: #e0f2fe;"
         "    selection-color: #0c4a6e;"
         "    border: 1px solid #cbd5e1;"
+        "    padding: 4px;"
+        "}"
+        "QComboBox QAbstractItemView::item {"
+        "    background-color: white;"
+        "    color: #1e293b;"
+        "    padding: 8px 12px;"
+        "    min-height: 30px;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #f1f5f9;"
+        "    color: #1e293b;"
+        "}"
+        "QComboBox QAbstractItemView::item:selected {"
+        "    background-color: #e0f2fe;"
+        "    color: #0c4a6e;"
         "}"
     );
+    shiftDataTypeCombo_->setMaxVisibleItems(5);
     shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
     shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
     connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
