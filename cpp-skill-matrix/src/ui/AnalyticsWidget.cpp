@@ -931,8 +931,8 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     engineerSelector_->setFont(comboFont);
     engineerSelector_->setStyleSheet(
         "QComboBox {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
@@ -941,39 +941,36 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
         "    border: none;"
         "    width: 30px;"
         "}"
-        "QComboBox::down-arrow {"
-        "    image: none;"
-        "    border: 2px solid #64748b;"
-        "    width: 6px;"
-        "    height: 6px;"
-        "    border-top: none;"
-        "    border-right: none;"
-        "    transform: rotate(-45deg);"
-        "}"
         "QComboBox QAbstractItemView {"
-        "    background-color: white;"
-        "    color: #1e293b;"
-        "    selection-background-color: #e0f2fe;"
-        "    selection-color: #0c4a6e;"
-        "    border: 1px solid #cbd5e1;"
-        "    padding: 4px;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
+        "    selection-background-color: #3b82f6;"
+        "    selection-color: #ffffff;"
+        "    border: 1px solid #94a3b8;"
+        "    outline: none;"
         "}"
         "QComboBox QAbstractItemView::item {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    color: #000000;"
+        "    background-color: #ffffff;"
         "    padding: 8px 12px;"
         "    min-height: 30px;"
         "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #f1f5f9;"
-        "    color: #1e293b;"
-        "}"
         "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #e0f2fe;"
-        "    color: #0c4a6e;"
+        "    background-color: #3b82f6;"
+        "    color: #ffffff;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #dbeafe;"
+        "    color: #000000;"
         "}"
     );
     engineerSelector_->setMaxVisibleItems(15);
+
+    // Set palette to ensure text is visible
+    QPalette palette = engineerSelector_->palette();
+    palette.setColor(QPalette::Text, QColor("#000000"));
+    palette.setColor(QPalette::ButtonText, QColor("#000000"));
+    engineerSelector_->setPalette(palette);
     connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerSelected);
 
@@ -988,13 +985,13 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     selectorLayout->addWidget(zoomLabel);
 
     QPushButton* zoomOutBtn = new QPushButton("−", this);
-    zoomOutBtn->setFixedSize(36, 36);
+    zoomOutBtn->setFixedSize(28, 28);
     zoomOutBtn->setStyleSheet(
         "QPushButton {"
         "    background-color: #f1f5f9;"
         "    border: 1px solid #cbd5e1;"
-        "    border-radius: 6px;"
-        "    font-size: 20px;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
         "    font-weight: bold;"
         "    color: #64748b;"
         "}"
@@ -1006,13 +1003,13 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     selectorLayout->addWidget(zoomOutBtn);
 
     QPushButton* zoomInBtn = new QPushButton("+", this);
-    zoomInBtn->setFixedSize(36, 36);
+    zoomInBtn->setFixedSize(28, 28);
     zoomInBtn->setStyleSheet(
         "QPushButton {"
         "    background-color: #f1f5f9;"
         "    border: 1px solid #cbd5e1;"
-        "    border-radius: 6px;"
-        "    font-size: 20px;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
         "    font-weight: bold;"
         "    color: #64748b;"
         "}"
@@ -1134,8 +1131,8 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     shiftFilterCombo_->setFont(comboFont);
     shiftFilterCombo_->setStyleSheet(
         "QComboBox {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
@@ -1144,39 +1141,36 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "    border: none;"
         "    width: 30px;"
         "}"
-        "QComboBox::down-arrow {"
-        "    image: none;"
-        "    border: 2px solid #64748b;"
-        "    width: 6px;"
-        "    height: 6px;"
-        "    border-top: none;"
-        "    border-right: none;"
-        "    transform: rotate(-45deg);"
-        "}"
         "QComboBox QAbstractItemView {"
-        "    background-color: white;"
-        "    color: #1e293b;"
-        "    selection-background-color: #e0f2fe;"
-        "    selection-color: #0c4a6e;"
-        "    border: 1px solid #cbd5e1;"
-        "    padding: 4px;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
+        "    selection-background-color: #3b82f6;"
+        "    selection-color: #ffffff;"
+        "    border: 1px solid #94a3b8;"
+        "    outline: none;"
         "}"
         "QComboBox QAbstractItemView::item {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    color: #000000;"
+        "    background-color: #ffffff;"
         "    padding: 8px 12px;"
         "    min-height: 30px;"
         "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #f1f5f9;"
-        "    color: #1e293b;"
-        "}"
         "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #e0f2fe;"
-        "    color: #0c4a6e;"
+        "    background-color: #3b82f6;"
+        "    color: #ffffff;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #dbeafe;"
+        "    color: #000000;"
         "}"
     );
     shiftFilterCombo_->setMaxVisibleItems(10);
+
+    // Set palette to ensure text is visible
+    QPalette shiftPalette = shiftFilterCombo_->palette();
+    shiftPalette.setColor(QPalette::Text, QColor("#000000"));
+    shiftPalette.setColor(QPalette::ButtonText, QColor("#000000"));
+    shiftFilterCombo_->setPalette(shiftPalette);
     shiftFilterCombo_->addItem("All Shifts", "ALL");
     connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftFilterChanged);
@@ -1195,8 +1189,8 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     shiftDataTypeCombo_->setFont(comboFont);
     shiftDataTypeCombo_->setStyleSheet(
         "QComboBox {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
@@ -1205,39 +1199,36 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
         "    border: none;"
         "    width: 30px;"
         "}"
-        "QComboBox::down-arrow {"
-        "    image: none;"
-        "    border: 2px solid #64748b;"
-        "    width: 6px;"
-        "    height: 6px;"
-        "    border-top: none;"
-        "    border-right: none;"
-        "    transform: rotate(-45deg);"
-        "}"
         "QComboBox QAbstractItemView {"
-        "    background-color: white;"
-        "    color: #1e293b;"
-        "    selection-background-color: #e0f2fe;"
-        "    selection-color: #0c4a6e;"
-        "    border: 1px solid #cbd5e1;"
-        "    padding: 4px;"
+        "    background-color: #ffffff;"
+        "    color: #000000;"
+        "    selection-background-color: #3b82f6;"
+        "    selection-color: #ffffff;"
+        "    border: 1px solid #94a3b8;"
+        "    outline: none;"
         "}"
         "QComboBox QAbstractItemView::item {"
-        "    background-color: white;"
-        "    color: #1e293b;"
+        "    color: #000000;"
+        "    background-color: #ffffff;"
         "    padding: 8px 12px;"
         "    min-height: 30px;"
         "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #f1f5f9;"
-        "    color: #1e293b;"
-        "}"
         "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #e0f2fe;"
-        "    color: #0c4a6e;"
+        "    background-color: #3b82f6;"
+        "    color: #ffffff;"
+        "}"
+        "QComboBox QAbstractItemView::item:hover {"
+        "    background-color: #dbeafe;"
+        "    color: #000000;"
         "}"
     );
     shiftDataTypeCombo_->setMaxVisibleItems(5);
+
+    // Set palette to ensure text is visible
+    QPalette dataTypePalette = shiftDataTypeCombo_->palette();
+    dataTypePalette.setColor(QPalette::Text, QColor("#000000"));
+    dataTypePalette.setColor(QPalette::ButtonText, QColor("#000000"));
+    shiftDataTypeCombo_->setPalette(dataTypePalette);
     shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
     shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
     connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -1254,13 +1245,13 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     controlsLayout->addWidget(zoomLabel);
 
     QPushButton* zoomOutBtn = new QPushButton("−", this);
-    zoomOutBtn->setFixedSize(36, 36);
+    zoomOutBtn->setFixedSize(28, 28);
     zoomOutBtn->setStyleSheet(
         "QPushButton {"
         "    background-color: #f1f5f9;"
         "    border: 1px solid #cbd5e1;"
-        "    border-radius: 6px;"
-        "    font-size: 20px;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
         "    font-weight: bold;"
         "    color: #64748b;"
         "}"
@@ -1272,13 +1263,13 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     controlsLayout->addWidget(zoomOutBtn);
 
     QPushButton* zoomInBtn = new QPushButton("+", this);
-    zoomInBtn->setFixedSize(36, 36);
+    zoomInBtn->setFixedSize(28, 28);
     zoomInBtn->setStyleSheet(
         "QPushButton {"
         "    background-color: #f1f5f9;"
         "    border: 1px solid #cbd5e1;"
-        "    border-radius: 6px;"
-        "    font-size: 20px;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
         "    font-weight: bold;"
         "    color: #64748b;"
         "}"
