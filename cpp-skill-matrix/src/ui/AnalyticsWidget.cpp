@@ -929,48 +929,27 @@ void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
     QFont comboFont = engineerSelector_->font();
     comboFont.setPointSize(13);
     engineerSelector_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette engineerPalette;
+    engineerPalette.setColor(QPalette::WindowText, Qt::black);
+    engineerPalette.setColor(QPalette::Text, Qt::black);
+    engineerPalette.setColor(QPalette::ButtonText, Qt::black);
+    engineerPalette.setColor(QPalette::Base, Qt::white);
+    engineerPalette.setColor(QPalette::Window, Qt::white);
+    engineerPalette.setColor(QPalette::Button, Qt::white);
+    engineerPalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    engineerPalette.setColor(QPalette::HighlightedText, Qt::white);
+    engineerSelector_->setPalette(engineerPalette);
+
     engineerSelector_->setStyleSheet(
         "QComboBox {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
         "}"
-        "QComboBox::drop-down {"
-        "    border: none;"
-        "    width: 30px;"
-        "}"
-        "QComboBox QAbstractItemView {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
-        "    selection-background-color: #3b82f6;"
-        "    selection-color: #ffffff;"
-        "    border: 1px solid #94a3b8;"
-        "    outline: none;"
-        "}"
-        "QComboBox QAbstractItemView::item {"
-        "    color: #000000;"
-        "    background-color: #ffffff;"
-        "    padding: 8px 12px;"
-        "    min-height: 30px;"
-        "}"
-        "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #3b82f6;"
-        "    color: #ffffff;"
-        "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #dbeafe;"
-        "    color: #000000;"
-        "}"
     );
     engineerSelector_->setMaxVisibleItems(15);
-
-    // Set palette to ensure text is visible
-    QPalette palette = engineerSelector_->palette();
-    palette.setColor(QPalette::Text, QColor("#000000"));
-    palette.setColor(QPalette::ButtonText, QColor("#000000"));
-    engineerSelector_->setPalette(palette);
     connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onEngineerSelected);
 
@@ -1129,48 +1108,27 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     QFont comboFont = shiftFilterCombo_->font();
     comboFont.setPointSize(13);
     shiftFilterCombo_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette shiftFilterPalette;
+    shiftFilterPalette.setColor(QPalette::WindowText, Qt::black);
+    shiftFilterPalette.setColor(QPalette::Text, Qt::black);
+    shiftFilterPalette.setColor(QPalette::ButtonText, Qt::black);
+    shiftFilterPalette.setColor(QPalette::Base, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Window, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Button, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    shiftFilterPalette.setColor(QPalette::HighlightedText, Qt::white);
+    shiftFilterCombo_->setPalette(shiftFilterPalette);
+
     shiftFilterCombo_->setStyleSheet(
         "QComboBox {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
         "}"
-        "QComboBox::drop-down {"
-        "    border: none;"
-        "    width: 30px;"
-        "}"
-        "QComboBox QAbstractItemView {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
-        "    selection-background-color: #3b82f6;"
-        "    selection-color: #ffffff;"
-        "    border: 1px solid #94a3b8;"
-        "    outline: none;"
-        "}"
-        "QComboBox QAbstractItemView::item {"
-        "    color: #000000;"
-        "    background-color: #ffffff;"
-        "    padding: 8px 12px;"
-        "    min-height: 30px;"
-        "}"
-        "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #3b82f6;"
-        "    color: #ffffff;"
-        "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #dbeafe;"
-        "    color: #000000;"
-        "}"
     );
     shiftFilterCombo_->setMaxVisibleItems(10);
-
-    // Set palette to ensure text is visible
-    QPalette shiftPalette = shiftFilterCombo_->palette();
-    shiftPalette.setColor(QPalette::Text, QColor("#000000"));
-    shiftPalette.setColor(QPalette::ButtonText, QColor("#000000"));
-    shiftFilterCombo_->setPalette(shiftPalette);
     shiftFilterCombo_->addItem("All Shifts", "ALL");
     connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AnalyticsWidget::onShiftFilterChanged);
@@ -1187,48 +1145,27 @@ void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
     shiftDataTypeCombo_->setMinimumHeight(36);
     shiftDataTypeCombo_->setMinimumWidth(180);
     shiftDataTypeCombo_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette dataTypePalette;
+    dataTypePalette.setColor(QPalette::WindowText, Qt::black);
+    dataTypePalette.setColor(QPalette::Text, Qt::black);
+    dataTypePalette.setColor(QPalette::ButtonText, Qt::black);
+    dataTypePalette.setColor(QPalette::Base, Qt::white);
+    dataTypePalette.setColor(QPalette::Window, Qt::white);
+    dataTypePalette.setColor(QPalette::Button, Qt::white);
+    dataTypePalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    dataTypePalette.setColor(QPalette::HighlightedText, Qt::white);
+    shiftDataTypeCombo_->setPalette(dataTypePalette);
+
     shiftDataTypeCombo_->setStyleSheet(
         "QComboBox {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
         "    border: 1px solid #cbd5e1;"
         "    border-radius: 6px;"
         "    padding: 6px 12px;"
         "}"
-        "QComboBox::drop-down {"
-        "    border: none;"
-        "    width: 30px;"
-        "}"
-        "QComboBox QAbstractItemView {"
-        "    background-color: #ffffff;"
-        "    color: #000000;"
-        "    selection-background-color: #3b82f6;"
-        "    selection-color: #ffffff;"
-        "    border: 1px solid #94a3b8;"
-        "    outline: none;"
-        "}"
-        "QComboBox QAbstractItemView::item {"
-        "    color: #000000;"
-        "    background-color: #ffffff;"
-        "    padding: 8px 12px;"
-        "    min-height: 30px;"
-        "}"
-        "QComboBox QAbstractItemView::item:selected {"
-        "    background-color: #3b82f6;"
-        "    color: #ffffff;"
-        "}"
-        "QComboBox QAbstractItemView::item:hover {"
-        "    background-color: #dbeafe;"
-        "    color: #000000;"
-        "}"
     );
     shiftDataTypeCombo_->setMaxVisibleItems(5);
-
-    // Set palette to ensure text is visible
-    QPalette dataTypePalette = shiftDataTypeCombo_->palette();
-    dataTypePalette.setColor(QPalette::Text, QColor("#000000"));
-    dataTypePalette.setColor(QPalette::ButtonText, QColor("#000000"));
-    shiftDataTypeCombo_->setPalette(dataTypePalette);
     shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
     shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
     connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
