@@ -2,9 +2,11 @@
 #define MYCORESKILLSWIDGET_H
 
 #include <QWidget>
-#include <QTableWidget>
 #include <QPushButton>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QScrollArea>
 #include "../database/CoreSkillsRepository.h"
 
 class MyCoreSkillsWidget : public QWidget
@@ -17,15 +19,29 @@ public:
 
 private slots:
     void onRefreshClicked();
+    void onSaveClicked();
+    void onScoreButtonClicked();
 
 private:
     void setupUI();
     void loadCoreSkills();
+    void createScoreButtons(QHBoxLayout* layout, const QString& categoryId,
+                           const QString& skillId, int currentScore);
 
     QString engineerId_;
-    QTableWidget* skillsTable_;
+    QVBoxLayout* skillsLayout_;
+    QWidget* skillsContainer_;
+    QPushButton* saveButton_;
     QPushButton* refreshButton_;
     QLabel* summaryLabel_;
+
+    // Map to track score button groups
+    struct ScoreButtonGroup {
+        QPushButton* buttons[4];  // 0-3 buttons
+        QString categoryId;
+        QString skillId;
+    };
+    QList<ScoreButtonGroup> scoreButtonGroups_;
 
     CoreSkillsRepository coreSkillsRepo_;
 };

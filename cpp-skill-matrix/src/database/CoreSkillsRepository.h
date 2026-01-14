@@ -17,6 +17,14 @@ public:
     QList<CoreSkillAssessment> findAllAssessments();
     bool saveOrUpdateAssessment(CoreSkillAssessment& assessment);
 
+    // Category management
+    bool saveCategory(const CoreSkillCategory& category);
+    bool deleteCategory(const QString& categoryId);
+
+    // Skill management
+    bool saveSkill(const CoreSkill& skill);
+    bool deleteSkill(const QString& skillId);
+
     QString lastError() const { return lastError_; }
 
 private:

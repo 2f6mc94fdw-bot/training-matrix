@@ -89,7 +89,11 @@ set(SOURCES
     src/ui/ProductionAreasWidget.cpp
     src/ui/AssessmentWidget.cpp
     src/ui/CoreSkillsWidget.cpp
+    src/ui/CoreSkillsManagementWidget.cpp
     src/ui/MyCoreSkillsWidget.cpp
+    src/ui/MyAssessmentsWidget.cpp
+    src/ui/MyDashboardWidget.cpp
+    src/ui/MyProgressWidget.cpp
     src/ui/ReportsWidget.cpp
     src/ui/AnalyticsWidget.cpp
     src/ui/CertificationsWidget.cpp
@@ -172,7 +176,11 @@ set(HEADERS
     src/ui/ProductionAreasWidget.h
     src/ui/AssessmentWidget.h
     src/ui/CoreSkillsWidget.h
+    src/ui/CoreSkillsManagementWidget.h
     src/ui/MyCoreSkillsWidget.h
+    src/ui/MyAssessmentsWidget.h
+    src/ui/MyDashboardWidget.h
+    src/ui/MyProgressWidget.h
     src/ui/ReportsWidget.h
     src/ui/AnalyticsWidget.h
     src/ui/CertificationsWidget.h
@@ -235,16 +243,17 @@ endif()
 
 if(APPLE)
     # macOS: Create app bundle with icon
-    set(MACOSX_BUNDLE_ICON_FILE aptitude.icns)
-    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/aptitude.icns)
-    set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
-        MACOSX_PACKAGE_LOCATION "Resources"
-    )
-    target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_MACOSX})
+    # TODO: Uncomment when aptitude.icns is created
+    # set(MACOSX_BUNDLE_ICON_FILE aptitude.icns)
+    # set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/aptitude.icns)
+    # set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
+    #     MACOSX_PACKAGE_LOCATION "Resources"
+    # )
+    # target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_MACOSX})
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_ICON_FILE aptitude.icns
+        # MACOSX_BUNDLE_ICON_FILE aptitude.icns
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/resources/Info.plist
     )
 endif()

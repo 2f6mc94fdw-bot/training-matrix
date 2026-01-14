@@ -3,16 +3,17 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
-#include <QHeaderView>
 #include <QMessageBox>
 #include <QLabel>
 #include <QGroupBox>
+#include <QScrollArea>
 #include <QShowEvent>
 
 CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
     : QWidget(parent)
     , engineerCombo_(nullptr)
-    , skillsTable_(nullptr)
+    , skillsLayout_(nullptr)
+    , skillsContainer_(nullptr)
     , saveButton_(nullptr)
     , refreshButton_(nullptr)
 {
@@ -61,26 +62,22 @@ void CoreSkillsWidget::setupUI()
     formLayout->addRow("Engineer:", engineerCombo_);
     mainLayout->addWidget(selectionGroup);
 
-    // Skills Table
-    QLabel* tableLabel = new QLabel("Core Skills (0 = No skill, 1 = Basic, 2 = Intermediate, 3 = Advanced)", this);
-    mainLayout->addWidget(tableLabel);
+    // Description
+    QLabel* descLabel = new QLabel("Core Skills (0 = No skill, 1 = Basic, 2 = Intermediate, 3 = Advanced)", this);
+    mainLayout->addWidget(descLabel);
 
-    skillsTable_ = new QTableWidget(this);
-    skillsTable_->setColumnCount(3);
-    skillsTable_->setHorizontalHeaderLabels({"Category", "Skill", "Score"});
+    // Scrollable skills container (like AssessmentWidget)
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
 
-    // Configure column sizing for proper display
-    skillsTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Category
-    skillsTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);          // Skill (takes remaining space)
-    skillsTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);            // Score (fixed width)
-    // Score column width: 4 buttons (32px each) + 3 gaps (6px each) + margins (4+4) = 154px, use 180px for comfort
-    skillsTable_->setColumnWidth(2, 180);
+    skillsContainer_ = new QWidget();
+    skillsLayout_ = new QVBoxLayout(skillsContainer_);
+    skillsLayout_->setSpacing(16);
+    skillsLayout_->setContentsMargins(0, 0, 0, 0);
 
-    skillsTable_->setAlternatingRowColors(true);
-    // Note: Sorting is disabled because QTableWidget cell widgets get lost when sorting is enabled
-    skillsTable_->setSortingEnabled(false);
-
-    mainLayout->addWidget(skillsTable_);
+    scrollArea->setWidget(skillsContainer_);
+    mainLayout->addWidget(scrollArea);
 
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -114,9 +111,14 @@ void CoreSkillsWidget::loadEngineers()
 
 void CoreSkillsWidget::loadCoreSkills()
 {
-    // Disable sorting while loading to improve performance and prevent issues
-    skillsTable_->setSortingEnabled(false);
-    skillsTable_->setRowCount(0);
+    // Clear existing widgets
+    QLayoutItem* item;
+    while ((item = skillsLayout_->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
     scoreButtonGroups_.clear();
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
@@ -124,44 +126,77 @@ void CoreSkillsWidget::loadCoreSkills()
 
     QString engineerId = engineerCombo_->currentData().toString();
 
-    int row = 0;
+    // Create a card for each category (like AssessmentWidget creates cards for each engineer)
     for (const CoreSkillCategory& category : categories) {
-        // Find skills for this category
+        // Create category card
+        QGroupBox* categoryCard = new QGroupBox(this);
+        categoryCard->setStyleSheet(
+            "QGroupBox {"
+            "    border: 2px solid #e2e8f0;"
+            "    border-radius: 8px;"
+            "    padding: 16px;"
+            "    background-color: transparent;"
+            "    margin-top: 12px;"
+            "}"
+            "QGroupBox::title {"
+            "    subcontrol-origin: margin;"
+            "    left: 16px;"
+            "    padding: 0 8px 0 8px;"
+            "}"
+        );
+
+        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        cardLayout->setSpacing(12);
+
+        // Category title
+        QLabel* categoryLabel = new QLabel(category.name(), this);
+        QFont categoryFont = categoryLabel->font();
+        categoryFont.setPointSize(14);
+        categoryFont.setBold(true);
+        categoryLabel->setFont(categoryFont);
+        cardLayout->addWidget(categoryLabel);
+
+        // Add skills for this category
+        bool hasSkills = false;
         for (const CoreSkill& skill : skills) {
             if (skill.categoryId() == category.id()) {
-                skillsTable_->insertRow(row);
+                hasSkills = true;
 
-                skillsTable_->setItem(row, 0, new QTableWidgetItem(category.name()));
-                skillsTable_->setItem(row, 1, new QTableWidgetItem(skill.name()));
+                QHBoxLayout* skillLayout = new QHBoxLayout();
+                skillLayout->setSpacing(12);
+                skillLayout->setContentsMargins(0, 4, 0, 4);
 
-                // Set row height to accommodate 32px buttons + top/bottom margins (2px each) + padding
-                skillsTable_->setRowHeight(row, 44);
+                // Skill name
+                QLabel* skillLabel = new QLabel(skill.name(), this);
+                QFont skillFont = skillLabel->font();
+                skillFont.setPointSize(13);
+                skillLabel->setFont(skillFont);
+                skillLabel->setWordWrap(true);
+                skillLabel->setMinimumWidth(250);
+                skillLabel->setMaximumWidth(500);
+                skillLayout->addWidget(skillLabel, 1);
 
-                // Create score buttons widget
-                QWidget* buttonWidget = new QWidget();
-                QHBoxLayout* buttonLayout = new QHBoxLayout(buttonWidget);
-                buttonLayout->setContentsMargins(4, 4, 4, 4);
-                buttonLayout->setSpacing(6);
+                skillLayout->addStretch();
 
-                createScoreButtons(buttonLayout, engineerId, category.id(), skill.id(), 0);
+                // Create score buttons (0-3)
+                createScoreButtons(skillLayout, engineerId, category.id(), skill.id(), 0);
 
-                // Ensure widget is properly sized and visible
-                buttonWidget->setMinimumSize(154, 40);  // Width: 4*32 + 3*6 + 4+4 = 154px, Height: 32 + 4+4 = 40px
-                buttonWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-                buttonWidget->show();  // Explicitly show widget (same pattern as working TEST label)
-
-                skillsTable_->setCellWidget(row, 2, buttonWidget);
-
-                row++;
+                cardLayout->addLayout(skillLayout);
             }
+        }
+
+        // Only add the card if it has skills
+        if (hasSkills) {
+            skillsLayout_->addWidget(categoryCard);
+        } else {
+            delete categoryCard;
         }
     }
 
-    // NOTE: Do NOT re-enable sorting after setting cell widgets!
-    // QTableWidget has a bug where cell widgets get lost when sorting is applied.
-    // Keep sorting disabled to ensure buttons remain visible.
+    // Add stretch at the end
+    skillsLayout_->addStretch();
 
-    Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 core skills").arg(row));
+    Logger::instance().info("CoreSkillsWidget", QString("Loaded %1 categories").arg(categories.size()));
 }
 
 void CoreSkillsWidget::loadAssessments()
@@ -199,6 +234,9 @@ void CoreSkillsWidget::loadAssessments()
         for (int score = 0; score < 4; score++) {
             QPushButton* button = buttonGroup.buttons[score];
             bool isSelected = (score == currentScore);
+
+            // Set the property for save detection
+            button->setProperty("isSelected", isSelected);
 
             QString buttonStyle;
             if (isSelected) {
@@ -255,6 +293,8 @@ void CoreSkillsWidget::onEngineerChanged(int index)
             button->setProperty("engineerId", newEngineerId);
 
             bool isSelected = (score == 0);  // Default to score 0
+            button->setProperty("isSelected", isSelected);  // Set property for save detection
+
             QString buttonStyle;
             if (isSelected) {
                 buttonStyle = QString(
@@ -314,12 +354,11 @@ void CoreSkillsWidget::onSaveClicked()
             continue;
         }
 
-        // Find which button is selected (has the score property and colored background)
+        // Find which button is selected using the isSelected property
         int selectedScore = 0;
         for (int score = 0; score < 4; score++) {
             QPushButton* button = buttonGroup.buttons[score];
-            // Check if button has a colored background (contains "background-color: #" in style)
-            if (button->styleSheet().contains("background-color: #")) {
+            if (button->property("isSelected").toBool()) {
                 selectedScore = score;
                 break;
             }
@@ -331,12 +370,21 @@ void CoreSkillsWidget::onSaveClicked()
         assessment.setSkillId(buttonGroup.skillId);
         assessment.setScore(selectedScore);
 
+        Logger::instance().debug("CoreSkillsWidget",
+            QString("Attempting to save: engineerId=%1, categoryId=%2, skillId=%3, score=%4")
+                .arg(engineerId)
+                .arg(buttonGroup.categoryId)
+                .arg(buttonGroup.skillId)
+                .arg(selectedScore));
+
         if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
             savedCount++;
         } else {
             errorCount++;
             Logger::instance().error("CoreSkillsWidget",
-                QString("Failed to save assessment: %1").arg(coreSkillsRepo_.lastError()));
+                QString("Failed to save assessment for skill %1: %2")
+                    .arg(buttonGroup.skillId)
+                    .arg(coreSkillsRepo_.lastError()));
         }
     }
 
@@ -394,6 +442,7 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
 
         // Style button based on whether it's selected
         bool isSelected = (score == currentScore);
+        button->setProperty("isSelected", isSelected);  // Store for save detection
 
         QString buttonStyle;
         if (isSelected) {
@@ -465,6 +514,9 @@ void CoreSkillsWidget::onScoreButtonClicked()
             for (int i = 0; i < 4; i++) {
                 QPushButton* button = buttonGroup.buttons[i];
                 bool isSelected = (i == score);
+
+                // Store selected state as property for reliable save detection
+                button->setProperty("isSelected", isSelected);
 
                 QString buttonStyle;
                 if (isSelected) {

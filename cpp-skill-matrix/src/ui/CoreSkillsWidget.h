@@ -2,11 +2,11 @@
 #define CORESKILLSWIDGET_H
 
 #include <QWidget>
-#include <QTreeWidget>
 #include <QPushButton>
-#include <QTableWidget>
 #include <QComboBox>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QScrollArea>
 #include "../database/CoreSkillsRepository.h"
 #include "../database/EngineerRepository.h"
 
@@ -38,7 +38,8 @@ private:
 
 private:
     QComboBox* engineerCombo_;
-    QTableWidget* skillsTable_;
+    QVBoxLayout* skillsLayout_;
+    QWidget* skillsContainer_;
     QPushButton* saveButton_;
     QPushButton* refreshButton_;
 

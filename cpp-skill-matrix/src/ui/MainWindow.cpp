@@ -12,7 +12,11 @@
 #include "ProductionAreasWidget.h"
 #include "AssessmentWidget.h"
 #include "CoreSkillsWidget.h"
+#include "CoreSkillsManagementWidget.h"
 #include "MyCoreSkillsWidget.h"
+#include "MyAssessmentsWidget.h"
+#include "MyDashboardWidget.h"
+#include "MyProgressWidget.h"
 #include "ReportsWidget.h"
 #include "AnalyticsWidget.h"
 #include "CertificationsWidget.h"
@@ -103,8 +107,9 @@ void MainWindow::setupNavigationSidebar()
         navigationList_->addItem("Engineers");
         navigationList_->addItem("Users");
         navigationList_->addItem("Production Areas");
-        navigationList_->addItem("Assessments");
+        navigationList_->addItem("Production Assessments");
         navigationList_->addItem("Core Skills");
+        navigationList_->addItem("Core Skills Management");
         navigationList_->addItem("Reports");
         navigationList_->addItem("Analytics");
         navigationList_->addItem("Certifications");
@@ -114,7 +119,7 @@ void MainWindow::setupNavigationSidebar()
     } else {
         // Engineer navigation - personal view only
         navigationList_->addItem("My Dashboard");
-        navigationList_->addItem("My Assessments");
+        navigationList_->addItem("My Production Assessments");
         navigationList_->addItem("My Core Skills");
         navigationList_->addItem("My Certifications");
         navigationList_->addItem("My Progress");
@@ -148,6 +153,7 @@ void MainWindow::setupCentralWidget()
         productionAreasWidget_ = nullptr;
         assessmentWidget_ = nullptr;
         coreSkillsWidget_ = nullptr;
+        coreSkillsManagementWidget_ = nullptr;
         reportsWidget_ = nullptr;
         analyticsWidget_ = nullptr;
         certificationsWidget_ = nullptr;
@@ -163,25 +169,26 @@ void MainWindow::setupCentralWidget()
         contentStack_->addWidget(new QWidget(this)); // 1 - Engineers (lazy)
         contentStack_->addWidget(new QWidget(this)); // 2 - Users (lazy)
         contentStack_->addWidget(new QWidget(this)); // 3 - Production Areas (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 4 - Assessments (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 4 - Production Assessments (lazy)
         contentStack_->addWidget(new QWidget(this)); // 5 - Core Skills (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 6 - Reports (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 7 - Analytics (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 8 - Certifications (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 9 - Snapshots (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 10 - Audit Log (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 11 - Import/Export (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 6 - Core Skills Management (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 7 - Reports (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 8 - Analytics (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 9 - Certifications (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 10 - Snapshots (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 11 - Audit Log (lazy)
+        contentStack_->addWidget(new QWidget(this)); // 12 - Import/Export (lazy)
     } else {
         // Engineer widgets - personal view filtered by engineerId
         // For now, create placeholder widgets - will be replaced with engineer-specific widgets
         QString engineerId = session->engineerId();
 
         // My Dashboard - shows personal overview
-        QWidget* myDashboard = new QLabel(QString("Welcome! Your Engineer ID: %1\n\nYour personal dashboard will show your skills, assessments, and targets here.").arg(engineerId), this);
+        MyDashboardWidget* myDashboard = new MyDashboardWidget(engineerId, this);
         contentStack_->addWidget(myDashboard);
 
-        // My Assessments - shows only their assessments
-        QWidget* myAssessments = new QLabel("Your machine competency assessments will appear here.", this);
+        // My Production Assessments - shows only their assessments
+        MyAssessmentsWidget* myAssessments = new MyAssessmentsWidget(engineerId, this);
         contentStack_->addWidget(myAssessments);
 
         // My Core Skills - shows only their core skills
@@ -193,7 +200,7 @@ void MainWindow::setupCentralWidget()
         contentStack_->addWidget(myCerts);
 
         // My Progress - shows progress over time with targets
-        QWidget* myProgress = new QLabel("Your progress history and targets will appear here.", this);
+        MyProgressWidget* myProgress = new MyProgressWidget(engineerId, this);
         contentStack_->addWidget(myProgress);
     }
 
@@ -273,11 +280,11 @@ void MainWindow::onNavigationItemClicked(int index)
                         Logger::instance().debug("MainWindow", "Lazy-loaded Production Areas widget");
                     }
                     break;
-                case 4: // Assessments
+                case 4: // Production Assessments
                     if (!assessmentWidget_) {
                         assessmentWidget_ = new AssessmentWidget(this);
                         newWidget = assessmentWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Assessment widget");
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Assessment widget");
                     }
                     break;
                 case 5: // Core Skills
@@ -287,14 +294,21 @@ void MainWindow::onNavigationItemClicked(int index)
                         Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills widget");
                     }
                     break;
-                case 6: // Reports
+                case 6: // Core Skills Management
+                    if (!coreSkillsManagementWidget_) {
+                        coreSkillsManagementWidget_ = new CoreSkillsManagementWidget(this);
+                        newWidget = coreSkillsManagementWidget_;
+                        Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills Management widget");
+                    }
+                    break;
+                case 7: // Reports
                     if (!reportsWidget_) {
                         reportsWidget_ = new ReportsWidget(this);
                         newWidget = reportsWidget_;
                         Logger::instance().debug("MainWindow", "Lazy-loaded Reports widget");
                     }
                     break;
-                case 7: // Analytics
+                case 8: // Analytics
                     if (!analyticsWidget_) {
                         analyticsWidget_ = new AnalyticsWidget(this);
 
@@ -308,28 +322,28 @@ void MainWindow::onNavigationItemClicked(int index)
                         Logger::instance().debug("MainWindow", "Lazy-loaded Analytics widget");
                     }
                     break;
-                case 8: // Certifications
+                case 9: // Certifications
                     if (!certificationsWidget_) {
                         certificationsWidget_ = new CertificationsWidget(this);
                         newWidget = certificationsWidget_;
                         Logger::instance().debug("MainWindow", "Lazy-loaded Certifications widget");
                     }
                     break;
-                case 9: // Snapshots
+                case 10: // Snapshots
                     if (!snapshotsWidget_) {
                         snapshotsWidget_ = new SnapshotsWidget(this);
                         newWidget = snapshotsWidget_;
                         Logger::instance().debug("MainWindow", "Lazy-loaded Snapshots widget");
                     }
                     break;
-                case 10: // Audit Log
+                case 11: // Audit Log
                     if (!auditLogWidget_) {
                         auditLogWidget_ = new AuditLogWidget(this);
                         newWidget = auditLogWidget_;
                         Logger::instance().debug("MainWindow", "Lazy-loaded Audit Log widget");
                     }
                     break;
-                case 11: // Import/Export
+                case 12: // Import/Export
                     if (!importExportWidget_) {
                         importExportWidget_ = new ImportExportDialog(this);
 

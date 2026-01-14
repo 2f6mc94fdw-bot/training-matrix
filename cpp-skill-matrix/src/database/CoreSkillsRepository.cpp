@@ -54,7 +54,9 @@ QList<CoreSkill> CoreSkillsRepository::findAllSkills()
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, category_id, name, max_score, created_at FROM core_skills ORDER BY category_id, name");
+    query.prepare("SELECT id, category_id, name, max_score, created_at, "
+                  "safety_impact, production_impact, frequency, complexity, future_value "
+                  "FROM core_skills ORDER BY category_id, name");
 
     if (!query.exec()) {
         lastError_ = query.lastError().text();
@@ -69,6 +71,14 @@ QList<CoreSkill> CoreSkillsRepository::findAllSkills()
         skill.setName(query.value(2).toString());
         skill.setMaxScore(query.value(3).toInt());
         skill.setCreatedAt(query.value(4).toDateTime());
+
+        // Multi-Criteria Weighting
+        skill.setSafetyImpact(query.value(5).toDouble());
+        skill.setProductionImpact(query.value(6).toDouble());
+        skill.setFrequency(query.value(7).toDouble());
+        skill.setComplexity(query.value(8).toDouble());
+        skill.setFutureValue(query.value(9).toDouble());
+
         skills.append(skill);
     }
 
@@ -189,4 +199,186 @@ bool CoreSkillsRepository::saveOrUpdateAssessment(CoreSkillAssessment& assessmen
             .arg(assessment.engineerId()).arg(assessment.skillId()).arg(assessment.score()));
         return true;
     }
+}
+
+bool CoreSkillsRepository::saveCategory(const CoreSkillCategory& category)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CoreSkillsRepository", lastError_);
+        return false;
+    }
+
+    QSqlQuery query(db);
+
+    // Check if category already exists
+    query.prepare("SELECT id FROM core_skill_categories WHERE id = ?");
+    query.addBindValue(category.id());
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CoreSkillsRepository", "saveCategory check failed: " + lastError_);
+        return false;
+    }
+
+    if (query.next()) {
+        // Update existing category
+        QSqlQuery updateQuery(db);
+        updateQuery.prepare("UPDATE core_skill_categories SET name = ? WHERE id = ?");
+        updateQuery.addBindValue(category.name());
+        updateQuery.addBindValue(category.id());
+
+        if (!updateQuery.exec()) {
+            lastError_ = updateQuery.lastError().text();
+            Logger::instance().error("CoreSkillsRepository", "saveCategory update failed: " + lastError_);
+            return false;
+        }
+
+        Logger::instance().info("CoreSkillsRepository", QString("Updated category: %1").arg(category.name()));
+        return true;
+    } else {
+        // Insert new category
+        QSqlQuery insertQuery(db);
+        insertQuery.prepare("INSERT INTO core_skill_categories (id, name, created_at) "
+                           "VALUES (?, ?, GETDATE())");
+        insertQuery.addBindValue(category.id());
+        insertQuery.addBindValue(category.name());
+
+        if (!insertQuery.exec()) {
+            lastError_ = insertQuery.lastError().text();
+            Logger::instance().error("CoreSkillsRepository", "saveCategory insert failed: " + lastError_);
+            return false;
+        }
+
+        Logger::instance().info("CoreSkillsRepository", QString("Created category: %1").arg(category.name()));
+        return true;
+    }
+}
+
+bool CoreSkillsRepository::deleteCategory(const QString& categoryId)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CoreSkillsRepository", lastError_);
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("DELETE FROM core_skill_categories WHERE id = ?");
+    query.addBindValue(categoryId);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CoreSkillsRepository", "deleteCategory failed: " + lastError_);
+        return false;
+    }
+
+    Logger::instance().info("CoreSkillsRepository", QString("Deleted category: %1").arg(categoryId));
+    return true;
+}
+
+bool CoreSkillsRepository::saveSkill(const CoreSkill& skill)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CoreSkillsRepository", lastError_);
+        return false;
+    }
+
+    QSqlQuery query(db);
+
+    // Check if skill already exists
+    query.prepare("SELECT id FROM core_skills WHERE id = ?");
+    query.addBindValue(skill.id());
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CoreSkillsRepository", "saveSkill check failed: " + lastError_);
+        return false;
+    }
+
+    if (query.next()) {
+        // Update existing skill
+        QSqlQuery updateQuery(db);
+        updateQuery.prepare("UPDATE core_skills SET category_id = ?, name = ?, max_score = ?, "
+                           "safety_impact = ?, production_impact = ?, frequency = ?, "
+                           "complexity = ?, future_value = ? WHERE id = ?");
+        updateQuery.addBindValue(skill.categoryId());
+        updateQuery.addBindValue(skill.name());
+        updateQuery.addBindValue(skill.maxScore());
+        updateQuery.addBindValue(skill.safetyImpact());
+        updateQuery.addBindValue(skill.productionImpact());
+        updateQuery.addBindValue(skill.frequency());
+        updateQuery.addBindValue(skill.complexity());
+        updateQuery.addBindValue(skill.futureValue());
+        updateQuery.addBindValue(skill.id());
+
+        if (!updateQuery.exec()) {
+            lastError_ = updateQuery.lastError().text();
+            Logger::instance().error("CoreSkillsRepository", "saveSkill update failed: " + lastError_);
+            return false;
+        }
+
+        Logger::instance().info("CoreSkillsRepository", QString("Updated skill: %1").arg(skill.name()));
+        return true;
+    } else {
+        // Insert new skill
+        QSqlQuery insertQuery(db);
+        insertQuery.prepare("INSERT INTO core_skills (id, category_id, name, max_score, "
+                           "safety_impact, production_impact, frequency, complexity, future_value, "
+                           "created_at) "
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())");
+        insertQuery.addBindValue(skill.id());
+        insertQuery.addBindValue(skill.categoryId());
+        insertQuery.addBindValue(skill.name());
+        insertQuery.addBindValue(skill.maxScore());
+        insertQuery.addBindValue(skill.safetyImpact());
+        insertQuery.addBindValue(skill.productionImpact());
+        insertQuery.addBindValue(skill.frequency());
+        insertQuery.addBindValue(skill.complexity());
+        insertQuery.addBindValue(skill.futureValue());
+
+        if (!insertQuery.exec()) {
+            lastError_ = insertQuery.lastError().text();
+            Logger::instance().error("CoreSkillsRepository", "saveSkill insert failed: " + lastError_);
+            return false;
+        }
+
+        Logger::instance().info("CoreSkillsRepository", QString("Created skill: %1").arg(skill.name()));
+        return true;
+    }
+}
+
+bool CoreSkillsRepository::deleteSkill(const QString& skillId)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CoreSkillsRepository", lastError_);
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("DELETE FROM core_skills WHERE id = ?");
+    query.addBindValue(skillId);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CoreSkillsRepository", "deleteSkill failed: " + lastError_);
+        return false;
+    }
+
+    Logger::instance().info("CoreSkillsRepository", QString("Deleted skill: %1").arg(skillId));
+    return true;
 }

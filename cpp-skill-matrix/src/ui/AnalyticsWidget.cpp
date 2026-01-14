@@ -14,6 +14,8 @@
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
 #include <QtCharts/QDateTimeAxis>
+#include <QtCharts/QPolarChart>
+#include <QtCharts/QCategoryAxis>
 #include <QLinearGradient>
 #include <QDateTime>
 #include <algorithm>
@@ -24,6 +26,8 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , trendsButton_(nullptr)
     , shiftsButton_(nullptr)
     , insightsButton_(nullptr)
+    , engineerRadarButton_(nullptr)
+    , shiftOverviewButton_(nullptr)
     , currentCompletionLabel_(nullptr)
     , predictedCompletionLabel_(nullptr)
     , changeLabel_(nullptr)
@@ -31,7 +35,15 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftCardsContainer_(nullptr)
     , shiftChartView_(nullptr)
     , insightsList_(nullptr)
+    , engineerSelector_(nullptr)
+    , engineerProductionRadarView_(nullptr)
+    , engineerCoreSkillsRadarView_(nullptr)
+    , shiftFilterCombo_(nullptr)
+    , shiftDataTypeCombo_(nullptr)
+    , shiftRadarContainer_(nullptr)
     , isFirstShow_(true)
+    , engineerRadarChartHeight_(400)
+    , shiftOverviewChartHeight_(500)
 {
     setupUI();
 
@@ -108,92 +120,96 @@ void AnalyticsWidget::setupUI()
     headerLayout->addWidget(refreshButton);
 
     mainLayout->addLayout(headerLayout);
-    mainLayout->addSpacing(16);
+    mainLayout->addSpacing(8);
 
-    // Content area with sidebar + tabs
-    QHBoxLayout* contentLayout = new QHBoxLayout();
-    contentLayout->setSpacing(16);
-
-    // Sidebar navigation
-    QWidget* sidebar = new QWidget(this);
-    sidebar->setFixedWidth(250);
-    sidebar->setStyleSheet(
+    // Horizontal tab navigation
+    QWidget* tabBar = new QWidget(this);
+    tabBar->setStyleSheet(
         "QWidget {"
-        "    background-color: white;"
-        "    border: 2px solid #e2e8f0;"
-        "    border-radius: 8px;"
+        "    background-color: transparent;"
         "}"
     );
 
-    QVBoxLayout* sidebarLayout = new QVBoxLayout(sidebar);
-    sidebarLayout->setSpacing(4);
-    sidebarLayout->setContentsMargins(12, 12, 12, 12);
+    QHBoxLayout* tabBarLayout = new QHBoxLayout(tabBar);
+    tabBarLayout->setSpacing(8);
+    tabBarLayout->setContentsMargins(0, 0, 0, 0);
 
-    QLabel* navLabel = new QLabel("ANALYTICS", this);
-    QFont navFont = navLabel->font();
-    navFont.setPointSize(11);
-    navFont.setWeight(QFont::Bold);
-    navLabel->setFont(navFont);
-    navLabel->setStyleSheet("color: #94a3b8; padding: 8px;");
-    sidebarLayout->addWidget(navLabel);
-
-    // Tab buttons
-    auto createTabButton = [this](const QString& icon, const QString& text) -> QPushButton* {
-        QPushButton* btn = new QPushButton(icon + "  " + text, this);
+    // Create horizontal tab button function
+    auto createTabButton = [this](const QString& text) -> QPushButton* {
+        QPushButton* btn = new QPushButton(text, this);
         QFont btnFont = btn->font();
-        btnFont.setPointSize(14);
+        btnFont.setPointSize(13);
+        btnFont.setWeight(QFont::DemiBold);
         btn->setFont(btnFont);
-        btn->setMinimumHeight(48);
+        btn->setMinimumHeight(44);
+        btn->setMinimumWidth(140);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(
             "QPushButton {"
-            "    text-align: left;"
-            "    padding-left: 16px;"
             "    border: none;"
             "    border-radius: 8px;"
-            "    background-color: transparent;"
-            "    color: #475569;"
+            "    background-color: #f1f5f9;"
+            "    color: #64748b;"
+            "    padding: 10px 20px;"
             "}"
             "QPushButton:hover {"
-            "    background-color: #f1f5f9;"
+            "    background-color: #e2e8f0;"
+            "    color: #475569;"
             "}"
         );
         return btn;
     };
 
-    trendsButton_ = createTabButton("📈", "Trends & Predictions");
-    shiftsButton_ = createTabButton("🔄", "Shift Comparison");
-    insightsButton_ = createTabButton("💡", "Automated Insights");
+    trendsButton_ = createTabButton("Trends");
+    shiftsButton_ = createTabButton("Shift Comparison");
+    insightsButton_ = createTabButton("Insights");
+    engineerRadarButton_ = createTabButton("Engineer Radar");
+    shiftOverviewButton_ = createTabButton("Shift Overview");
 
-    sidebarLayout->addWidget(trendsButton_);
-    sidebarLayout->addWidget(shiftsButton_);
-    sidebarLayout->addWidget(insightsButton_);
-    sidebarLayout->addStretch();
+    tabBarLayout->addWidget(trendsButton_);
+    tabBarLayout->addWidget(shiftsButton_);
+    tabBarLayout->addWidget(insightsButton_);
+    tabBarLayout->addWidget(engineerRadarButton_);
+    tabBarLayout->addWidget(shiftOverviewButton_);
+    tabBarLayout->addStretch();
 
-    contentLayout->addWidget(sidebar);
+    mainLayout->addWidget(tabBar);
+    mainLayout->addSpacing(16);
 
     // Stacked widget for tab content
     contentStack_ = new QStackedWidget(this);
+    contentStack_->setStyleSheet(
+        "QStackedWidget {"
+        "    background-color: transparent;"
+        "}"
+    );
 
     // Create tabs
     QWidget* trendsWidget = new QWidget();
     QWidget* shiftsWidget = new QWidget();
     QWidget* insightsWidget = new QWidget();
+    QWidget* engineerRadarWidget = new QWidget();
+    QWidget* shiftOverviewWidget = new QWidget();
 
     setupTrendsTab(trendsWidget);
     setupShiftComparisonTab(shiftsWidget);
     setupAutomatedInsightsTab(insightsWidget);
+    setupEngineerRadarTab(engineerRadarWidget);
+    setupShiftOverviewTab(shiftOverviewWidget);
 
-    contentStack_->addWidget(trendsWidget);
-    contentStack_->addWidget(shiftsWidget);
-    contentStack_->addWidget(insightsWidget);
+    contentStack_->addWidget(trendsWidget);         // Index 0
+    contentStack_->addWidget(shiftsWidget);         // Index 1
+    contentStack_->addWidget(insightsWidget);       // Index 2
+    contentStack_->addWidget(engineerRadarWidget);  // Index 3
+    contentStack_->addWidget(shiftOverviewWidget);  // Index 4
 
     connect(trendsButton_, &QPushButton::clicked, [this]() { onTabChanged(0); });
     connect(shiftsButton_, &QPushButton::clicked, [this]() { onTabChanged(1); });
     connect(insightsButton_, &QPushButton::clicked, [this]() { onTabChanged(2); });
+    connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
+    connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
 
-    contentLayout->addWidget(contentStack_, 1);
-    mainLayout->addLayout(contentLayout);
+    mainLayout->addWidget(contentStack_, 1);
 
     setLayout(mainLayout);
 
@@ -375,6 +391,44 @@ void AnalyticsWidget::loadAnalytics()
     updateTrendsData();
     updateShiftComparisonData();
     updateAutomatedInsights();
+
+    // Populate engineer selector dropdown
+    if (engineerSelector_) {
+        engineerSelector_->clear();
+        for (const Engineer& engineer : cachedEngineers_) {
+            engineerSelector_->addItem(engineer.name(), engineer.id());
+        }
+    }
+
+    // Populate shift filter dropdown with unique shifts
+    if (shiftFilterCombo_) {
+        QString currentShift = shiftFilterCombo_->currentData().toString();
+        shiftFilterCombo_->clear();
+        shiftFilterCombo_->addItem("All Shifts", "ALL");
+
+        QSet<QString> uniqueShifts;
+        for (const Engineer& engineer : cachedEngineers_) {
+            QString shift = engineer.shift();
+            if (!shift.isEmpty()) {
+                uniqueShifts.insert(shift);
+            }
+        }
+
+        QList<QString> shiftList = uniqueShifts.values();
+        std::sort(shiftList.begin(), shiftList.end());
+
+        for (const QString& shift : shiftList) {
+            shiftFilterCombo_->addItem(shift, shift);
+        }
+
+        // Restore previous selection if it exists
+        if (!currentShift.isEmpty()) {
+            int index = shiftFilterCombo_->findData(currentShift);
+            if (index >= 0) {
+                shiftFilterCombo_->setCurrentIndex(index);
+            }
+        }
+    }
 }
 
 void AnalyticsWidget::updateTrendsData()
@@ -791,15 +845,14 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
 {
     contentStack_->setCurrentIndex(tabIndex);
 
-    // Update button styles
+    // Update button styles for horizontal tabs
     QString activeStyle =
         "QPushButton {"
-        "    text-align: left;"
-        "    padding-left: 16px;"
         "    border: none;"
         "    border-radius: 8px;"
         "    background-color: #ff6b6b;"
         "    color: white;"
+        "    padding: 10px 20px;"
         "    font-weight: bold;"
         "}"
         "QPushButton:hover {"
@@ -808,24 +861,1010 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
 
     QString inactiveStyle =
         "QPushButton {"
-        "    text-align: left;"
-        "    padding-left: 16px;"
         "    border: none;"
         "    border-radius: 8px;"
-        "    background-color: transparent;"
-        "    color: #475569;"
+        "    background-color: #f1f5f9;"
+        "    color: #64748b;"
+        "    padding: 10px 20px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #f1f5f9;"
+        "    background-color: #e2e8f0;"
+        "    color: #475569;"
         "}";
 
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
     shiftsButton_->setStyleSheet(tabIndex == 1 ? activeStyle : inactiveStyle);
     insightsButton_->setStyleSheet(tabIndex == 2 ? activeStyle : inactiveStyle);
+    engineerRadarButton_->setStyleSheet(tabIndex == 3 ? activeStyle : inactiveStyle);
+    shiftOverviewButton_->setStyleSheet(tabIndex == 4 ? activeStyle : inactiveStyle);
+
+    // Update data for newly selected tab
+    if (tabIndex == 3) {
+        updateEngineerRadarData();
+    } else if (tabIndex == 4) {
+        updateShiftOverviewData();
+    }
 }
 
 void AnalyticsWidget::onRefreshClicked()
 {
     loadAnalytics();
     Logger::instance().info("AnalyticsWidget", "Refreshed analytics data");
+}
+
+// ============================================================================
+// ENGINEER RADAR TAB
+// ============================================================================
+
+void AnalyticsWidget::setupEngineerRadarTab(QWidget* engineerRadarWidget)
+{
+    QVBoxLayout* layout = new QVBoxLayout(engineerRadarWidget);
+    layout->setSpacing(12);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    // Compact engineer selector - horizontal layout with label next to dropdown
+    QWidget* selectorWidget = new QWidget(this);
+    selectorWidget->setStyleSheet(
+        "QWidget {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "}"
+    );
+
+    QHBoxLayout* selectorLayout = new QHBoxLayout(selectorWidget);
+    selectorLayout->setContentsMargins(16, 12, 16, 12);
+    selectorLayout->setSpacing(12);
+
+    QLabel* selectorLabel = new QLabel("Select Engineer:", this);
+    QFont labelFont = selectorLabel->font();
+    labelFont.setPointSize(13);
+    labelFont.setWeight(QFont::DemiBold);
+    selectorLabel->setFont(labelFont);
+    selectorLabel->setStyleSheet("color: #475569; border: none;");
+
+    engineerSelector_ = new QComboBox(this);
+    engineerSelector_->setMinimumHeight(36);
+    engineerSelector_->setMinimumWidth(250);
+    QFont comboFont = engineerSelector_->font();
+    comboFont.setPointSize(13);
+    engineerSelector_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette engineerPalette;
+    engineerPalette.setColor(QPalette::WindowText, Qt::black);
+    engineerPalette.setColor(QPalette::Text, Qt::black);
+    engineerPalette.setColor(QPalette::ButtonText, Qt::black);
+    engineerPalette.setColor(QPalette::Base, Qt::white);
+    engineerPalette.setColor(QPalette::Window, Qt::white);
+    engineerPalette.setColor(QPalette::Button, Qt::white);
+    engineerPalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    engineerPalette.setColor(QPalette::HighlightedText, Qt::white);
+    engineerSelector_->setPalette(engineerPalette);
+
+    engineerSelector_->setStyleSheet(
+        "QComboBox {"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+    );
+    engineerSelector_->setMaxVisibleItems(15);
+    connect(engineerSelector_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AnalyticsWidget::onEngineerSelected);
+
+    selectorLayout->addWidget(selectorLabel);
+    selectorLayout->addWidget(engineerSelector_);
+    selectorLayout->addStretch();
+
+    // Zoom controls
+    QLabel* zoomLabel = new QLabel("Chart Size:", this);
+    zoomLabel->setFont(labelFont);
+    zoomLabel->setStyleSheet("color: #475569; border: none;");
+    selectorLayout->addWidget(zoomLabel);
+
+    QPushButton* zoomOutBtn = new QPushButton("−", this);
+    zoomOutBtn->setFixedSize(28, 28);
+    zoomOutBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomOutBtn, &QPushButton::clicked, this, &AnalyticsWidget::onEngineerRadarZoomOut);
+    selectorLayout->addWidget(zoomOutBtn);
+
+    QPushButton* zoomInBtn = new QPushButton("+", this);
+    zoomInBtn->setFixedSize(28, 28);
+    zoomInBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomInBtn, &QPushButton::clicked, this, &AnalyticsWidget::onEngineerRadarZoomIn);
+    selectorLayout->addWidget(zoomInBtn);
+
+    layout->addWidget(selectorWidget);
+
+    // Radar charts container - wrapped in scroll area for better display
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    QWidget* chartsContainer = new QWidget();
+    QHBoxLayout* chartsLayout = new QHBoxLayout(chartsContainer);
+    chartsLayout->setSpacing(16);
+    chartsLayout->setContentsMargins(0, 0, 0, 0);
+
+    // Production Areas Radar
+    engineerProductionRadarView_ = new QChartView(this);
+    engineerProductionRadarView_->setRenderHint(QPainter::Antialiasing);
+    engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    engineerProductionRadarView_->setMinimumWidth(500);
+    engineerProductionRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    chartsLayout->addWidget(engineerProductionRadarView_, 1);
+
+    // Core Skills Radar
+    engineerCoreSkillsRadarView_ = new QChartView(this);
+    engineerCoreSkillsRadarView_->setRenderHint(QPainter::Antialiasing);
+    engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    engineerCoreSkillsRadarView_->setMinimumWidth(500);
+    engineerCoreSkillsRadarView_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    chartsLayout->addWidget(engineerCoreSkillsRadarView_, 1);
+
+    scrollArea->setWidget(chartsContainer);
+    layout->addWidget(scrollArea, 1);
+}
+
+void AnalyticsWidget::onEngineerSelected(int index)
+{
+    updateEngineerRadarData();
+}
+
+void AnalyticsWidget::updateEngineerRadarData()
+{
+    if (!engineerSelector_ || engineerSelector_->currentIndex() < 0) {
+        return;
+    }
+
+    QString engineerId = engineerSelector_->currentData().toString();
+    if (engineerId.isEmpty()) {
+        return;
+    }
+
+    // Calculate and display production areas radar
+    QMap<QString, double> productionData = calculateEngineerProductionRadarData(engineerId);
+    QPolarChart* productionChart = createRadarChart(
+        productionData,
+        "Production Areas Performance",
+        QColor("#2196F3")  // Blue
+    );
+    engineerProductionRadarView_->setChart(productionChart);
+
+    // Calculate and display core skills radar
+    QMap<QString, double> coreSkillsData = calculateEngineerCoreSkillsRadarData(engineerId);
+    QPolarChart* coreSkillsChart = createRadarChart(
+        coreSkillsData,
+        "Core Skills Performance",
+        QColor("#FF9800")  // Orange
+    );
+    engineerCoreSkillsRadarView_->setChart(coreSkillsChart);
+
+    Logger::instance().info("AnalyticsWidget", "Updated radar charts for engineer: " + engineerId);
+}
+
+// ============================================================================
+// SHIFT OVERVIEW TAB
+// ============================================================================
+
+void AnalyticsWidget::setupShiftOverviewTab(QWidget* shiftOverviewWidget)
+{
+    QVBoxLayout* layout = new QVBoxLayout(shiftOverviewWidget);
+    layout->setSpacing(12);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    // Compact controls row - horizontal layout with labels next to dropdowns
+    QWidget* controlsWidget = new QWidget(this);
+    controlsWidget->setStyleSheet(
+        "QWidget {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "}"
+    );
+
+    QHBoxLayout* controlsLayout = new QHBoxLayout(controlsWidget);
+    controlsLayout->setContentsMargins(16, 12, 16, 12);
+    controlsLayout->setSpacing(24);
+
+    // Shift filter
+    QLabel* filterLabel = new QLabel("Filter by Shift:", this);
+    QFont labelFont = filterLabel->font();
+    labelFont.setPointSize(13);
+    labelFont.setWeight(QFont::DemiBold);
+    filterLabel->setFont(labelFont);
+    filterLabel->setStyleSheet("color: #475569; border: none;");
+
+    shiftFilterCombo_ = new QComboBox(this);
+    shiftFilterCombo_->setMinimumHeight(36);
+    shiftFilterCombo_->setMinimumWidth(180);
+    QFont comboFont = shiftFilterCombo_->font();
+    comboFont.setPointSize(13);
+    shiftFilterCombo_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette shiftFilterPalette;
+    shiftFilterPalette.setColor(QPalette::WindowText, Qt::black);
+    shiftFilterPalette.setColor(QPalette::Text, Qt::black);
+    shiftFilterPalette.setColor(QPalette::ButtonText, Qt::black);
+    shiftFilterPalette.setColor(QPalette::Base, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Window, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Button, Qt::white);
+    shiftFilterPalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    shiftFilterPalette.setColor(QPalette::HighlightedText, Qt::white);
+    shiftFilterCombo_->setPalette(shiftFilterPalette);
+
+    shiftFilterCombo_->setStyleSheet(
+        "QComboBox {"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+    );
+    shiftFilterCombo_->setMaxVisibleItems(10);
+    shiftFilterCombo_->addItem("All Shifts", "ALL");
+    connect(shiftFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AnalyticsWidget::onShiftFilterChanged);
+
+    controlsLayout->addWidget(filterLabel);
+    controlsLayout->addWidget(shiftFilterCombo_);
+
+    // Data type toggle
+    QLabel* dataTypeLabel = new QLabel("Data Type:", this);
+    dataTypeLabel->setFont(labelFont);
+    dataTypeLabel->setStyleSheet("color: #475569; border: none;");
+
+    shiftDataTypeCombo_ = new QComboBox(this);
+    shiftDataTypeCombo_->setMinimumHeight(36);
+    shiftDataTypeCombo_->setMinimumWidth(180);
+    shiftDataTypeCombo_->setFont(comboFont);
+
+    // Set palette for text colors (must be set before stylesheet on macOS)
+    QPalette dataTypePalette;
+    dataTypePalette.setColor(QPalette::WindowText, Qt::black);
+    dataTypePalette.setColor(QPalette::Text, Qt::black);
+    dataTypePalette.setColor(QPalette::ButtonText, Qt::black);
+    dataTypePalette.setColor(QPalette::Base, Qt::white);
+    dataTypePalette.setColor(QPalette::Window, Qt::white);
+    dataTypePalette.setColor(QPalette::Button, Qt::white);
+    dataTypePalette.setColor(QPalette::Highlight, QColor(59, 130, 246));  // #3b82f6
+    dataTypePalette.setColor(QPalette::HighlightedText, Qt::white);
+    shiftDataTypeCombo_->setPalette(dataTypePalette);
+
+    shiftDataTypeCombo_->setStyleSheet(
+        "QComboBox {"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "}"
+    );
+    shiftDataTypeCombo_->setMaxVisibleItems(5);
+    shiftDataTypeCombo_->addItem("Production Areas", "PRODUCTION");
+    shiftDataTypeCombo_->addItem("Core Skills", "CORE_SKILLS");
+    connect(shiftDataTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AnalyticsWidget::onShiftDataTypeChanged);
+
+    controlsLayout->addWidget(dataTypeLabel);
+    controlsLayout->addWidget(shiftDataTypeCombo_);
+    controlsLayout->addStretch();
+
+    // Zoom controls
+    QLabel* zoomLabel = new QLabel("Chart Size:", this);
+    zoomLabel->setFont(labelFont);
+    zoomLabel->setStyleSheet("color: #475569; border: none;");
+    controlsLayout->addWidget(zoomLabel);
+
+    QPushButton* zoomOutBtn = new QPushButton("−", this);
+    zoomOutBtn->setFixedSize(28, 28);
+    zoomOutBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomOutBtn, &QPushButton::clicked, this, &AnalyticsWidget::onShiftOverviewZoomOut);
+    controlsLayout->addWidget(zoomOutBtn);
+
+    QPushButton* zoomInBtn = new QPushButton("+", this);
+    zoomInBtn->setFixedSize(28, 28);
+    zoomInBtn->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f1f5f9;"
+        "    border: 1px solid #cbd5e1;"
+        "    border-radius: 4px;"
+        "    font-size: 16px;"
+        "    font-weight: bold;"
+        "    color: #64748b;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e2e8f0;"
+        "}"
+    );
+    connect(zoomInBtn, &QPushButton::clicked, this, &AnalyticsWidget::onShiftOverviewZoomIn);
+    controlsLayout->addWidget(zoomInBtn);
+
+    layout->addWidget(controlsWidget);
+
+    // Scroll area for shift radar charts
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    shiftRadarContainer_ = new QWidget();
+    QVBoxLayout* containerLayout = new QVBoxLayout(shiftRadarContainer_);
+    containerLayout->setSpacing(24);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
+
+    scrollArea->setWidget(shiftRadarContainer_);
+    layout->addWidget(scrollArea, 1);
+}
+
+void AnalyticsWidget::onShiftFilterChanged(int index)
+{
+    updateShiftOverviewData();
+}
+
+void AnalyticsWidget::onShiftDataTypeChanged(int index)
+{
+    updateShiftOverviewData();
+}
+
+void AnalyticsWidget::updateShiftOverviewData()
+{
+    if (!shiftRadarContainer_ || !shiftDataTypeCombo_) {
+        return;
+    }
+
+    // Clear existing charts
+    QLayout* layout = shiftRadarContainer_->layout();
+    if (layout) {
+        while (QLayoutItem* item = layout->takeAt(0)) {
+            if (QWidget* widget = item->widget()) {
+                widget->deleteLater();
+            }
+            delete item;
+        }
+    }
+    shiftRadarViews_.clear();
+
+    // Get selected shift filter and data type
+    QString selectedShift = shiftFilterCombo_->currentData().toString();
+    QString dataType = shiftDataTypeCombo_->currentData().toString();
+    bool isProductionData = (dataType == "PRODUCTION");
+
+    // Get unique shifts from cached engineers
+    QSet<QString> shifts;
+    for (const Engineer& engineer : cachedEngineers_) {
+        QString shift = engineer.shift();
+        if (!shift.isEmpty()) {
+            shifts.insert(shift);
+        }
+    }
+
+    QList<QString> shiftList = shifts.values();
+    std::sort(shiftList.begin(), shiftList.end());
+
+    // If filter is not "ALL", only show selected shift
+    if (selectedShift != "ALL" && !selectedShift.isEmpty()) {
+        shiftList.clear();
+        shiftList.append(selectedShift);
+    }
+
+    // Create single large radar chart for each shift showing individual engineers
+    for (const QString& shift : shiftList) {
+        // Get engineers in this shift
+        QList<Engineer> shiftEngineers;
+        for (const Engineer& engineer : cachedEngineers_) {
+            if (engineer.shift() == shift) {
+                shiftEngineers.append(engineer);
+            }
+        }
+
+        if (shiftEngineers.isEmpty()) {
+            continue;
+        }
+
+        // Shift header
+        QLabel* shiftLabel = new QLabel(QString("Shift: %1 (%2 Engineers)").arg(shift).arg(shiftEngineers.size()), this);
+        QFont headerFont = shiftLabel->font();
+        headerFont.setPointSize(18);
+        headerFont.setBold(true);
+        shiftLabel->setFont(headerFont);
+        shiftLabel->setStyleSheet("color: #1e293b; padding: 12px 0;");
+        shiftRadarContainer_->layout()->addWidget(shiftLabel);
+
+        // Create single large chart based on selected data type
+        QMap<QString, QMap<QString, double>> engineerData;
+        QString chartTitle;
+
+        if (isProductionData) {
+            for (const Engineer& engineer : shiftEngineers) {
+                engineerData[engineer.name()] = calculateEngineerProductionRadarData(engineer.id());
+            }
+            chartTitle = QString("Production Areas - %1").arg(shift);
+        } else {
+            for (const Engineer& engineer : shiftEngineers) {
+                engineerData[engineer.name()] = calculateEngineerCoreSkillsRadarData(engineer.id());
+            }
+            chartTitle = QString("Core Skills - %1").arg(shift);
+        }
+
+        QPolarChart* chart = createMultiEngineerRadarChart(engineerData, chartTitle, isProductionData);
+        QChartView* chartView = new QChartView(chart, this);
+        chartView->setRenderHint(QPainter::Antialiasing);
+        chartView->setMinimumHeight(shiftOverviewChartHeight_);
+        chartView->setMinimumWidth(800);
+        chartView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        shiftRadarContainer_->layout()->addWidget(chartView);
+        shiftRadarViews_.append(chartView);
+
+        // Divider
+        QFrame* line = new QFrame(this);
+        line->setFrameShape(QFrame::HLine);
+        line->setFrameShadow(QFrame::Sunken);
+        line->setStyleSheet("background-color: #e2e8f0; margin: 16px 0;");
+        shiftRadarContainer_->layout()->addWidget(line);
+    }
+
+    // Add stretch at the end
+    QVBoxLayout* containerLayout = qobject_cast<QVBoxLayout*>(shiftRadarContainer_->layout());
+    if (containerLayout) {
+        containerLayout->addStretch();
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Updated shift overview for: %1, type: %2").arg(selectedShift).arg(dataType));
+}
+
+// ============================================================================
+// RADAR CHART HELPER METHODS
+// ============================================================================
+
+QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data,
+                                                const QString& title,
+                                                const QColor& color)
+{
+    QPolarChart* chart = new QPolarChart();
+    chart->setTitle(title);
+    chart->setAnimationOptions(QPolarChart::AllAnimations);
+
+    // Prepare data
+    QStringList labels;
+    QList<double> values;
+    int index = 0;
+    for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
+        labels.append(it.key());
+        values.append(it.value());
+    }
+
+    if (labels.isEmpty()) {
+        // No data - show empty chart with message
+        chart->setTitle(title + " (No Data)");
+        return chart;
+    }
+
+    // Create series
+    QLineSeries* series = new QLineSeries();
+    for (int i = 0; i < values.size(); i++) {
+        series->append(i, values[i]);
+    }
+    // Close the polygon by connecting back to first point
+    if (!values.isEmpty()) {
+        series->append(values.size(), values.first());
+    }
+
+    // Create lower bound series at 0 for filling
+    QLineSeries* lowerSeries = new QLineSeries();
+    for (int i = 0; i <= values.size(); i++) {
+        lowerSeries->append(i, 0);
+    }
+
+    // Create area series for filled effect
+    QAreaSeries* areaSeries = new QAreaSeries(series, lowerSeries);
+    QLinearGradient gradient(0, 0, 0, 400);
+    gradient.setColorAt(0.0, color);
+    gradient.setColorAt(1.0, QColor(color.red(), color.green(), color.blue(), 50));
+    areaSeries->setBrush(gradient);
+
+    QPen pen(color);
+    pen.setWidth(3);
+    areaSeries->setPen(pen);
+
+    chart->addSeries(areaSeries);
+
+    // Angular axis (categories)
+    QCategoryAxis* angularAxis = new QCategoryAxis();
+    angularAxis->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+    for (int i = 0; i < labels.size(); i++) {
+        angularAxis->append(abbreviateLabel(labels[i]), i);
+    }
+    angularAxis->setRange(0, labels.size());
+    chart->addAxis(angularAxis, QPolarChart::PolarOrientationAngular);
+
+    // Radial axis (values 0-3)
+    QValueAxis* radialAxis = new QValueAxis();
+    radialAxis->setRange(0, 3);
+    radialAxis->setTickCount(4);  // 0, 1, 2, 3
+    radialAxis->setLabelFormat("%.1f");
+    chart->addAxis(radialAxis, QPolarChart::PolarOrientationRadial);
+
+    areaSeries->attachAxis(angularAxis);
+    areaSeries->attachAxis(radialAxis);
+
+    chart->legend()->setVisible(false);
+
+    // Set consistent margins for all charts
+    chart->setMargins(QMargins(20, 20, 20, 20));
+
+    return chart;
+}
+
+QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, QMap<QString, double>>& engineerDataMap,
+                                                             const QString& title,
+                                                             bool isProductionData)
+{
+    QPolarChart* chart = new QPolarChart();
+    chart->setTitle(title);
+    chart->setAnimationOptions(QPolarChart::AllAnimations);
+
+    if (engineerDataMap.isEmpty()) {
+        chart->setTitle(title + " (No Data)");
+        chart->legend()->setVisible(false);
+        return chart;
+    }
+
+    // Collect all unique labels from all engineers
+    QSet<QString> allLabelsSet;
+    for (auto it = engineerDataMap.constBegin(); it != engineerDataMap.constEnd(); ++it) {
+        const QMap<QString, double>& data = it.value();
+        for (auto labelIt = data.constBegin(); labelIt != data.constEnd(); ++labelIt) {
+            allLabelsSet.insert(labelIt.key());
+        }
+    }
+
+    QStringList labels = allLabelsSet.values();
+    std::sort(labels.begin(), labels.end());
+
+    if (labels.isEmpty()) {
+        chart->setTitle(title + " (No Data)");
+        chart->legend()->setVisible(false);
+        return chart;
+    }
+
+    // Predefined color palette for engineers
+    QList<QColor> colorPalette = {
+        QColor("#2196F3"), // Blue
+        QColor("#FF9800"), // Orange
+        QColor("#4CAF50"), // Green
+        QColor("#F44336"), // Red
+        QColor("#9C27B0"), // Purple
+        QColor("#00BCD4"), // Cyan
+        QColor("#FFEB3B"), // Yellow
+        QColor("#795548"), // Brown
+        QColor("#607D8B"), // Blue Grey
+        QColor("#E91E63")  // Pink
+    };
+
+    // Create a series for each engineer
+    int colorIndex = 0;
+    for (auto it = engineerDataMap.constBegin(); it != engineerDataMap.constEnd(); ++it) {
+        QString engineerName = it.key();
+        const QMap<QString, double>& data = it.value();
+
+        if (data.isEmpty()) {
+            continue;
+        }
+
+        // Create data points for this engineer (in same label order)
+        QLineSeries* series = new QLineSeries();
+        series->setName(engineerName);
+
+        for (int i = 0; i < labels.size(); i++) {
+            double value = data.value(labels[i], 0.0);  // Default to 0 if no data for this label
+            series->append(i, value);
+        }
+        // Close the polygon
+        if (!labels.isEmpty()) {
+            double firstValue = data.value(labels.first(), 0.0);
+            series->append(labels.size(), firstValue);
+        }
+
+        // Create lower bound at 0
+        QLineSeries* lowerSeries = new QLineSeries();
+        for (int i = 0; i <= labels.size(); i++) {
+            lowerSeries->append(i, 0);
+        }
+
+        // Create area series
+        QAreaSeries* areaSeries = new QAreaSeries(series, lowerSeries);
+        areaSeries->setName(engineerName);
+
+        // Assign color from palette
+        QColor engineerColor = colorPalette[colorIndex % colorPalette.size()];
+        QPen pen(engineerColor);
+        pen.setWidth(2);
+        areaSeries->setPen(pen);
+
+        // Semi-transparent fill for better overlap visibility
+        QColor fillColor = engineerColor;
+        fillColor.setAlpha(50);  // ~20% opacity for better overlap visibility
+        areaSeries->setBrush(fillColor);
+
+        chart->addSeries(areaSeries);
+        colorIndex++;
+    }
+
+    // Angular axis (category labels)
+    QCategoryAxis* angularAxis = new QCategoryAxis();
+    angularAxis->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+    for (int i = 0; i < labels.size(); i++) {
+        angularAxis->append(abbreviateLabel(labels[i]), i);
+    }
+    angularAxis->setRange(0, labels.size());
+    chart->addAxis(angularAxis, QPolarChart::PolarOrientationAngular);
+
+    // Radial axis (values 0-3)
+    QValueAxis* radialAxis = new QValueAxis();
+    radialAxis->setRange(0, 3);
+    radialAxis->setTickCount(4);  // 0, 1, 2, 3
+    radialAxis->setLabelFormat("%.1f");
+    chart->addAxis(radialAxis, QPolarChart::PolarOrientationRadial);
+
+    // Attach axes to all series
+    const QList<QAbstractSeries*> allSeries = chart->series();
+    for (QAbstractSeries* series : allSeries) {
+        series->attachAxis(angularAxis);
+        series->attachAxis(radialAxis);
+    }
+
+    // Enable legend to show engineer names
+    chart->legend()->setVisible(true);
+    chart->legend()->setAlignment(Qt::AlignBottom);
+
+    // Set consistent margins for all charts
+    chart->setMargins(QMargins(20, 20, 20, 20));
+
+    return chart;
+}
+
+QMap<QString, double> AnalyticsWidget::calculateEngineerProductionRadarData(const QString& engineerId)
+{
+    QMap<QString, double> radarData;
+
+    // Get all assessments for this engineer
+    QList<Assessment> engineerAssessments;
+    for (const Assessment& assessment : cachedAssessments_) {
+        if (assessment.engineerId() == engineerId) {
+            engineerAssessments.append(assessment);
+        }
+    }
+
+    if (engineerAssessments.isEmpty()) {
+        return radarData;
+    }
+
+    // Get all competencies and machines
+    QList<Competency> allCompetencies;
+    QList<Machine> allMachines;
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        allMachines.append(areaMachines);
+        for (const Machine& machine : areaMachines) {
+            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
+        }
+    }
+
+    // Group by production area
+    QMap<QString, double> areaWeightedSum;
+    QMap<QString, double> areaTotalWeights;
+
+    for (const Assessment& assessment : engineerAssessments) {
+        // Find the competency
+        for (const Competency& comp : allCompetencies) {
+            if (comp.id() == assessment.competencyId()) {
+                // Find the machine to get the area
+                for (const Machine& machine : allMachines) {
+                    if (machine.id() == comp.machineId()) {
+                        // Find the area name
+                        for (const ProductionArea& area : cachedAreas_) {
+                            if (area.id() == machine.productionAreaId()) {
+                                QString areaName = area.name();
+                                // Combined weight: competency weight × machine production impact
+                                double competencyWeight = comp.calculatedWeight();
+                                double machineImpact = machine.importance(); // 0-3 scale
+                                double combinedWeight = competencyWeight * (machineImpact + 1); // +1 to avoid zero weight
+                                areaWeightedSum[areaName] += assessment.score() * combinedWeight;
+                                areaTotalWeights[areaName] += combinedWeight;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Calculate weighted averages
+    for (auto it = areaWeightedSum.constBegin(); it != areaWeightedSum.constEnd(); ++it) {
+        QString areaName = it.key();
+        if (areaTotalWeights[areaName] > 0) {
+            radarData[areaName] = it.value() / areaTotalWeights[areaName];
+        }
+    }
+
+    return radarData;
+}
+
+QMap<QString, double> AnalyticsWidget::calculateEngineerCoreSkillsRadarData(const QString& engineerId)
+{
+    QMap<QString, double> radarData;
+
+    // Get all core skill assessments for this engineer
+    QList<CoreSkillAssessment> allAssessments = coreSkillsRepo_.findAllAssessments();
+    QList<CoreSkillAssessment> engineerAssessments;
+    for (const CoreSkillAssessment& assessment : allAssessments) {
+        if (assessment.engineerId() == engineerId) {
+            engineerAssessments.append(assessment);
+        }
+    }
+
+    if (engineerAssessments.isEmpty()) {
+        return radarData;
+    }
+
+    // Get all core skills and categories
+    QList<CoreSkill> allSkills = coreSkillsRepo_.findAllSkills();
+    QList<CoreSkillCategory> allCategories = coreSkillsRepo_.findAllCategories();
+
+    // Group by category
+    QMap<QString, double> categoryWeightedSum;
+    QMap<QString, double> categoryTotalWeights;
+
+    for (const CoreSkillAssessment& assessment : engineerAssessments) {
+        // Find the skill
+        for (const CoreSkill& skill : allSkills) {
+            if (skill.id() == assessment.skillId()) {
+                // Find the category
+                for (const CoreSkillCategory& category : allCategories) {
+                    if (category.id() == skill.categoryId()) {
+                        QString categoryName = category.name();
+                        double weight = skill.calculatedWeight();
+                        categoryWeightedSum[categoryName] += assessment.score() * weight;
+                        categoryTotalWeights[categoryName] += weight;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Calculate weighted averages
+    for (auto it = categoryWeightedSum.constBegin(); it != categoryWeightedSum.constEnd(); ++it) {
+        QString categoryName = it.key();
+        if (categoryTotalWeights[categoryName] > 0) {
+            radarData[categoryName] = it.value() / categoryTotalWeights[categoryName];
+        }
+    }
+
+    return radarData;
+}
+
+QMap<QString, double> AnalyticsWidget::calculateShiftProductionRadarData(const QString& shift)
+{
+    QMap<QString, double> aggregatedData;
+
+    // Get all engineers in this shift
+    QList<Engineer> shiftEngineers;
+    for (const Engineer& engineer : cachedEngineers_) {
+        if (engineer.shift() == shift) {
+            shiftEngineers.append(engineer);
+        }
+    }
+
+    if (shiftEngineers.isEmpty()) {
+        return aggregatedData;
+    }
+
+    // Aggregate data from all engineers in the shift
+    QMap<QString, double> totalScores;
+    QMap<QString, int> areaCounts;
+
+    for (const Engineer& engineer : shiftEngineers) {
+        QMap<QString, double> engineerData = calculateEngineerProductionRadarData(engineer.id());
+        for (auto it = engineerData.constBegin(); it != engineerData.constEnd(); ++it) {
+            totalScores[it.key()] += it.value();
+            areaCounts[it.key()]++;
+        }
+    }
+
+    // Calculate averages
+    for (auto it = totalScores.constBegin(); it != totalScores.constEnd(); ++it) {
+        QString areaName = it.key();
+        if (areaCounts[areaName] > 0) {
+            aggregatedData[areaName] = it.value() / areaCounts[areaName];
+        }
+    }
+
+    return aggregatedData;
+}
+
+QMap<QString, double> AnalyticsWidget::calculateShiftCoreSkillsRadarData(const QString& shift)
+{
+    QMap<QString, double> aggregatedData;
+
+    // Get all engineers in this shift
+    QList<Engineer> shiftEngineers;
+    for (const Engineer& engineer : cachedEngineers_) {
+        if (engineer.shift() == shift) {
+            shiftEngineers.append(engineer);
+        }
+    }
+
+    if (shiftEngineers.isEmpty()) {
+        return aggregatedData;
+    }
+
+    // Aggregate data from all engineers in the shift
+    QMap<QString, double> totalScores;
+    QMap<QString, int> categoryCounts;
+
+    for (const Engineer& engineer : shiftEngineers) {
+        QMap<QString, double> engineerData = calculateEngineerCoreSkillsRadarData(engineer.id());
+        for (auto it = engineerData.constBegin(); it != engineerData.constEnd(); ++it) {
+            totalScores[it.key()] += it.value();
+            categoryCounts[it.key()]++;
+        }
+    }
+
+    // Calculate averages
+    for (auto it = totalScores.constBegin(); it != totalScores.constEnd(); ++it) {
+        QString categoryName = it.key();
+        if (categoryCounts[categoryName] > 0) {
+            aggregatedData[categoryName] = it.value() / categoryCounts[categoryName];
+        }
+    }
+
+    return aggregatedData;
+}
+
+QString AnalyticsWidget::abbreviateLabel(const QString& label) const
+{
+    // Production area abbreviations to save space
+    if (label.contains("Viaflo", Qt::CaseInsensitive)) {
+        if (label.contains("Packing", Qt::CaseInsensitive)) {
+            return "VFO P";
+        }
+        if (label.contains("Racking", Qt::CaseInsensitive)) {
+            return "VFO R";
+        }
+        if (label.contains("Fill", Qt::CaseInsensitive)) {
+            return "VFO F";
+        }
+        return "VFO";  // Generic Viaflo
+    }
+
+    if (label.contains("Line 6", Qt::CaseInsensitive) || label == "L6") {
+        return "L6";
+    }
+
+    if (label.contains("Line 7", Qt::CaseInsensitive)) {
+        if (label.contains("Packing", Qt::CaseInsensitive)) {
+            return "L7 P";
+        }
+        return "L7";
+    }
+
+    if (label.contains("Line 1", Qt::CaseInsensitive) || label == "L1") {
+        return "L1";
+    }
+
+    // If no abbreviation found, return original label
+    return label;
+}
+
+void AnalyticsWidget::onEngineerRadarZoomIn()
+{
+    engineerRadarChartHeight_ += 100;
+    if (engineerRadarChartHeight_ > 1400) {
+        engineerRadarChartHeight_ = 1400;  // Max height
+    }
+
+    if (engineerProductionRadarView_) {
+        engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+    if (engineerCoreSkillsRadarView_) {
+        engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Engineer radar chart height: %1").arg(engineerRadarChartHeight_));
+}
+
+void AnalyticsWidget::onEngineerRadarZoomOut()
+{
+    engineerRadarChartHeight_ -= 100;
+    if (engineerRadarChartHeight_ < 400) {
+        engineerRadarChartHeight_ = 400;  // Min height
+    }
+
+    if (engineerProductionRadarView_) {
+        engineerProductionRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+    if (engineerCoreSkillsRadarView_) {
+        engineerCoreSkillsRadarView_->setMinimumHeight(engineerRadarChartHeight_);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Engineer radar chart height: %1").arg(engineerRadarChartHeight_));
+}
+
+void AnalyticsWidget::onShiftOverviewZoomIn()
+{
+    shiftOverviewChartHeight_ += 100;
+    if (shiftOverviewChartHeight_ > 1600) {
+        shiftOverviewChartHeight_ = 1600;  // Max height
+    }
+
+    // Update all existing shift charts
+    for (QChartView* chartView : shiftRadarViews_) {
+        if (chartView) {
+            chartView->setMinimumHeight(shiftOverviewChartHeight_);
+        }
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Shift overview chart height: %1").arg(shiftOverviewChartHeight_));
+}
+
+void AnalyticsWidget::onShiftOverviewZoomOut()
+{
+    shiftOverviewChartHeight_ -= 100;
+    if (shiftOverviewChartHeight_ < 500) {
+        shiftOverviewChartHeight_ = 500;  // Min height
+    }
+
+    // Update all existing shift charts
+    for (QChartView* chartView : shiftRadarViews_) {
+        if (chartView) {
+            chartView->setMinimumHeight(shiftOverviewChartHeight_);
+        }
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Shift overview chart height: %1").arg(shiftOverviewChartHeight_));
 }

@@ -46,6 +46,7 @@ private:
     QWidget* productionAreasWidget_;
     QWidget* assessmentWidget_;
     QWidget* coreSkillsWidget_;
+    QWidget* coreSkillsManagementWidget_;
     QWidget* reportsWidget_;
     AnalyticsWidget* analyticsWidget_;
     QWidget* certificationsWidget_;
