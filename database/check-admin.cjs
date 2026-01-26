@@ -17,7 +17,7 @@ async function checkAdmin() {
     console.log('✅ Connected to database\n');
 
     const result = await sql.query(`
-      SELECT id, username, full_name, role, created_at
+      SELECT id, username, role, created_at
       FROM users
       WHERE username = 'admin'
     `);
