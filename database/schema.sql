@@ -73,6 +73,12 @@ BEGIN
         [max_score] INT NOT NULL DEFAULT 3,
         [created_at] DATETIME DEFAULT GETDATE(),
         [updated_at] DATETIME DEFAULT GETDATE(),
+        -- Multi-Criteria Weighting (0.0 - 5.0 scale, default 3.0)
+        [safety_impact] FLOAT NOT NULL DEFAULT 3.0,       -- 30% weight - Risk if competency lacking
+        [production_impact] FLOAT NOT NULL DEFAULT 3.0,   -- 25% weight - Effect on output/quality
+        [frequency] FLOAT NOT NULL DEFAULT 3.0,           -- 20% weight - How often used
+        [complexity] FLOAT NOT NULL DEFAULT 3.0,          -- 15% weight - Difficulty to master
+        [future_value] FLOAT NOT NULL DEFAULT 3.0,        -- 10% weight - Career/strategic importance
         CONSTRAINT [FK_competencies_machines] FOREIGN KEY ([machine_id])
             REFERENCES [dbo].[machines]([id]) ON DELETE CASCADE
     );
