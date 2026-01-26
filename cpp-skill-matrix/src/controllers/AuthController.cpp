@@ -7,8 +7,49 @@
 AuthController::AuthController() {}
 AuthController::~AuthController() {}
 
-bool AuthController::login(const QString& username, const QString& password) { return false; }
-void AuthController::logout() {}
+bool AuthController::login(const QString& username, const QString& password)
+{
+    if (username.isEmpty() || password.isEmpty()) {
+        Logger::instance().warning("AuthController", "Login failed - empty credentials");
+        return false;
+    }
+
+    // Get user from database
+    UserRepository userRepo;
+    User user = userRepo.findByUsername(username);
+
+    if (!user.isValid()) {
+        Logger::instance().warning("AuthController", "Login failed - user not found: " + username);
+        return false;
+    }
+
+    // Verify password
+    if (!Crypto::verifyPassword(password, user.password())) {
+        Logger::instance().warning("AuthController", "Login failed - incorrect password for: " + username);
+        return false;
+    }
+
+    // Create session
+    Session* session = Application::instance().session();
+    if (session) {
+        session->login(user.id(), user.username(), user.role());
+        Logger::instance().info("AuthController", "User logged in: " + username + " (role: " + user.role() + ")");
+        return true;
+    }
+
+    Logger::instance().error("AuthController", "Login failed - no session available");
+    return false;
+}
+
+void AuthController::logout()
+{
+    Session* session = Application::instance().session();
+    if (session && session->isLoggedIn()) {
+        QString username = session->username();
+        session->logout();
+        Logger::instance().info("AuthController", "User logged out: " + username);
+    }
+}
 
 bool AuthController::changePassword(const QString& oldPassword, const QString& newPassword)
 {
