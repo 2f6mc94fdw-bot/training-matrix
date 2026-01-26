@@ -20,6 +20,7 @@ public:
     QString lastError() const { return lastError_; }
 
 private:
+    QString generateUsernameFromName(const QString& name);
     QString lastError_;
 };
 
