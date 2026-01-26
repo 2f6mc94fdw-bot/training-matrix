@@ -1,23 +1,35 @@
 Production Area,Machine,Competency,Max Score
-Packaging,Bliss 4/2,Able to perform Bliss 4/2 PMS,3
-Packaging,Bliss 4/2,Able to make adjustments to the set up of the machine (compression chamber timing etc.),3
-Packaging,Bliss 4/2,Able to adjust the glue pattern on the Nordsson Unit,3
-Packaging,Unloader,Able to perform Unloader PMS,3
-Packaging,Unloader,Able to identify each step in the robot programme (e.g. pre vas pre sacche etc.),3
-Packaging,Unloader,Able to modify and adjust robot position to improve robot performance,3
-Packaging,Unloader,Carry out major repairs and set up of robot (Harness / motor replacement and subsequent calibration),3
-Packaging,Casepacker,Able to perform casepacker PMs,3
-Packaging,Casepacker,Able to adjust programme parameters such as ICS speed box position,3
-Packaging,Casepacker,Able to adjust pick/place positions in the programme to improve casepacker performance,3
-Packaging,Casepacker,Able to strip and refurbish the lower section of the casepacker including ICS/box chains and conveyors,3
-Packaging,Casepacker,Able to strip and refurbish the upper section of the casepacker including the main upper gearboxes,3
-Packaging,Casepacker,Able to replace and home the main motors as per the HMI,3
-Packaging,Leaflet Inserter,Able to perform PMS on the leaflet inserters,3
-Packaging,Leaflet Inserter,Able to strip and refurbish the main components of the leaflet inserter,3
-Packaging,Leaflet Inserter,Able to adjust Cognex parameters during production to improve performance,3
-Packaging,Taper,Able to perform PMs on the little david and lantech taper,3
-Packaging,VideoJet Labeller,Able to perform PMs on the videoJet labeller,3
-Packaging,VideoJet Labeller,Able to strip and replace all main components of the labeller competently,3
-Packaging,Palletiser 2,Able to perform PMs on Palletiser 2,3
-Packaging,Palletiser 2,Able to carry out a total reset of the palletiser,3
-Packaging,Palletiser 2,Able to safely remove the layer table chains to carry out maintenance,3
+Viaflo Filling,Filling Machine,Proficient in carrying out PM's and understanding the operation of the machines,2
+Viaflo Filling,Filling Machine,Able to perform manual movements to carry out PM's and help fault find,2
+Viaflo Filling,Filling Machine,Able to make set up adjustments as part of PM's,2
+Viaflo Filling,Filling Machine,Proficient in basic set up and running of the machine / work without operator assistance,2
+Viaflo Filling,Filling Machine,Understand and navigate the HMI to fault find,2
+Viaflo Filling,Filling Machine,Diagnose and repair heater / thermocouple faults,2
+Viaflo Filling,Filling Machine,Replace a failed horizontal press leadscrew,1
+Viaflo Filling,Filling Machine,Replace and set up rotation assembly (Pneumatic),2
+Viaflo Filling,Filling Machine,Replace and set up rotation assembly (Servo driven),2
+Viaflo Filling,Filling Machine,Make adjustments to improve Gondola seal (Preheat Mandrel Rotation Pick and place),2
+Viaflo Filling,Filling Machine,Die set up & planarity testing (Gondola Horizontal and vertical),2
+Viaflo Filling,Filling Machine,Horizontal press remove/refit and set up cut & toggle gap,2
+Viaflo Filling,Filling Machine,Horizontal press rebuild,1
+Viaflo Filling,Filling Machine,Vertical press remove/refit,2
+Viaflo Filling,Filling Machine,Vertical press rebuild,1
+Viaflo Filling,Vuormar,Proficient in carrying out PM's and understanding the operation of the machines,2
+Viaflo Filling,Vuormar,Proficient overhauling vacuum valves,2
+Viaflo Filling,Vuormar,Carry out cutting blade replacement,1
+Viaflo Filling,Vuormar,Set up vertical seal,2
+Viaflo Filling,Vuormar,Set up fixed and mobile seal,2
+Viaflo Filling,Vuormar,Vac box homing (G2s only),2
+Viaflo Filling,Vuormar,replace heaters / TC's for all dies,2
+Viaflo Filling,Vuormar,Dragging belt assembly rebuild,1
+Viaflo Filling,Vuormar,vacuum box rebuild (rack and pinion etc),2
+Viaflo Filling,Vuormar,Tube alignment and set up as part of size change,2
+Viaflo Filling,Vuormar,Understand the sequence of operation of the machine and set up sensors accordingly,2
+Viaflo Filling,Printer,Proficient in carrying out PM's and understanding the operation of the machines,2
+Viaflo Filling,Printer,Diagnose and repair faults on foil On/Offwind system,2
+Viaflo Filling,Printer,replace heaters / TC's for all dies,2
+Viaflo Filling,Printer,Rebuild clutch / sprag bearing assembly,2
+Viaflo Filling,Printer,Check for backlash in the main web drive roller assembly,2
+Viaflo Filling,Printer,Replace main print cylinder,2
+Viaflo Filling,Printer,Diagnose and repair faults on 2nd printer,2
+Viaflo Filling,Printer,Set up 2nd printer,2
