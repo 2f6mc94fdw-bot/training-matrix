@@ -172,16 +172,22 @@ void DatabaseConnectionDialog::loadSavedSettings()
     QString lastServer = config.databaseServer();
     QString lastDatabase = config.databaseName();
     QString lastUser = config.databaseUser();
+    QString lastPassword = config.databasePassword();
     int lastPort = config.databasePort();
 
     serverEdit_->setText(lastServer);
     databaseEdit_->setText(lastDatabase);
     usernameEdit_->setText(lastUser);
+    passwordEdit_->setText(lastPassword);
     portSpinBox_->setValue(lastPort);
 
-    // Focus on password field if other fields are filled
+    // Focus on first empty field, or password if all filled
     if (!lastServer.isEmpty() && !lastDatabase.isEmpty() && !lastUser.isEmpty()) {
-        passwordEdit_->setFocus();
+        if (lastPassword.isEmpty()) {
+            passwordEdit_->setFocus();
+        } else {
+            serverEdit_->setFocus();
+        }
     } else {
         serverEdit_->setFocus();
     }
@@ -195,6 +201,7 @@ void DatabaseConnectionDialog::saveSettings()
     config.setDatabaseServer(serverEdit_->text());
     config.setDatabaseName(databaseEdit_->text());
     config.setDatabaseUser(usernameEdit_->text());
+    config.setDatabasePassword(passwordEdit_->text());
     config.setDatabasePort(portSpinBox_->value());
 
     config.save();
