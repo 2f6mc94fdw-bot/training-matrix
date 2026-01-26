@@ -33,3 +33,157 @@ Viaflo Filling,Printer,Check for backlash in the main web drive roller assembly,
 Viaflo Filling,Printer,Replace main print cylinder,2
 Viaflo Filling,Printer,Diagnose and repair faults on 2nd printer,2
 Viaflo Filling,Printer,Set up 2nd printer,2
+Viaflo Packing,Bliss 4/2,Able to perform Bliss 4/2 PMS,3
+Viaflo Packing,Bliss 4/2,Able to make adjustments to the set up of the machine (compression chamber timing etc.),3
+Viaflo Packing,Bliss 4/2,Able to adjust the glue pattern on the Nordsson Unit,3
+Viaflo Packing,Unloader,Able to perform Unloader PMS,3
+Viaflo Packing,Unloader,Able to identify each step in the robot programme (e.g. pre vas pre sacche etc.),3
+Viaflo Packing,Unloader,Able to modify and adjust robot position to improve robot performance,3
+Viaflo Packing,Unloader,Carry out major repairs and set up of robot (Harness / motor replacement and subsequent calibration),3
+Viaflo Packing,Casepacker,Able to perform casepacker PMs,3
+Viaflo Packing,Casepacker,Able to adjust programme parameters such as ICS speed box position,3
+Viaflo Packing,Casepacker,Able to adjust pick/place positions in the programme to improve casepacker performance,3
+Viaflo Packing,Casepacker,Able to strip and refurbish the lower section of the casepacker including ICS/box chains and conveyors,3
+Viaflo Packing,Casepacker,Able to strip and refurbish the upper section of the casepacker including the main upper gearboxes,3
+Viaflo Packing,Casepacker,Able to replace and home the main motors as per the HMI,3
+Viaflo Packing,Leaflet Inserter,Able to perform PMS on the leaflet inserters,3
+Viaflo Packing,Leaflet Inserter,Able to strip and refurbish the main components of the leaflet inserter,3
+Viaflo Packing,Leaflet Inserter,Able to adjust Cognex parameters during production to improve performance,3
+Viaflo Packing,Taper,Able to perform PMs on the little david and lantech taper,3
+Viaflo Packing,VideoJet Labeller,Able to perform PMs on the videoJet labeller,3
+Viaflo Packing,VideoJet Labeller,Able to strip and replace all main components of the labeller competently,3
+Viaflo Packing,Palletiser 2,Able to perform PMs on Palletiser 2,3
+Viaflo Packing,Palletiser 2,Able to carry out a total reset of the palletiser,3
+Viaflo Packing,Palletiser 2,Able to safely remove the layer table chains to carry out maintenance,3
+Viaflo Racking,ABB,Proficient in performing the loader PM's,3
+Viaflo Racking,ABB,Able to identify each step in the robot programme (e.g. pre vas pre sacche etc.) and manipulate the robot using the pendant,3
+Viaflo Racking,ABB,Able to modify and adjust robot position to improve robot positions,3
+Viaflo Racking,ABB,Carry out major repairs and set up of robot (Harness / motor replacement and subsequent calibration),3
+Viaflo Racking,Bag Turner,Proficient in performing the bag turner PM's,3
+Viaflo Racking,Bag Turner,Understand the role of each sensor and how to set up to run correctly,3
+Viaflo Racking,Bag Turner,Be able to make changes to the program on the HMI to optimise performance,3
+Viaflo Racking,Shingle conveyor,Understand knock on effects of shingle placement throughout the packing process and be able to make adjustments to suit,3
+Viaflo Racking,Shingle conveyor,Replace belts and set tracking,3
+Viaflo Racking,Vac pump,Able to identify the location of the vac pump for each loader,3
+Line 6 Filling,Multivac,Basic understanding of machine operation,3
+Line 6 Filling,Multivac,HMI able to alter and adjust machine parameters such as temperatures/vacuum pressures,3
+Line 6 Filling,Multivac,Able to perform all Multivac PMs when required,3
+Line 6 Filling,Emplex,Able to refurbish emplex modules,3
+Line 6 Filling,Emplex,Able to perform all Emplex PMs,3
+Line 6 Filling,Filling Station,Understand the operation and components of the filling stations,3
+Line 6 Filling,Filling Station,Able to replace the filling nozzle diaphragms/nozzles when required. Understand when is appropriate to do so,3
+Line 6 Filling,Multiup,Understand machine operation,3
+Line 6 Filling,Multiup,Trox cylinder principles. Understand,3
+Line 6 Filling,Multiup,HMI understand and able to operate manually/ alter parameters,3
+Line 6 Filling,Single up,Understand basic machine operation,3
+Line 6 Filling,Single up,Able to perform all single up printer PMs,3
+Line 6 Filling,Huckleback Vac pumps,Able to service the pump e.g. oil replenish/drain,3
+Line 6 Filling,Huckleback Vac pumps,Understand operation of the pump,3
+Line 1 Packing,Bliss 5/7,Able to make adjustments to timing/compression to improve box quality,3
+Line 1 Packing,Bliss 5/7,Able to make adjustments to the glue pattern on the Nordsson unit on Bliss 5,3
+Line 1 Packing,Bliss 5/7,Able to make adjustments to the glue pattern using the recipe tab on the HMI on Bliss 7,3
+Line 1 Packing,Leaflet Inserter,Able to carry out all PMS on the Leaflet inserter,3
+Line 1 Packing,Leaflet Inserter,Able to set up mechanically to ensure optimum performance,3
+Line 1 Packing,Leaflet Inserter,Able to adjust parameters to optimise performance,3
+Line 1 Packing,Leaflet Inserter,Able to set up cognex camera system,3
+Line 1 Packing,Serialisation Labeller,Able to set up artwork in the event it is lost during production,3
+Line 1 Packing,Box Labeller,Able to adjust artwork/ parameters on COLOS,3
+Line 1 Packing,Little David,Able to set up and adjust if needed,3
+Line 1 Packing,Little David,Able to overhaul the tape applicators,3
+Line 1 Packing,Palletiser 4/Fanuc Robot,Able to perform PMs on the fanuc robot and conveyor systems,3
+Line 1 Packing,Palletiser 4/Fanuc Robot,Able to manually move the robot to required position,3
+Line 1 Packing,Palletiser 4/Fanuc Robot,Able to move robot to Home position when needed,3
+Line 1 Packing,Palletiser 4/Fanuc Robot,Able to understand and identify each robot position in the programme e.g. home position/pre pick/pick,3
+Line 7 Packing,1.1 Bliss 6,Able to make adjustments to the set up of the machine eg. timing encoder start/stop positions to produce a good box,3
+Line 7 Packing,1.1 Bliss 6,Able to adjust the glue pattern on the Nordsson Unit,3
+Line 7 Packing,1.2 Unloader,Navigate throughout menus to identify manual operations and adjust parameters on hmi,3
+Line 7 Packing,1.2 Unloader,Able to calibrate the safety controllers in the event of a collision (SC alarm),3
+Line 7 Packing,1.2 Unloader,Able to manually move the robot using the pendant,3
+Line 7 Packing,1.3 TMS,Navigate throughout menus to identify manual operations on both loading unloading and shuttle systems,3
+Line 7 Packing,1.3 TMS,Proficient in manual movements on HMI and how to interact between conveyor systems,3
+Line 7 Packing,1.3 TMS,Able to perform reset sequences in the event of a fault or manual intervention,3
+Line 7 Packing,1.3 TMS,Identify faults and perform fault finding within the controls systems on the HMI,3
+Line 7 Packing,1.4 Casepacker,Able to make adjustments to pick and place positions of the bags,3
+Line 7 Packing,1.4 Casepacker,Able to size change between 1 litre and 3 litre programme if required,3
+Line 7 Packing,1.4 Casepacker,Able to adjust conveyor speeds if required,3
+Line 7 Packing,1.5 Leaflet Inserter,Able to set up leaflet inserter to run correctly if required,3
+Line 7 Packing,1.5 Leaflet Inserter,Able to strip and refurbish the main components of the leaflet inserter,3
+Line 7 Packing,1.6 VideoJet labeller,Able to move label/print position as required,3
+Line 7 Packing,1.6 VideoJet labeller,Able to change the IP address in the event of swapping a whole labeller or main PCB,3
+Line 7 Packing,1.6 VideoJet labeller,Able to change barcode length as required,3
+Line 7 Packing,1.7 Palletiser 4,Able to move the Fanuc robot,3
+Line 7 Packing,1.7 Palletiser 4,Able to move the Fanuc robot to different positions in the programme such as Home Pick approach Pre pick,3
+Line 7 Packing,1.7 Palletiser 4,Able to perform manual movements safely using the HMI or tablet,3
+Line 7 Packing,1.7 Palletiser 4,Able to update the truck tracker on the HMI,3
+Line 7 Packing,1.8 Loader,Able to calibrate the safety controllers in the event of a collision (SC alarm),3
+Line 7 Packing,1.8 Loader,Navigate throughout menus to identify manual operations and adjust parameters on hmi,3
+Line 7 Packing,1.8 Loader,Able to manually move the robot using the pendant,3
+Line 7 Packing,1.9 Flex Picker,Able to adjust parameters to adjust the pick and placement positions,3
+Line 7 Packing,1.9 Flex Picker,Able to make adjustments to programme to remedy problems such as bags not being picked,3
+Line 7 Filling,1.1 Vision system,Access vision viewer on HMI and adjust parameters for plugging understand and how adjusting parameters on hmi will affect vision in regards to bag position,3
+Line 7 Filling,1.1 Vision system,Access vision system on laptop through remote access open Cognex and identify required cameras for adjustment,3
+Line 7 Filling,1.1 Vision system,Understand how to adjust parameters for each camera and how to set up new product codes for print camera,3
+Line 7 Filling,1.1 Vision system,Proficient in fault finding within each program to identify issues and reduce scrap rates,3
+Line 7 Filling,1.2 Robot A,Replace and set up vacuum valves and adjust limits on controller IAW Staubli manual,3
+Line 7 Filling,1.2 Robot A,Manually operate robot using controller and be proficient in moving robot from pick to place positions and be confident to update or adjust parameters,3
+Line 7 Filling,1.2 Robot A,Set calibration points on the robot and be able to identify potential failures on mechanical components,3
+Line 7 Filling,1.3 Robot B,Manually operate robot using controller and be proficient in moving robot from pick to place positions and be confident to update or adjust parameters,3
+Line 7 Filling,1.3 Robot B,Set calibration points on the robot and be able to identify potential failures on mechanical components,3
+Line 7 Filling,1.4 Robot C,Manually operate robot using controller and be proficient in moving robot from pick to place positions and be confident to update or adjust parameters,3
+Line 7 Filling,1.4 Robot C,Set calibration points on the robot and be able to identify potential failures on mechanical components,3
+Line 7 Filling,1.5 Robot D,Manually operate robot using controller and be proficient in moving robot from pick to place positions and be confident to update or adjust parameters,3
+Line 7 Filling,1.5 Robot D,Set calibration points on the robot and be able to identify potential failures on mechanical components,3
+Line 7 Filling,1.6 Robot F,Manually operate robot using controller and be proficient in moving robot from pick to place positions and be confident to update or adjust parameters,3
+Line 7 Filling,1.6 Robot F,Able to identify and replace a faulty wiring harness,3
+Line 7 Filling,1.6 Robot F,Set calibration points on the robot and be able to identify potential failures on mechanical components,3
+Line 7 Filling,1.7 Check Weigh,Able to replace and set up components of the checkweigh e.g. weigh scales motor belts etc,3
+Line 7 Filling,1.7 Check Weigh,Able to adjust and calibrate the speed of the conveyor on the HMI when required,3
+Line 7 Filling,1.8 HDPE,Operate all manual operations safely,3
+Line 7 Filling,1.8 HDPE,Able to complete an HDPE PMS,3
+Line 7 Filling,1.8 HDPE,Able to perform annual strip down of the peraxes,3
+Line 7 Filling,1.8 HDPE,Able to replace a sealing bar including the location of cooling water,3
+Line 7 Filling,1.9 LN2,Able to replace LN2 belts and tension correctly,3
+Line 7 Filling,1.9 LN2,Understand the LN2 here optic bag position check,3
+Line 7 Filling,1.9 LN2,Able to manually operate and home the clamp bars/belt,3
+Line 7 Filling,1.10 Pocket Conveyor,Able to replace pocket conveyor belts and tension correctly,3
+Line 7 Filling,1.10 Pocket Conveyor,Able to manually operate and home belts correctly,3
+Line 7 Filling,1.11 Crabtreeing Conveyor,Able to replace crabtreeing belts and tension correctly,3
+Line 7 Filling,1.12 Printers,Able to replace the main printer cylinders,3
+Line 7 Filling,1.12 Printers,Able to home printers and size change the motor from 3litres to 1 litres as required,3
+Line 7 Filling,1.12 Printers,Able to manually operate and adjust parameters to ensure print force within limits (prevent damage to cylinder),3
+Line 7 Filling,1.13 General HMI,Proficient in navigating on filling menus HMIs. Understanding the difference between manual/automatic and spatialisation functions,3
+Line 7 Filling,1.13 General HMI,Understand key functions on the HMI and able to navigate between different functions,3
+Line 7 Tank Room,1.1 ONG,Understand phases in each section and how they interact with the filling machine,3
+Line 7 Tank Room,1.1 ONG,Able to login on the tank room PC and access via remote desktop,3
+Line 7 Tank Room,1.1 ONG,Able to reset the ONG server. Understand the risks of getting wrong. (Contacting belgium potential impact to the whole site),3
+Line 7 Tank Room,1.1 ONG,Able to follow a P&ID drawing,3
+Line 7 Tank Room,General knowledge,Understand the functions of each tank e.g. tank 70 is a holding tank and tank 71/72 solution tanks and their differences,3
+Line 7 Tank Room,General knowledge,Understand the POU loop and its function,3
+Line 7 Tank Room,General knowledge,Understand WFI tab and its impact on the supply lines,3
+Line 7 Tank Room,General knowledge,Understand the basic principles of a heat exchanger and how to perform a blow down/ inspect for faults,3
+Line 7 Tank Room,General knowledge,Understand how each area operates from tank 70 WFI supply to mixing recirculation loops as well as sanitization and tanks,3
+Line 7 Tank Room,General knowledge,Manually operate valves within the area to allow replacement diaphragms to be fitted understand risks around steam lines and WFI,3
+Line 7 Tank Room,General knowledge,Understand the user loop system,3
+Line 7 Tank Room,General knowledge,Understand the impacts of replacing valves solenoids and pumps and mechanical seals within both mixing transrec tanks. E.g going black,3
+Line 7 Tank Room,General knowledge,Understand and able to identify the steam lines and dangers involved,3
+Line 7 Tank Room,General knowledge,Understand the communications between the different phases. (Able to overcome issues with comms such as ONG phase running however filling not),3
+Line 7 Tank Room,General knowledge,Proficient at calibrating Gemu valves positioners,3
+Line 7 Tank Room,General knowledge,Understand that the vent valves are normally open on tank 71 and 72,3
+Line 7 Tank Room,Tank 70 Phases,Proficient at manually sanitising tank 70 and the  user loop system,3
+Line 7 Tank Room,Tank 70 Phases,Understand the function of the recirculation loop (Maintain temperature at top and bottom of tank 70 to above 81 degrees),3
+Line 7 Tank Room,Tank 70 Phases,Understand the function of the 'user loop' (WFI distribution supply) for tank 70,3
+Line 7 Tank Room,Tank 70 Phases,Proficient at operating the conductivity unit and opening the sample point for the user loop on tank 70,3
+Line 7 Tank Room,Tank 70 Phases,Understand the WFI Vessel' phase including,3
+Line 7 Tank Room,Tank 71,Understand each of tank 71 operational phases (Rinse sanitisation filling),3
+Line 7 Tank Room,Tank 71,Understand the differences between each sanitisation phase and how to fault find on each phase,3
+Line 7 Tank Room,Tank 71,Able to identify a fault during a phase by using the interlock screen,3
+Line 7 Tank Room,Tank 71,Proficient at replacing a rupture disk without damaging the unit. (Aligning the magnet),3
+Line 7 Tank Room,Tank 72,Understand each of tank 72 operational phases (Rinse sanitisation filling),3
+Line 7 Tank Room,Tank 72,Understand the differences between each sanitisation phase and how to fault find on each phase,3
+Line 7 Tank Room,Tank 72,Able to identify a fault during a phase by using the interlock screen,3
+Line 7 Tank Room,Tank 72,Knowledge of how to top up the Heater jacket on tank 72. Proficient at performing manual operations on the jacket,3
+Line 7 Tank Room,POU Cooler,Understand the function of the process air and its use for micro testing blow down within a phase. (To clear residual solution from the lines/tank to drain),3
+Line 7 Tank Room,POU Cooler,Understand the implications of overpressurising the process air to over 1 bar. (Rupture disks failure on tanks 71/72),3
+Line 7 Tank Room,POU Cooler,Proficient at manually controlling valves and temperature controls dependent on requirements (heating or cooling),3
+Line 7 Tank Room,Transfer skid/Wash Trough,Understand the different phases (Sanitisation WFI flush and drain),3
+Line 7 Tank Room,Transfer skid/Wash Trough,Able to manually perform functions such as drain when required,3
