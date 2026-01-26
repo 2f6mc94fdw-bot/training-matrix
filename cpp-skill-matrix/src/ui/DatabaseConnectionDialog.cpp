@@ -167,6 +167,7 @@ void DatabaseConnectionDialog::setupUI()
 void DatabaseConnectionDialog::loadSavedSettings()
 {
     Config& config = Config::instance();
+    config.load(); // Ensure config is loaded before reading values
 
     // Load last used connection settings using Config's database helpers
     QString lastServer = config.databaseServer();
