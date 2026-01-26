@@ -32,7 +32,11 @@ bool AuthController::login(const QString& username, const QString& password)
     // Create session
     Session* session = Application::instance().session();
     if (session) {
-        session->login(user.id(), user.username(), user.role());
+        session->setUserId(user.id());
+        session->setUsername(user.username());
+        session->setRole(user.role());
+        session->setEngineerId(user.engineerId());
+        session->setLoggedIn(true);
         Logger::instance().info("AuthController", "User logged in: " + username + " (role: " + user.role() + ")");
         return true;
     }
@@ -46,7 +50,7 @@ void AuthController::logout()
     Session* session = Application::instance().session();
     if (session && session->isLoggedIn()) {
         QString username = session->username();
-        session->logout();
+        session->clear();
         Logger::instance().info("AuthController", "User logged out: " + username);
     }
 }
