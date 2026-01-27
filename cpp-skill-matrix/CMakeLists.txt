@@ -41,6 +41,7 @@ set(SOURCES
     # Core
     src/core/Application.cpp
     src/core/Session.cpp
+    src/core/DataCache.cpp
 
     # Models
     src/models/User.cpp

@@ -50,9 +50,6 @@ private:
 
     ProductionRepository repository_;
     QList<ProductionArea> allAreas_;
-
-    // Cached hierarchy data for performance (loaded once)
-    ProductionHierarchy cachedHierarchy_;
 };
 
 #endif // PRODUCTIONAREASWIDGET_H
