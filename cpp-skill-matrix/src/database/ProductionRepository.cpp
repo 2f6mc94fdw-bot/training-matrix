@@ -514,3 +514,130 @@ bool ProductionRepository::removeCompetency(int id)
     Logger::instance().info("ProductionRepository", QString("Competency removed: %1").arg(id));
     return true;
 }
+
+// ============================================================================
+// Optimized Batch Loading
+// ============================================================================
+
+ProductionHierarchy ProductionRepository::loadCompleteHierarchy()
+{
+    ProductionHierarchy result;
+
+    QSqlDatabase& db = DatabaseManager::instance().database();
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("ProductionRepository", lastError_);
+        return result;
+    }
+
+    // Single optimized query with LEFT JOINs to load entire hierarchy
+    // This replaces 60+ separate queries with a single query
+    QSqlQuery query(db);
+    query.prepare(R"(
+        SELECT
+            pa.id as area_id,
+            pa.name as area_name,
+            pa.created_at as area_created_at,
+            pa.updated_at as area_updated_at,
+            m.id as machine_id,
+            m.name as machine_name,
+            m.importance as machine_importance,
+            m.created_at as machine_created_at,
+            m.updated_at as machine_updated_at,
+            c.id as comp_id,
+            c.name as comp_name,
+            c.max_score as comp_max_score,
+            c.safety_impact as comp_safety_impact,
+            c.production_impact as comp_production_impact,
+            c.frequency as comp_frequency,
+            c.complexity as comp_complexity,
+            c.future_value as comp_future_value,
+            c.created_at as comp_created_at,
+            c.updated_at as comp_updated_at
+        FROM production_areas pa
+        LEFT JOIN machines m ON m.production_area_id = pa.id
+        LEFT JOIN competencies c ON c.machine_id = m.id
+        ORDER BY pa.name, m.name, c.name
+    )");
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("ProductionRepository", "loadCompleteHierarchy failed: " + lastError_);
+        return result;
+    }
+
+    // Process results and build hierarchy in memory
+    QHash<int, ProductionArea> areasMap;
+    QHash<int, Machine> machinesMap;
+
+    while (query.next()) {
+        int areaId = query.value("area_id").toInt();
+
+        // Process Production Area
+        if (!areasMap.contains(areaId)) {
+            ProductionArea area;
+            area.setId(areaId);
+            area.setName(query.value("area_name").toString());
+            area.setCreatedAt(query.value("area_created_at").toDateTime());
+            area.setUpdatedAt(query.value("area_updated_at").toDateTime());
+            areasMap[areaId] = area;
+        }
+
+        // Process Machine (if exists in this row)
+        if (!query.value("machine_id").isNull()) {
+            int machineId = query.value("machine_id").toInt();
+
+            if (!machinesMap.contains(machineId)) {
+                Machine machine;
+                machine.setId(machineId);
+                machine.setProductionAreaId(areaId);
+                machine.setName(query.value("machine_name").toString());
+                machine.setImportance(query.value("machine_importance").toInt());
+                machine.setCreatedAt(query.value("machine_created_at").toDateTime());
+                machine.setUpdatedAt(query.value("machine_updated_at").toDateTime());
+                machinesMap[machineId] = machine;
+
+                // Add machine to its area's list
+                if (!result.machinesByArea.contains(areaId)) {
+                    result.machinesByArea[areaId] = QList<Machine>();
+                }
+                result.machinesByArea[areaId].append(machine);
+            }
+
+            // Process Competency (if exists in this row)
+            if (!query.value("comp_id").isNull()) {
+                int compId = query.value("comp_id").toInt();
+
+                Competency competency;
+                competency.setId(compId);
+                competency.setMachineId(machineId);
+                competency.setName(query.value("comp_name").toString());
+                competency.setMaxScore(query.value("comp_max_score").toInt());
+                competency.setSafetyImpact(query.value("comp_safety_impact").toDouble());
+                competency.setProductionImpact(query.value("comp_production_impact").toDouble());
+                competency.setFrequency(query.value("comp_frequency").toDouble());
+                competency.setComplexity(query.value("comp_complexity").toDouble());
+                competency.setFutureValue(query.value("comp_future_value").toDouble());
+                competency.setCreatedAt(query.value("comp_created_at").toDateTime());
+                competency.setUpdatedAt(query.value("comp_updated_at").toDateTime());
+
+                // Add competency to its machine's list
+                if (!result.competenciesByMachine.contains(machineId)) {
+                    result.competenciesByMachine[machineId] = QList<Competency>();
+                }
+                result.competenciesByMachine[machineId].append(competency);
+            }
+        }
+    }
+
+    // Convert areas map to list
+    result.areas = areasMap.values();
+
+    Logger::instance().info("ProductionRepository",
+        QString("Loaded complete hierarchy: %1 areas, %2 machines, %3 competencies in 1 query")
+            .arg(result.areas.size())
+            .arg(result.machinesByArea.size())
+            .arg(result.competenciesByMachine.size()));
+
+    return result;
+}

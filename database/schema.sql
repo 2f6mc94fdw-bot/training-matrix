@@ -203,8 +203,17 @@ GO
 
 -- Create indexes for better performance
 CREATE NONCLUSTERED INDEX [IX_engineers_shift] ON [dbo].[engineers]([shift]) WHERE [shift] IS NOT NULL;
-CREATE NONCLUSTERED INDEX [IX_machines_area] ON [dbo].[machines]([production_area_id]);
-CREATE NONCLUSTERED INDEX [IX_competencies_machine] ON [dbo].[competencies]([machine_id]);
+
+-- Covering indexes for optimized hierarchy loading (replaces basic indexes)
+-- These include all columns needed for JOIN queries to avoid table lookups
+CREATE NONCLUSTERED INDEX [IX_machines_area_covering]
+    ON [dbo].[machines]([production_area_id], [name])
+    INCLUDE ([id], [importance], [created_at], [updated_at]);
+
+CREATE NONCLUSTERED INDEX [IX_competencies_machine_covering]
+    ON [dbo].[competencies]([machine_id], [name])
+    INCLUDE ([id], [max_score], [safety_impact], [production_impact], [frequency], [complexity], [future_value], [created_at], [updated_at]);
+
 CREATE NONCLUSTERED INDEX [IX_assessments_engineer] ON [dbo].[assessments]([engineer_id]);
 CREATE NONCLUSTERED INDEX [IX_core_skills_category] ON [dbo].[core_skills]([category_id]);
 CREATE NONCLUSTERED INDEX [IX_core_skill_assessments_engineer] ON [dbo].[core_skill_assessments]([engineer_id]);

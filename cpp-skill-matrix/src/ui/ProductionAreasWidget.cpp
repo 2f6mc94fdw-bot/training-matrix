@@ -140,17 +140,23 @@ void ProductionAreasWidget::setupUI()
 
 void ProductionAreasWidget::loadProductionAreas()
 {
-    allAreas_ = repository_.findAllAreas();
+    // Load complete hierarchy in a single optimized query (60+ queries → 1 query)
+    cachedHierarchy_ = repository_.loadCompleteHierarchy();
 
     if (!repository_.lastError().isEmpty()) {
-        Logger::instance().error("ProductionAreasWidget", "Failed to load areas: " + repository_.lastError());
+        Logger::instance().error("ProductionAreasWidget", "Failed to load hierarchy: " + repository_.lastError());
         QMessageBox::critical(this, "Error", "Failed to load production areas: " + repository_.lastError());
         return;
     }
 
+    allAreas_ = cachedHierarchy_.areas;
     loadAreaFilter();
 
-    Logger::instance().info("ProductionAreasWidget", QString("Loaded %1 production areas").arg(allAreas_.size()));
+    Logger::instance().info("ProductionAreasWidget",
+        QString("Loaded complete hierarchy: %1 areas, %2 machines, %3 competencies")
+            .arg(cachedHierarchy_.areas.size())
+            .arg(cachedHierarchy_.machinesByArea.size())
+            .arg(cachedHierarchy_.competenciesByMachine.size()));
 }
 
 void ProductionAreasWidget::loadAreaFilter()
@@ -208,8 +214,8 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
     treeWidget_->clear();
 
     if (areaId == -1) {
-        // Show all areas with their machines
-        for (const ProductionArea& area : allAreas_) {
+        // Show all areas with their machines (using cached data)
+        for (const ProductionArea& area : cachedHierarchy_.areas) {
             QTreeWidgetItem* areaItem = new QTreeWidgetItem(treeWidget_);
             areaItem->setText(0, area.name());
             areaItem->setText(1, "Production Area");
@@ -221,64 +227,72 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
             areaFont.setBold(true);
             areaItem->setFont(0, areaFont);
 
-            // Load machines for this area
-            QList<Machine> machines = repository_.findMachinesByArea(area.id());
+            // Get machines for this area from cache
+            if (cachedHierarchy_.machinesByArea.contains(area.id())) {
+                const QList<Machine>& machines = cachedHierarchy_.machinesByArea[area.id()];
+                for (const Machine& machine : machines) {
+                    QTreeWidgetItem* machineItem = new QTreeWidgetItem(areaItem);
+                    machineItem->setText(0, machine.name());
+                    machineItem->setText(1, "Machine");
+                    machineItem->setText(2, QString("Importance: %1").arg(machine.importance()));
+                    machineItem->setText(3, QString::number(machine.id()));
+                    machineItem->setData(0, Qt::UserRole, MachineItem);
+
+                    // Get competencies for this machine from cache
+                    if (cachedHierarchy_.competenciesByMachine.contains(machine.id())) {
+                        const QList<Competency>& competencies = cachedHierarchy_.competenciesByMachine[machine.id()];
+                        for (const Competency& competency : competencies) {
+                            QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
+                            competencyItem->setText(0, competency.name());
+                            competencyItem->setText(1, "Competency");
+                            competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
+                                .arg(competency.maxScore())
+                                .arg(competency.calculatedWeight(), 0, 'f', 2));
+                            competencyItem->setText(3, QString::number(competency.id()));
+                            competencyItem->setData(0, Qt::UserRole, CompetencyItem);
+                        }
+                    }
+
+                    machineItem->setExpanded(true);
+                }
+            }
+
+            areaItem->setExpanded(true);
+        }
+    } else {
+        // Show only machines for selected area (using cached data)
+        if (cachedHierarchy_.machinesByArea.contains(areaId)) {
+            const QList<Machine>& machines = cachedHierarchy_.machinesByArea[areaId];
+
             for (const Machine& machine : machines) {
-                QTreeWidgetItem* machineItem = new QTreeWidgetItem(areaItem);
+                QTreeWidgetItem* machineItem = new QTreeWidgetItem(treeWidget_);
                 machineItem->setText(0, machine.name());
                 machineItem->setText(1, "Machine");
                 machineItem->setText(2, QString("Importance: %1").arg(machine.importance()));
                 machineItem->setText(3, QString::number(machine.id()));
                 machineItem->setData(0, Qt::UserRole, MachineItem);
 
-                // Load competencies for this machine
-                QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
-                for (const Competency& competency : competencies) {
-                    QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
-                    competencyItem->setText(0, competency.name());
-                    competencyItem->setText(1, "Competency");
-                    competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
-                        .arg(competency.maxScore())
-                        .arg(competency.calculatedWeight(), 0, 'f', 2));
-                    competencyItem->setText(3, QString::number(competency.id()));
-                    competencyItem->setData(0, Qt::UserRole, CompetencyItem);
+                QFont machineFont = machineItem->font(0);
+                machineFont.setBold(true);
+                machineItem->setFont(0, machineFont);
+
+                // Get competencies for this machine from cache
+                if (cachedHierarchy_.competenciesByMachine.contains(machine.id())) {
+                    const QList<Competency>& competencies = cachedHierarchy_.competenciesByMachine[machine.id()];
+                    for (const Competency& competency : competencies) {
+                        QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
+                        competencyItem->setText(0, competency.name());
+                        competencyItem->setText(1, "Competency");
+                        competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
+                            .arg(competency.maxScore())
+                            .arg(competency.calculatedWeight(), 0, 'f', 2));
+                        competencyItem->setText(3, QString::number(competency.id()));
+                        competencyItem->setData(0, Qt::UserRole, CompetencyItem);
+                    }
                 }
 
                 machineItem->setExpanded(true);
             }
-
-            areaItem->setExpanded(true);
-        }
-    } else {
-        // Show only machines for selected area
-        QList<Machine> machines = repository_.findMachinesByArea(areaId);
-
-        for (const Machine& machine : machines) {
-            QTreeWidgetItem* machineItem = new QTreeWidgetItem(treeWidget_);
-            machineItem->setText(0, machine.name());
-            machineItem->setText(1, "Machine");
-            machineItem->setText(2, QString("Importance: %1").arg(machine.importance()));
-            machineItem->setText(3, QString::number(machine.id()));
-            machineItem->setData(0, Qt::UserRole, MachineItem);
-
-            QFont machineFont = machineItem->font(0);
-            machineFont.setBold(true);
-            machineItem->setFont(0, machineFont);
-
-            // Load competencies for this machine
-            QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
-            for (const Competency& competency : competencies) {
-                QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
-                competencyItem->setText(0, competency.name());
-                competencyItem->setText(1, "Competency");
-                competencyItem->setText(2, QString("Max Score: %1 | Weight: %2")
-                    .arg(competency.maxScore())
-                    .arg(competency.calculatedWeight(), 0, 'f', 2));
-                competencyItem->setText(3, QString::number(competency.id()));
-                competencyItem->setData(0, Qt::UserRole, CompetencyItem);
-            }
-
-            machineItem->setExpanded(true);
         }
     }
 }

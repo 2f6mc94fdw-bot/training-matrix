@@ -5,6 +5,18 @@
 #include "../models/Machine.h"
 #include "../models/Competency.h"
 #include <QList>
+#include <QHash>
+
+/**
+ * @brief Structure to hold the complete production hierarchy
+ * Loaded in a single optimized query instead of N+1 queries
+ */
+struct ProductionHierarchy
+{
+    QList<ProductionArea> areas;
+    QHash<int, QList<Machine>> machinesByArea;  // Key: area_id
+    QHash<int, QList<Competency>> competenciesByMachine;  // Key: machine_id
+};
 
 class ProductionRepository
 {
@@ -32,6 +44,9 @@ public:
     bool saveCompetency(Competency& competency);
     bool updateCompetency(const Competency& competency);
     bool removeCompetency(int id);
+
+    // Optimized batch loading (performance improvement)
+    ProductionHierarchy loadCompleteHierarchy();
 
     QString lastError() const { return lastError_; }
 
