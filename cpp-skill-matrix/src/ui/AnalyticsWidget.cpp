@@ -1,5 +1,6 @@
 #include "AnalyticsWidget.h"
 #include "../utils/Logger.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -370,22 +371,24 @@ void AnalyticsWidget::loadAnalytics()
 {
     Logger::instance().info("AnalyticsWidget", "Loading analytics data...");
 
-    // Load all data once and cache it (optimized for performance)
+    // Use global cache for instant data access (zero database queries)
+    DataCache& cache = DataCache::instance();
+
+    // Load engineers and assessments from repositories
     cachedEngineers_ = engineerRepo_.findAll();
     cachedAssessments_ = assessmentRepo_.findAll();
-    cachedAreas_ = productionRepo_.findAllAreas();
 
-    // Pre-calculate total competencies to avoid repeated queries
-    cachedTotalCompetencies_ = 0;
-    for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        for (const Machine& machine : machines) {
-            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
-            cachedTotalCompetencies_ += competencies.size();
-        }
-    }
+    // Get production areas from cache (instant)
+    cachedAreas_ = cache.getAreas();
 
-    Logger::instance().info("AnalyticsWidget", "Data loaded. Updating analytics views...");
+    // Get total competencies from cache (instant, pre-calculated)
+    cachedTotalCompetencies_ = cache.getTotalCompetencies();
+
+    Logger::instance().info("AnalyticsWidget",
+        QString("Data loaded from cache: %1 engineers, %2 assessments, %3 competencies")
+            .arg(cachedEngineers_.size())
+            .arg(cachedAssessments_.size())
+            .arg(cachedTotalCompetencies_));
 
     // Update all analytics views
     updateTrendsData();
@@ -1578,14 +1581,16 @@ QMap<QString, double> AnalyticsWidget::calculateEngineerProductionRadarData(cons
         return radarData;
     }
 
-    // Get all competencies and machines
+    // Get all competencies and machines from cache (instant, zero queries)
+    DataCache& cache = DataCache::instance();
     QList<Competency> allCompetencies;
     QList<Machine> allMachines;
+
     for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
         allMachines.append(areaMachines);
         for (const Machine& machine : areaMachines) {
-            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
             allCompetencies.append(machineCompetencies);
         }
     }
