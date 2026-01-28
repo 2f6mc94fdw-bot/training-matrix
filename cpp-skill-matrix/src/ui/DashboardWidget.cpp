@@ -5,6 +5,7 @@
 #include "../utils/IconProvider.h"
 #include "../core/Session.h"
 #include "../core/Application.h"
+#include "../core/DataCache.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -340,17 +341,9 @@ void DashboardWidget::loadStatistics()
     QList<Assessment> assessments = assessmentRepo_.findAll();
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
 
-    // PERFORMANCE FIX: Cache machines and competencies upfront to avoid nested loop queries
-    // Previously: 10 areas × 10 machines = 110 queries. Now: Just count in memory.
-    QList<Machine> allMachines;
-    int totalCompetencies = 0;
-    for (const ProductionArea& area : areas) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
-        allMachines.append(machines);
-        for (const Machine& machine : machines) {
-            totalCompetencies += productionRepo_.findCompetenciesByMachine(machine.id()).size();
-        }
-    }
+    // Use global cache for instant competency count (zero database queries)
+    DataCache& cache = DataCache::instance();
+    int totalCompetencies = cache.getTotalCompetencies();
 
     updateQuickStats(engineers, assessments, totalCompetencies);
     updateKeyInsights(assessments);
