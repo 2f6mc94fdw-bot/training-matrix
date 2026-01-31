@@ -644,6 +644,7 @@ void AnalyticsWidget::updateAutomatedInsights()
 
         item->setText(itemText);
         item->setBackground(QBrush(QColor(backgroundColor)));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
 
         QFont itemFont = item->font();
         itemFont.setPointSize(14);
@@ -656,6 +657,7 @@ void AnalyticsWidget::updateAutomatedInsights()
         QListWidgetItem* item = new QListWidgetItem(insightsList_);
         item->setText("👥  No Insights Available\nCollecting data to generate insights...\nAdd more assessments for automated analysis.");
         item->setBackground(QBrush(QColor("#f1f5f9")));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
         QFont itemFont = item->font();
         itemFont.setPointSize(14);
         item->setFont(itemFont);
@@ -2308,6 +2310,7 @@ void AnalyticsWidget::updateCriticalSkillsData()
 
         item->setText(itemText);
         item->setBackground(QBrush(QColor(backgroundColor)));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
 
         QFont itemFont = item->font();
         itemFont.setPointSize(13);
@@ -2320,6 +2323,7 @@ void AnalyticsWidget::updateCriticalSkillsData()
         QListWidgetItem* item = new QListWidgetItem(trainingPriorityList_);
         item->setText("✅ No urgent training priorities\nAll competencies are well-staffed!");
         item->setBackground(QBrush(QColor("#d1fae5")));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
         QFont itemFont = item->font();
         itemFont.setPointSize(14);
         item->setFont(itemFont);
@@ -2448,6 +2452,7 @@ void AnalyticsWidget::updateMachineReadinessData()
 
         item->setText(itemText);
         item->setBackground(QBrush(QColor(backgroundColor)));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
 
         QFont itemFont = item->font();
         itemFont.setPointSize(13);
@@ -2466,6 +2471,7 @@ void AnalyticsWidget::updateMachineReadinessData()
                 .arg(readiness.expertCount)
                 .arg(readiness.expertCount == 1 ? "" : "s"));
             item->setBackground(QBrush(QColor("#fee2e2")));
+            item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
             QFont itemFont = item->font();
             itemFont.setPointSize(13);
             item->setFont(itemFont);
@@ -2480,6 +2486,7 @@ void AnalyticsWidget::updateMachineReadinessData()
                 .arg(QString::number(readiness.coveragePercent, 'f', 0))
                 .arg(qMax(1, int((readiness.totalEngineers * 0.7) - readiness.proficientCount))));
             item->setBackground(QBrush(QColor("#fee2e2")));
+            item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
             QFont itemFont = item->font();
             itemFont.setPointSize(13);
             item->setFont(itemFont);
@@ -2527,6 +2534,7 @@ void AnalyticsWidget::updateMachineReadinessData()
         shiftText += "    Risk: Production disruption if absences occur";
         item->setText(shiftText);
         item->setBackground(QBrush(QColor("#fef3c7")));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
         QFont itemFont = item->font();
         itemFont.setPointSize(13);
         item->setFont(itemFont);
@@ -2537,6 +2545,7 @@ void AnalyticsWidget::updateMachineReadinessData()
         QListWidgetItem* item = new QListWidgetItem(vulnerabilityList_);
         item->setText("✅ No Critical Vulnerabilities\nAll machines have adequate coverage!");
         item->setBackground(QBrush(QColor("#d1fae5")));
+        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
         QFont itemFont = item->font();
         itemFont.setPointSize(14);
         item->setFont(itemFont);
