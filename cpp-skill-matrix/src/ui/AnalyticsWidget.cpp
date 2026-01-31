@@ -17,6 +17,7 @@
 #include <QtCharts/QDateTimeAxis>
 #include <QtCharts/QPolarChart>
 #include <QtCharts/QCategoryAxis>
+#include <QtCharts/QScatterSeries>
 #include <QLinearGradient>
 #include <QDateTime>
 #include <algorithm>
@@ -29,6 +30,8 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , insightsButton_(nullptr)
     , engineerRadarButton_(nullptr)
     , shiftOverviewButton_(nullptr)
+    , criticalSkillsButton_(nullptr)
+    , machineReadinessButton_(nullptr)
     , currentCompletionLabel_(nullptr)
     , predictedCompletionLabel_(nullptr)
     , changeLabel_(nullptr)
@@ -36,6 +39,10 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftCardsContainer_(nullptr)
     , shiftChartView_(nullptr)
     , insightsList_(nullptr)
+    , riskMatrixChartView_(nullptr)
+    , trainingPriorityList_(nullptr)
+    , machineReadinessList_(nullptr)
+    , vulnerabilityList_(nullptr)
     , engineerSelector_(nullptr)
     , engineerProductionRadarView_(nullptr)
     , engineerCoreSkillsRadarView_(nullptr)
@@ -164,12 +171,16 @@ void AnalyticsWidget::setupUI()
     trendsButton_ = createTabButton("Trends");
     shiftsButton_ = createTabButton("Shift Comparison");
     insightsButton_ = createTabButton("Insights");
+    criticalSkillsButton_ = createTabButton("Critical Skills");
+    machineReadinessButton_ = createTabButton("Machine Readiness");
     engineerRadarButton_ = createTabButton("Engineer Radar");
     shiftOverviewButton_ = createTabButton("Shift Overview");
 
     tabBarLayout->addWidget(trendsButton_);
     tabBarLayout->addWidget(shiftsButton_);
     tabBarLayout->addWidget(insightsButton_);
+    tabBarLayout->addWidget(criticalSkillsButton_);
+    tabBarLayout->addWidget(machineReadinessButton_);
     tabBarLayout->addWidget(engineerRadarButton_);
     tabBarLayout->addWidget(shiftOverviewButton_);
     tabBarLayout->addStretch();
@@ -189,26 +200,34 @@ void AnalyticsWidget::setupUI()
     QWidget* trendsWidget = new QWidget();
     QWidget* shiftsWidget = new QWidget();
     QWidget* insightsWidget = new QWidget();
+    QWidget* criticalSkillsWidget = new QWidget();
+    QWidget* machineReadinessWidget = new QWidget();
     QWidget* engineerRadarWidget = new QWidget();
     QWidget* shiftOverviewWidget = new QWidget();
 
     setupTrendsTab(trendsWidget);
     setupShiftComparisonTab(shiftsWidget);
     setupAutomatedInsightsTab(insightsWidget);
+    setupCriticalSkillsTab(criticalSkillsWidget);
+    setupMachineReadinessTab(machineReadinessWidget);
     setupEngineerRadarTab(engineerRadarWidget);
     setupShiftOverviewTab(shiftOverviewWidget);
 
-    contentStack_->addWidget(trendsWidget);         // Index 0
-    contentStack_->addWidget(shiftsWidget);         // Index 1
-    contentStack_->addWidget(insightsWidget);       // Index 2
-    contentStack_->addWidget(engineerRadarWidget);  // Index 3
-    contentStack_->addWidget(shiftOverviewWidget);  // Index 4
+    contentStack_->addWidget(trendsWidget);              // Index 0
+    contentStack_->addWidget(shiftsWidget);              // Index 1
+    contentStack_->addWidget(insightsWidget);            // Index 2
+    contentStack_->addWidget(criticalSkillsWidget);      // Index 3
+    contentStack_->addWidget(machineReadinessWidget);    // Index 4
+    contentStack_->addWidget(engineerRadarWidget);       // Index 5
+    contentStack_->addWidget(shiftOverviewWidget);       // Index 6
 
     connect(trendsButton_, &QPushButton::clicked, [this]() { onTabChanged(0); });
     connect(shiftsButton_, &QPushButton::clicked, [this]() { onTabChanged(1); });
     connect(insightsButton_, &QPushButton::clicked, [this]() { onTabChanged(2); });
-    connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
-    connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
+    connect(criticalSkillsButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
+    connect(machineReadinessButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
+    connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(5); });
+    connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(6); });
 
     mainLayout->addWidget(contentStack_, 1);
 
@@ -740,9 +759,294 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
 
     PredictionData prediction = calculatePrediction();
     QList<ShiftStats> shifts = calculateShiftComparison();
+    QList<MachineReadiness> machineReadiness = calculateMachineReadiness();
+    QList<CompetencyRiskPoint> riskPoints = calculateCompetencyRisks();
 
-    // Trend insight
-    if (prediction.trend == "up") {
+    // 1. Critical Gap Alerts - from machine readiness
+    for (const MachineReadiness& readiness : machineReadiness) {
+        if (readiness.coveragePercent < 30) {
+            Insight insight;
+            insight.type = "alert";
+            insight.icon = "🚨";
+            insight.title = "CRITICAL GAP";
+            insight.message = QString("%1 has only %2% coverage. URGENT: Train %3 engineers immediately to reach safe operating levels.")
+                .arg(readiness.machineName)
+                .arg(QString::number(readiness.coveragePercent, 'f', 0))
+                .arg(qMax(1, int((readiness.totalEngineers * 0.7) - readiness.proficientCount)));
+            insights.append(insight);
+        }
+    }
+
+    // 2. Single Point of Failure
+    for (const MachineReadiness& readiness : machineReadiness) {
+        if (readiness.expertCount <= 1 && readiness.importance >= 2) {
+            Insight insight;
+            insight.type = "alert";
+            insight.icon = "⚠️";
+            insight.title = "SINGLE POINT OF FAILURE";
+            insight.message = QString("Only %1 expert%2 can operate %3. Recommend: Cross-train 2 backup staff immediately to reduce risk.")
+                .arg(readiness.expertCount)
+                .arg(readiness.expertCount == 1 ? "" : "s")
+                .arg(readiness.machineName);
+            insights.append(insight);
+        }
+    }
+
+    // 3. Training Success - identify improvements > 25%
+    // (This would require historical data - simplified for now)
+    if (prediction.trend == "up" && prediction.change > 25.0) {
+        Insight insight;
+        insight.type = "positive";
+        insight.icon = "📈";
+        insight.title = "TRAINING SUCCESS";
+        insight.message = QString("Team competency improved %1% this period. Keep momentum: Continue current training program.")
+            .arg(QString::number(prediction.change, 'f', 0));
+        insights.append(insight);
+    }
+
+    // 4. Stagnation Alert - engineers with no progress
+    // Check for engineers with all assessments at score 0 or 1
+    QMap<QString, bool> engineerHasProgress;
+    for (const Engineer& engineer : cachedEngineers_) {
+        bool hasGoodScore = false;
+        for (const Assessment& assessment : cachedAssessments_) {
+            if (assessment.engineerId() == engineer.id() && assessment.score() >= 2) {
+                hasGoodScore = true;
+                break;
+            }
+        }
+        if (!hasGoodScore && !cachedAssessments_.isEmpty()) {
+            engineerHasProgress[engineer.name()] = false;
+        }
+    }
+
+    if (engineerHasProgress.size() >= 3) {
+        Insight insight;
+        insight.type = "warning";
+        insight.icon = "⏸️";
+        insight.title = "LEARNING PLATEAU";
+        insight.message = QString("%1 engineers show no proficient competencies. Action: Review training approach and provide additional support.")
+            .arg(engineerHasProgress.size());
+        insights.append(insight);
+    }
+
+    // 5. Cross-Training Opportunity - shifts with complementary strengths
+    if (shifts.size() >= 2) {
+        // Find shifts with significant performance gap
+        for (int i = 0; i < shifts.size() - 1; i++) {
+            for (int j = i + 1; j < shifts.size(); j++) {
+                double gap = qAbs(shifts[i].averageCompletion - shifts[j].averageCompletion);
+                if (gap > 15.0) {
+                    Insight insight;
+                    insight.type = "positive";
+                    insight.icon = "🔄";
+                    insight.title = "CROSS-TRAINING OPPORTUNITY";
+                    insight.message = QString("%1 (%2% proficiency) and %3 (%4% proficiency) have different strengths. Swap 2 engineers for skill diversity.")
+                        .arg(shifts[i].shiftName)
+                        .arg(QString::number(shifts[i].averageCompletion, 'f', 0))
+                        .arg(shifts[j].shiftName)
+                        .arg(QString::number(shifts[j].averageCompletion, 'f', 0));
+                    insights.append(insight);
+                    break;  // Only suggest once
+                }
+            }
+        }
+    }
+
+    // 6. Promotion Ready - engineers with > 90% proficiency
+    struct EngineerScore {
+        QString name;
+        double percentage;
+    };
+    QList<EngineerScore> engineerScores;
+
+    for (const Engineer& engineer : cachedEngineers_) {
+        int totalScore = 0;
+        int maxScore = 0;
+
+        for (const Assessment& assessment : cachedAssessments_) {
+            if (assessment.engineerId() == engineer.id()) {
+                totalScore += assessment.score();
+                maxScore += 3;
+            }
+        }
+
+        if (maxScore > 0) {
+            EngineerScore score;
+            score.name = engineer.name();
+            score.percentage = (totalScore * 100.0) / maxScore;
+            engineerScores.append(score);
+        }
+    }
+
+    std::sort(engineerScores.begin(), engineerScores.end(),
+              [](const EngineerScore& a, const EngineerScore& b) {
+                  return a.percentage > b.percentage;
+              });
+
+    for (const EngineerScore& score : engineerScores) {
+        if (score.percentage >= 90.0) {
+            Insight insight;
+            insight.type = "positive";
+            insight.icon = "👤";
+            insight.title = "PROMOTION READY";
+            insight.message = QString("%1: %2% proficiency achieved. Consider: Lead operator role or mentorship responsibilities.")
+                .arg(score.name)
+                .arg(QString::number(score.percentage, 'f', 0));
+            insights.append(insight);
+            break;  // Only show top candidate
+        }
+    }
+
+    // 7. Unbalanced Skills - areas with high variance
+    DataCache& cache = DataCache::instance();
+    QMap<QString, double> areaProficiency;
+    QMap<QString, int> areaCount;
+
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        for (const Machine& machine : areaMachines) {
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+            for (const Competency& comp : machineCompetencies) {
+                int totalScore = 0;
+                int count = 0;
+                for (const Assessment& assessment : cachedAssessments_) {
+                    if (assessment.competencyId() == comp.id()) {
+                        totalScore += assessment.score();
+                        count++;
+                    }
+                }
+                if (count > 0) {
+                    double proficiency = (double(totalScore) / count / 3.0) * 100.0;
+                    areaProficiency[area.name()] += proficiency;
+                    areaCount[area.name()]++;
+                }
+            }
+        }
+    }
+
+    // Find areas with significant imbalance
+    QList<QPair<QString, double>> areaAverages;
+    for (auto it = areaProficiency.begin(); it != areaProficiency.end(); ++it) {
+        if (areaCount[it.key()] > 0) {
+            areaAverages.append(qMakePair(it.key(), it.value() / areaCount[it.key()]));
+        }
+    }
+
+    if (areaAverages.size() >= 2) {
+        std::sort(areaAverages.begin(), areaAverages.end(),
+                  [](const QPair<QString, double>& a, const QPair<QString, double>& b) {
+                      return a.second > b.second;
+                  });
+
+        double gap = areaAverages.first().second - areaAverages.last().second;
+        if (gap > 30.0) {
+            Insight insight;
+            insight.type = "warning";
+            insight.icon = "⚖️";
+            insight.title = "UNBALANCED SKILLS";
+            insight.message = QString("%1 area: %2% proficiency vs %3 area: %4% proficiency. Focus: Balance training resources.")
+                .arg(areaAverages.first().first)
+                .arg(QString::number(areaAverages.first().second, 'f', 0))
+                .arg(areaAverages.last().first)
+                .arg(QString::number(areaAverages.last().second, 'f', 0));
+            insights.append(insight);
+        }
+    }
+
+    // 8. Resource Allocation - calculate training needs per area
+    QMap<QString, int> areaTrainingNeeds;
+    for (const CompetencyRiskPoint& point : riskPoints) {
+        if (point.riskLevel == "critical") {
+            // Find which area this competency belongs to
+            for (const ProductionArea& area : cachedAreas_) {
+                QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+                for (const Machine& machine : areaMachines) {
+                    QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+                    for (const Competency& comp : machineCompetencies) {
+                        if (comp.id() == point.competencyId) {
+                            areaTrainingNeeds[area.name()]++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (!areaTrainingNeeds.isEmpty()) {
+        // Find area with most training needs
+        QString maxArea;
+        int maxNeeds = 0;
+        for (auto it = areaTrainingNeeds.begin(); it != areaTrainingNeeds.end(); ++it) {
+            if (it.value() > maxNeeds) {
+                maxNeeds = it.value();
+                maxArea = it.key();
+            }
+        }
+
+        if (maxNeeds >= 3) {
+            Insight insight;
+            insight.type = "warning";
+            insight.icon = "💰";
+            insight.title = "RESOURCE ALLOCATION";
+            insight.message = QString("%1 area needs %2x more training hours than other areas. Budget: Allocate additional training resources.")
+                .arg(maxArea)
+                .arg(maxNeeds);
+            insights.append(insight);
+        }
+    }
+
+    // 9. High Impact Training - top ROI opportunities
+    QList<TrainingRecommendation> recommendations = calculateTrainingROI();
+    if (!recommendations.isEmpty() && recommendations.first().priority == "urgent") {
+        Insight insight;
+        insight.type = "alert";
+        insight.icon = "🎯";
+        insight.title = "HIGH IMPACT OPPORTUNITY";
+        insight.message = QString("Training %1 engineers in '%2' would improve coverage by 25%% (Impact: %3/10)")
+            .arg(recommendations.first().engineersNeed)
+            .arg(recommendations.first().competencyName)
+            .arg(QString::number(recommendations.first().impactScore, 'f', 1));
+        insights.append(insight);
+    }
+
+    // 10. Shift Vulnerability - shifts with most critical gaps
+    QMap<QString, int> shiftCriticalMachines;
+    for (const MachineReadiness& readiness : machineReadiness) {
+        if (readiness.coveragePercent < 50) {
+            for (const Engineer& engineer : cachedEngineers_) {
+                QString shift = engineer.shift();
+                if (!shift.isEmpty()) {
+                    shiftCriticalMachines[shift]++;
+                }
+            }
+        }
+    }
+
+    if (!shiftCriticalMachines.isEmpty()) {
+        QString maxShift;
+        int maxCount = 0;
+        for (auto it = shiftCriticalMachines.begin(); it != shiftCriticalMachines.end(); ++it) {
+            if (it.value() > maxCount) {
+                maxCount = it.value();
+                maxShift = it.key();
+            }
+        }
+
+        if (maxCount >= 3) {
+            Insight insight;
+            insight.type = "alert";
+            insight.icon = "📊";
+            insight.title = "SHIFT VULNERABILITY";
+            insight.message = QString("%1: %2 machines under 50%% coverage. Risk: Production disruption if absences occur.")
+                .arg(maxShift)
+                .arg(maxCount);
+            insights.append(insight);
+        }
+    }
+
+    // Existing insights (trend and top performer) - keep for continuity
+    if (prediction.trend == "up" && prediction.change <= 25.0) {
         Insight insight;
         insight.type = "positive";
         insight.icon = "📈";
@@ -797,50 +1101,6 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
         }
     }
 
-    // Top performer recognition - use cached data
-    if (!cachedEngineers_.isEmpty()) {
-        struct EngineerScore {
-            QString name;
-            double percentage;
-        };
-        QList<EngineerScore> engineerScores;
-
-        for (const Engineer& engineer : cachedEngineers_) {
-            int totalScore = 0;
-            int maxScore = 0;
-
-            for (const Assessment& assessment : cachedAssessments_) {
-                if (assessment.engineerId() == engineer.id()) {
-                    totalScore += assessment.score();
-                    maxScore += 3;
-                }
-            }
-
-            if (maxScore > 0) {
-                EngineerScore score;
-                score.name = engineer.name();
-                score.percentage = (totalScore * 100.0) / maxScore;
-                engineerScores.append(score);
-            }
-        }
-
-        std::sort(engineerScores.begin(), engineerScores.end(),
-                  [](const EngineerScore& a, const EngineerScore& b) {
-                      return a.percentage > b.percentage;
-                  });
-
-        if (!engineerScores.isEmpty() && engineerScores[0].percentage >= 85.0) {
-            Insight insight;
-            insight.type = "positive";
-            insight.icon = "🏆";
-            insight.title = "Top Performer Recognition";
-            insight.message = QString("%1 leads the team with %2% competency mastery.")
-                .arg(engineerScores[0].name)
-                .arg(QString::number(engineerScores[0].percentage, 'f', 0));
-            insights.append(insight);
-        }
-    }
-
     return insights;
 }
 
@@ -878,13 +1138,19 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
     shiftsButton_->setStyleSheet(tabIndex == 1 ? activeStyle : inactiveStyle);
     insightsButton_->setStyleSheet(tabIndex == 2 ? activeStyle : inactiveStyle);
-    engineerRadarButton_->setStyleSheet(tabIndex == 3 ? activeStyle : inactiveStyle);
-    shiftOverviewButton_->setStyleSheet(tabIndex == 4 ? activeStyle : inactiveStyle);
+    criticalSkillsButton_->setStyleSheet(tabIndex == 3 ? activeStyle : inactiveStyle);
+    machineReadinessButton_->setStyleSheet(tabIndex == 4 ? activeStyle : inactiveStyle);
+    engineerRadarButton_->setStyleSheet(tabIndex == 5 ? activeStyle : inactiveStyle);
+    shiftOverviewButton_->setStyleSheet(tabIndex == 6 ? activeStyle : inactiveStyle);
 
     // Update data for newly selected tab
     if (tabIndex == 3) {
-        updateEngineerRadarData();
+        updateCriticalSkillsData();
     } else if (tabIndex == 4) {
+        updateMachineReadinessData();
+    } else if (tabIndex == 5) {
+        updateEngineerRadarData();
+    } else if (tabIndex == 6) {
         updateShiftOverviewData();
     }
 }
@@ -1872,4 +2138,602 @@ void AnalyticsWidget::onShiftOverviewZoomOut()
     }
 
     Logger::instance().info("AnalyticsWidget", QString("Shift overview chart height: %1").arg(shiftOverviewChartHeight_));
+}
+
+// ============================================================================
+// CRITICAL SKILLS DASHBOARD TAB
+// ============================================================================
+
+void AnalyticsWidget::setupCriticalSkillsTab(QWidget* criticalSkillsWidget)
+{
+    QVBoxLayout* layout = new QVBoxLayout(criticalSkillsWidget);
+    layout->setSpacing(16);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    // Risk Matrix Scatter Plot
+    QGroupBox* riskMatrixGroup = new QGroupBox("Competency Risk Matrix", this);
+    riskMatrixGroup->setStyleSheet(
+        "QGroupBox {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "    padding: 20px;"
+        "    font-size: 16pt;"
+        "    font-weight: bold;"
+        "}"
+    );
+
+    QVBoxLayout* riskMatrixLayout = new QVBoxLayout(riskMatrixGroup);
+    riskMatrixChartView_ = new QChartView(this);
+    riskMatrixChartView_->setRenderHint(QPainter::Antialiasing);
+    riskMatrixChartView_->setMinimumHeight(400);
+    riskMatrixLayout->addWidget(riskMatrixChartView_);
+
+    layout->addWidget(riskMatrixGroup);
+
+    // Training Priority List
+    QGroupBox* priorityGroup = new QGroupBox("Top Training Priorities (Ranked by ROI)", this);
+    priorityGroup->setStyleSheet(
+        "QGroupBox {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "    padding: 20px;"
+        "    font-size: 16pt;"
+        "    font-weight: bold;"
+        "}"
+    );
+
+    QVBoxLayout* priorityLayout = new QVBoxLayout(priorityGroup);
+    trainingPriorityList_ = new QListWidget(this);
+    trainingPriorityList_->setSpacing(12);
+    trainingPriorityList_->setStyleSheet(
+        "QListWidget {"
+        "    border: none;"
+        "    background-color: transparent;"
+        "}"
+        "QListWidget::item {"
+        "    border-radius: 8px;"
+        "    padding: 16px;"
+        "    margin-bottom: 8px;"
+        "}"
+    );
+    priorityLayout->addWidget(trainingPriorityList_);
+
+    layout->addWidget(priorityGroup);
+}
+
+void AnalyticsWidget::updateCriticalSkillsData()
+{
+    // Calculate risk points for all competencies
+    QList<CompetencyRiskPoint> riskPoints = calculateCompetencyRisks();
+
+    // Create scatter plot for risk matrix
+    QChart* chart = new QChart();
+    chart->setTitle("");
+    chart->setAnimationOptions(QChart::SeriesAnimations);
+
+    // Create series for each quadrant
+    QScatterSeries* criticalSeries = new QScatterSeries();
+    criticalSeries->setName("Critical (Train Now)");
+    criticalSeries->setColor(QColor("#ff6b6b"));  // Red
+    criticalSeries->setMarkerSize(12);
+
+    QScatterSeries* maintainSeries = new QScatterSeries();
+    maintainSeries->setName("Maintain");
+    maintainSeries->setColor(QColor("#4ade80"));  // Green
+    maintainSeries->setMarkerSize(12);
+
+    QScatterSeries* deferSeries = new QScatterSeries();
+    deferSeries->setName("Defer");
+    deferSeries->setColor(QColor("#94a3b8"));  // Gray
+    deferSeries->setMarkerSize(12);
+
+    QScatterSeries* excessSeries = new QScatterSeries();
+    excessSeries->setName("Excess Capacity");
+    excessSeries->setColor(QColor("#60a5fa"));  // Blue
+    excessSeries->setMarkerSize(12);
+
+    // Add points to appropriate series
+    for (const CompetencyRiskPoint& point : riskPoints) {
+        if (point.riskLevel == "critical") {
+            criticalSeries->append(point.proficiency, point.importance);
+        } else if (point.riskLevel == "maintain") {
+            maintainSeries->append(point.proficiency, point.importance);
+        } else if (point.riskLevel == "defer") {
+            deferSeries->append(point.proficiency, point.importance);
+        } else if (point.riskLevel == "excess") {
+            excessSeries->append(point.proficiency, point.importance);
+        }
+    }
+
+    chart->addSeries(criticalSeries);
+    chart->addSeries(maintainSeries);
+    chart->addSeries(deferSeries);
+    chart->addSeries(excessSeries);
+
+    // X-axis: Proficiency (0-100%)
+    QValueAxis* axisX = new QValueAxis();
+    axisX->setTitleText("Team Proficiency %");
+    axisX->setRange(0, 100);
+    axisX->setTickCount(11);
+    chart->addAxis(axisX, Qt::AlignBottom);
+    criticalSeries->attachAxis(axisX);
+    maintainSeries->attachAxis(axisX);
+    deferSeries->attachAxis(axisX);
+    excessSeries->attachAxis(axisX);
+
+    // Y-axis: Importance (0-5.0)
+    QValueAxis* axisY = new QValueAxis();
+    axisY->setTitleText("Business Importance");
+    axisY->setRange(0, 5);
+    axisY->setTickCount(6);
+    chart->addAxis(axisY, Qt::AlignLeft);
+    criticalSeries->attachAxis(axisY);
+    maintainSeries->attachAxis(axisY);
+    deferSeries->attachAxis(axisY);
+    excessSeries->attachAxis(axisY);
+
+    chart->legend()->setVisible(true);
+    chart->legend()->setAlignment(Qt::AlignBottom);
+
+    riskMatrixChartView_->setChart(chart);
+
+    // Update training priority list
+    trainingPriorityList_->clear();
+    QList<TrainingRecommendation> recommendations = calculateTrainingROI();
+
+    for (const TrainingRecommendation& rec : recommendations) {
+        QListWidgetItem* item = new QListWidgetItem(trainingPriorityList_);
+
+        QString backgroundColor, icon;
+        if (rec.priority == "urgent") {
+            backgroundColor = "#fee2e2";  // Light red
+            icon = "⚠️";
+        } else if (rec.priority == "high") {
+            backgroundColor = "#fef3c7";  // Light yellow
+            icon = "🎯";
+        } else {
+            backgroundColor = "#e0f2fe";  // Light blue
+            icon = "💡";
+        }
+
+        QString itemText = QString("%1 %2: %3\n    Coverage: %4 need training | Impact: %5/10\n    %6")
+            .arg(icon)
+            .arg(rec.priority.toUpper())
+            .arg(rec.competencyName)
+            .arg(rec.engineersNeed)
+            .arg(QString::number(rec.impactScore, 'f', 1))
+            .arg(rec.reason);
+
+        item->setText(itemText);
+        item->setBackground(QBrush(QColor(backgroundColor)));
+
+        QFont itemFont = item->font();
+        itemFont.setPointSize(13);
+        item->setFont(itemFont);
+
+        trainingPriorityList_->addItem(item);
+    }
+
+    if (recommendations.isEmpty()) {
+        QListWidgetItem* item = new QListWidgetItem(trainingPriorityList_);
+        item->setText("✅ No urgent training priorities\nAll competencies are well-staffed!");
+        item->setBackground(QBrush(QColor("#d1fae5")));
+        QFont itemFont = item->font();
+        itemFont.setPointSize(14);
+        item->setFont(itemFont);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Updated Critical Skills data: %1 risk points, %2 recommendations").arg(riskPoints.size()).arg(recommendations.size()));
+}
+
+// ============================================================================
+// MACHINE READINESS ANALYSIS TAB
+// ============================================================================
+
+void AnalyticsWidget::setupMachineReadinessTab(QWidget* machineReadinessWidget)
+{
+    QVBoxLayout* layout = new QVBoxLayout(machineReadinessWidget);
+    layout->setSpacing(16);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    // Machine Coverage Status
+    QGroupBox* readinessGroup = new QGroupBox("Machine Coverage Status", this);
+    readinessGroup->setStyleSheet(
+        "QGroupBox {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "    padding: 20px;"
+        "    font-size: 16pt;"
+        "    font-weight: bold;"
+        "}"
+    );
+
+    QVBoxLayout* readinessLayout = new QVBoxLayout(readinessGroup);
+    machineReadinessList_ = new QListWidget(this);
+    machineReadinessList_->setSpacing(12);
+    machineReadinessList_->setStyleSheet(
+        "QListWidget {"
+        "    border: none;"
+        "    background-color: transparent;"
+        "}"
+        "QListWidget::item {"
+        "    border-radius: 8px;"
+        "    padding: 16px;"
+        "    margin-bottom: 8px;"
+        "}"
+    );
+    readinessLayout->addWidget(machineReadinessList_);
+
+    layout->addWidget(readinessGroup);
+
+    // Vulnerability Alerts
+    QGroupBox* vulnerabilityGroup = new QGroupBox("Vulnerability Alerts", this);
+    vulnerabilityGroup->setStyleSheet(
+        "QGroupBox {"
+        "    background-color: white;"
+        "    border: 2px solid #e2e8f0;"
+        "    border-radius: 8px;"
+        "    padding: 20px;"
+        "    font-size: 16pt;"
+        "    font-weight: bold;"
+        "}"
+    );
+
+    QVBoxLayout* vulnerabilityLayout = new QVBoxLayout(vulnerabilityGroup);
+    vulnerabilityList_ = new QListWidget(this);
+    vulnerabilityList_->setSpacing(12);
+    vulnerabilityList_->setStyleSheet(
+        "QListWidget {"
+        "    border: none;"
+        "    background-color: transparent;"
+        "}"
+        "QListWidget::item {"
+        "    border-radius: 8px;"
+        "    padding: 16px;"
+        "    margin-bottom: 8px;"
+        "}"
+    );
+    vulnerabilityLayout->addWidget(vulnerabilityList_);
+
+    layout->addWidget(vulnerabilityGroup);
+}
+
+void AnalyticsWidget::updateMachineReadinessData()
+{
+    machineReadinessList_->clear();
+    vulnerabilityList_->clear();
+
+    QList<MachineReadiness> readinessList = calculateMachineReadiness();
+
+    // Sort by coverage percentage (ascending, worst first)
+    std::sort(readinessList.begin(), readinessList.end(),
+              [](const MachineReadiness& a, const MachineReadiness& b) {
+                  return a.coveragePercent < b.coveragePercent;
+              });
+
+    // Display machine readiness
+    for (const MachineReadiness& readiness : readinessList) {
+        QListWidgetItem* item = new QListWidgetItem(machineReadinessList_);
+
+        QString backgroundColor, icon, riskText;
+        if (readiness.coveragePercent < 30) {
+            backgroundColor = "#fee2e2";  // Light red
+            icon = "⚠️";
+            riskText = "CRITICAL";
+        } else if (readiness.coveragePercent < 50) {
+            backgroundColor = "#fef3c7";  // Light yellow
+            icon = "⚠️";
+            riskText = "MEDIUM";
+        } else if (readiness.coveragePercent < 70) {
+            backgroundColor = "#e0f2fe";  // Light blue
+            icon = "ℹ️";
+            riskText = "LOW";
+        } else {
+            backgroundColor = "#d1fae5";  // Light green
+            icon = "✅";
+            riskText = "LOW";
+        }
+
+        QString itemText = QString("%1 %2\n    Coverage: %3% (%4/%5 proficient)\n    Experts: %6 | Risk: %7")
+            .arg(icon)
+            .arg(readiness.machineName)
+            .arg(QString::number(readiness.coveragePercent, 'f', 0))
+            .arg(readiness.proficientCount)
+            .arg(readiness.totalEngineers)
+            .arg(readiness.expertCount)
+            .arg(riskText);
+
+        item->setText(itemText);
+        item->setBackground(QBrush(QColor(backgroundColor)));
+
+        QFont itemFont = item->font();
+        itemFont.setPointSize(13);
+        item->setFont(itemFont);
+
+        machineReadinessList_->addItem(item);
+    }
+
+    // Generate vulnerability alerts
+    for (const MachineReadiness& readiness : readinessList) {
+        // Single point of failure (only 1 expert)
+        if (readiness.expertCount <= 1 && readiness.importance >= 2) {
+            QListWidgetItem* item = new QListWidgetItem(vulnerabilityList_);
+            item->setText(QString("⚠️ SINGLE POINT OF FAILURE\n    %1: Only %2 expert%3\n    Action: Cross-train 2 backup engineers immediately")
+                .arg(readiness.machineName)
+                .arg(readiness.expertCount)
+                .arg(readiness.expertCount == 1 ? "" : "s"));
+            item->setBackground(QBrush(QColor("#fee2e2")));
+            QFont itemFont = item->font();
+            itemFont.setPointSize(13);
+            item->setFont(itemFont);
+            vulnerabilityList_->addItem(item);
+        }
+
+        // Critical gap (< 30% coverage)
+        if (readiness.coveragePercent < 30) {
+            QListWidgetItem* item = new QListWidgetItem(vulnerabilityList_);
+            item->setText(QString("🚨 CRITICAL GAP\n    %1: %2% coverage\n    Action: URGENT - Train %3 engineers to reach 70% coverage")
+                .arg(readiness.machineName)
+                .arg(QString::number(readiness.coveragePercent, 'f', 0))
+                .arg(qMax(1, int((readiness.totalEngineers * 0.7) - readiness.proficientCount))));
+            item->setBackground(QBrush(QColor("#fee2e2")));
+            QFont itemFont = item->font();
+            itemFont.setPointSize(13);
+            item->setFont(itemFont);
+            vulnerabilityList_->addItem(item);
+        }
+    }
+
+    // Shift vulnerability analysis
+    QMap<QString, int> shiftVulnerabilities;
+    for (const MachineReadiness& readiness : readinessList) {
+        if (readiness.coveragePercent < 50) {
+            // Check which shifts have low coverage for this machine
+            for (const Engineer& engineer : cachedEngineers_) {
+                QString shift = engineer.shift();
+                if (shift.isEmpty()) continue;
+
+                // Count proficient engineers in this shift for this machine
+                int shiftProficient = 0;
+                for (const Assessment& assessment : cachedAssessments_) {
+                    if (assessment.engineerId() == engineer.id() && assessment.score() >= 2) {
+                        // Check if this competency belongs to this machine
+                        DataCache& cache = DataCache::instance();
+                        Competency comp = cache.getCompetencyById(assessment.competencyId());
+                        if (comp.machineId() == readiness.machineId) {
+                            shiftProficient++;
+                            break;
+                        }
+                    }
+                }
+
+                if (shiftProficient == 0) {
+                    shiftVulnerabilities[shift]++;
+                }
+            }
+        }
+    }
+
+    // Display shift vulnerability summary
+    if (!shiftVulnerabilities.isEmpty()) {
+        QListWidgetItem* item = new QListWidgetItem(vulnerabilityList_);
+        QString shiftText = "📊 SHIFT VULNERABILITY\n";
+        for (auto it = shiftVulnerabilities.begin(); it != shiftVulnerabilities.end(); ++it) {
+            shiftText += QString("    %1: %2 vulnerable machines\n").arg(it.key()).arg(it.value());
+        }
+        shiftText += "    Risk: Production disruption if absences occur";
+        item->setText(shiftText);
+        item->setBackground(QBrush(QColor("#fef3c7")));
+        QFont itemFont = item->font();
+        itemFont.setPointSize(13);
+        item->setFont(itemFont);
+        vulnerabilityList_->addItem(item);
+    }
+
+    if (vulnerabilityList_->count() == 0) {
+        QListWidgetItem* item = new QListWidgetItem(vulnerabilityList_);
+        item->setText("✅ No Critical Vulnerabilities\nAll machines have adequate coverage!");
+        item->setBackground(QBrush(QColor("#d1fae5")));
+        QFont itemFont = item->font();
+        itemFont.setPointSize(14);
+        item->setFont(itemFont);
+        vulnerabilityList_->addItem(item);
+    }
+
+    Logger::instance().info("AnalyticsWidget", QString("Updated Machine Readiness data: %1 machines").arg(readinessList.size()));
+}
+
+// ============================================================================
+// CALCULATION METHODS
+// ============================================================================
+
+QList<AnalyticsWidget::CompetencyRiskPoint> AnalyticsWidget::calculateCompetencyRisks()
+{
+    QList<CompetencyRiskPoint> riskPoints;
+
+    DataCache& cache = DataCache::instance();
+    QList<Competency> allCompetencies;
+
+    // Get all competencies from cache
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        for (const Machine& machine : areaMachines) {
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+            allCompetencies.append(machineCompetencies);
+        }
+    }
+
+    // Calculate risk for each competency
+    for (const Competency& comp : allCompetencies) {
+        CompetencyRiskPoint point;
+        point.name = comp.name();
+        point.competencyId = comp.id();
+        point.importance = comp.calculatedWeight();
+
+        // Calculate team proficiency for this competency
+        int totalScore = 0;
+        int assessmentCount = 0;
+        for (const Assessment& assessment : cachedAssessments_) {
+            if (assessment.competencyId() == comp.id()) {
+                totalScore += assessment.score();
+                assessmentCount++;
+            }
+        }
+
+        // Proficiency = (average score / max score) * 100
+        if (assessmentCount > 0) {
+            double avgScore = double(totalScore) / assessmentCount;
+            point.proficiency = (avgScore / 3.0) * 100.0;
+        } else {
+            point.proficiency = 0.0;
+        }
+
+        // Determine risk level based on quadrant
+        if (point.importance >= 2.5 && point.proficiency < 50) {
+            point.riskLevel = "critical";
+        } else if (point.importance >= 2.5 && point.proficiency >= 50) {
+            point.riskLevel = "maintain";
+        } else if (point.importance < 2.5 && point.proficiency < 50) {
+            point.riskLevel = "defer";
+        } else {
+            point.riskLevel = "excess";
+        }
+
+        riskPoints.append(point);
+    }
+
+    return riskPoints;
+}
+
+QList<AnalyticsWidget::MachineReadiness> AnalyticsWidget::calculateMachineReadiness()
+{
+    QList<MachineReadiness> readinessList;
+
+    DataCache& cache = DataCache::instance();
+
+    // Get all machines from cache
+    for (const ProductionArea& area : cachedAreas_) {
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+
+        for (const Machine& machine : areaMachines) {
+            MachineReadiness readiness;
+            readiness.machineName = machine.name();
+            readiness.machineId = machine.id();
+            readiness.importance = machine.importance();
+            readiness.totalEngineers = cachedEngineers_.size();
+            readiness.proficientCount = 0;
+            readiness.expertCount = 0;
+
+            // Get competencies for this machine
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+
+            if (machineCompetencies.isEmpty()) {
+                readiness.coveragePercent = 0;
+                readiness.isCritical = true;
+                readinessList.append(readiness);
+                continue;
+            }
+
+            // Calculate proficiency for each engineer on this machine
+            for (const Engineer& engineer : cachedEngineers_) {
+                int totalScore = 0;
+                int maxScore = 0;
+
+                for (const Competency& comp : machineCompetencies) {
+                    for (const Assessment& assessment : cachedAssessments_) {
+                        if (assessment.engineerId() == engineer.id() && assessment.competencyId() == comp.id()) {
+                            totalScore += assessment.score();
+                            maxScore += 3;
+                            break;
+                        }
+                    }
+                }
+
+                if (maxScore > 0) {
+                    double avgScore = double(totalScore) / (maxScore / 3);
+
+                    if (avgScore >= 2.0) {
+                        readiness.proficientCount++;
+                    }
+                    if (avgScore >= 2.5) {
+                        readiness.expertCount++;
+                    }
+                }
+            }
+
+            // Calculate coverage percentage
+            if (readiness.totalEngineers > 0) {
+                readiness.coveragePercent = (double(readiness.proficientCount) / readiness.totalEngineers) * 100.0;
+            } else {
+                readiness.coveragePercent = 0;
+            }
+
+            readiness.isCritical = readiness.coveragePercent < 50;
+
+            readinessList.append(readiness);
+        }
+    }
+
+    return readinessList;
+}
+
+QList<AnalyticsWidget::TrainingRecommendation> AnalyticsWidget::calculateTrainingROI()
+{
+    QList<TrainingRecommendation> recommendations;
+
+    // Get competency risks
+    QList<CompetencyRiskPoint> riskPoints = calculateCompetencyRisks();
+
+    // Filter to critical competencies only
+    for (const CompetencyRiskPoint& point : riskPoints) {
+        if (point.riskLevel == "critical") {
+            TrainingRecommendation rec;
+            rec.competencyName = point.name;
+
+            // Count how many engineers need training (score < 2)
+            rec.engineersNeed = 0;
+            for (const Assessment& assessment : cachedAssessments_) {
+                if (assessment.competencyId() == point.competencyId && assessment.score() < 2) {
+                    rec.engineersNeed++;
+                }
+            }
+
+            // Calculate impact score (0-10 scale)
+            // Formula: importance (0-5) + (engineersNeed / totalEngineers) * 5
+            double engineerFactor = cachedEngineers_.isEmpty() ? 0 : (double(rec.engineersNeed) / cachedEngineers_.size()) * 5.0;
+            rec.impactScore = point.importance + engineerFactor;
+            rec.impactScore = qMin(rec.impactScore, 10.0);
+
+            // Determine priority
+            if (rec.impactScore >= 7.0) {
+                rec.priority = "urgent";
+            } else if (rec.impactScore >= 5.0) {
+                rec.priority = "high";
+            } else {
+                rec.priority = "medium";
+            }
+
+            rec.reason = QString("High business importance (%1/5.0) with low team proficiency (%2%)")
+                .arg(QString::number(point.importance, 'f', 1))
+                .arg(QString::number(point.proficiency, 'f', 0));
+
+            recommendations.append(rec);
+        }
+    }
+
+    // Sort by impact score (descending)
+    std::sort(recommendations.begin(), recommendations.end(),
+              [](const TrainingRecommendation& a, const TrainingRecommendation& b) {
+                  return a.impactScore > b.impactScore;
+              });
+
+    // Limit to top 10 recommendations
+    if (recommendations.size() > 10) {
+        recommendations = recommendations.mid(0, 10);
+    }
+
+    return recommendations;
 }
