@@ -17,6 +17,8 @@
 #include <QtCharts/QBarSeries>
 #include <QtCharts/QPieSeries>
 
+class QVBoxLayout;
+
 class DashboardWidget : public QWidget
 {
     Q_OBJECT
