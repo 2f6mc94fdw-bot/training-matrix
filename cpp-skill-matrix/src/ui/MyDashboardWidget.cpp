@@ -1,5 +1,6 @@
 #include "MyDashboardWidget.h"
 #include "../utils/Logger.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -235,12 +236,13 @@ void MyDashboardWidget::updatePersonalStats()
     double avgCompetency = 0.0;
     if (!assessments_.isEmpty()) {
         // Load all competencies to get weights
-        QList<ProductionArea> areas = productionRepo_.findAllAreas();
+        DataCache& cache = DataCache::instance();
+        QList<ProductionArea> areas = cache.getAreas();
         QList<Competency> allCompetencies;
         for (const ProductionArea& area : areas) {
-            QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+            QList<Machine> machines = cache.getMachinesByArea(area.id());
             for (const Machine& machine : machines) {
-                QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+                QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
                 allCompetencies.append(machineCompetencies);
             }
         }
@@ -304,14 +306,15 @@ void MyDashboardWidget::updateAreasOfWeakness()
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
 
     // Build list of all machines and competencies
+    DataCache& cache = DataCache::instance();
     QList<Machine> allMachines;
     QList<Competency> allCompetencies;
     for (const ProductionArea& area : areas) {
-        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
         allMachines.append(areaMachines);
 
         for (const Machine& machine : areaMachines) {
-            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
             allCompetencies.append(machineCompetencies);
         }
     }
@@ -407,12 +410,13 @@ void MyDashboardWidget::createProductionAreaRadarChart()
         areaTotalWeights[area.name()] = 0.0;
     }
 
-    // Load all competencies to get weights
+    // Load all competencies from cache
+    DataCache& cache = DataCache::instance();
     QList<Competency> allCompetencies;
     for (const ProductionArea& area : areas) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> machines = cache.getMachinesByArea(area.id());
         for (const Machine& machine : machines) {
-            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
             allCompetencies.append(machineCompetencies);
         }
     }

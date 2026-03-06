@@ -2,6 +2,7 @@
 #include "StyleManager.h"
 #include "../utils/Logger.h"
 #include "../utils/IconProvider.h"
+#include "../core/DataCache.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -285,8 +286,9 @@ QString ReportsWidget::generateProductionAreaCoverageReport()
         stream << "Area: " << area.name() << " (ID: " << area.id() << ")\n";
         stream << QString("-").repeated(79) << "\n";
 
-        // Get machines for this area
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        // Get machines for this area from cache
+        DataCache& cache = DataCache::instance();
+        QList<Machine> machines = cache.getMachinesByArea(area.id());
         stream << "  Machines: " << machines.size() << "\n";
 
         // Count engineers assessed in this area

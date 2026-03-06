@@ -1,6 +1,7 @@
 #include "MyAssessmentsWidget.h"
 #include "../utils/Logger.h"
 #include "../core/Constants.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -125,9 +126,10 @@ void MyAssessmentsWidget::loadAssessments()
     int trainedCompetencies = 0;
 
     // Create a card for each production area
+    DataCache& cache = DataCache::instance();
     for (const ProductionArea& area : areas) {
         // Get machines for this area
-        QList<Machine> areaMachines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
 
         if (areaMachines.isEmpty()) {
             continue;
@@ -173,7 +175,7 @@ void MyAssessmentsWidget::loadAssessments()
             cardLayout->addWidget(machineLabel);
 
             // Get competencies for this machine
-            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
 
             for (const Competency& competency : competencies) {
                 totalCompetencies++;

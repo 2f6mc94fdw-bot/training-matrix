@@ -1,6 +1,7 @@
 #include "MyProgressWidget.h"
 #include "../utils/Logger.h"
 #include "../utils/JsonHelper.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -288,12 +289,13 @@ void MyProgressWidget::createSkillProgressChart()
     series->setName("Weighted Avg Score");
 
     // Load all competencies to get weights
-    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    DataCache& cache = DataCache::instance();
+    QList<ProductionArea> areas = cache.getAreas();
     QList<Competency> allCompetencies;
     for (const ProductionArea& area : areas) {
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> machines = cache.getMachinesByArea(area.id());
         for (const Machine& machine : machines) {
-            QList<Competency> machineCompetencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
             allCompetencies.append(machineCompetencies);
         }
     }

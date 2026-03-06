@@ -135,6 +135,45 @@ bool EngineerRepository::save(Engineer& engineer)
     }
 
     Logger::instance().info("EngineerRepository", "Engineer saved: " + engineer.name());
+
+    // Automatically create a user account for this engineer
+    QString username = generateUsernameFromName(engineer.name());
+    QString defaultPassword = "password123";
+    QString passwordHash = Crypto::hashPassword(defaultPassword);
+    QString userId = Crypto::generateId("user");
+
+    QSqlQuery userQuery(db);
+    userQuery.prepare("INSERT INTO users (id, username, password, role, engineer_id, created_at, updated_at) "
+                      "VALUES (?, ?, ?, 'engineer', ?, GETDATE(), GETDATE())");
+    userQuery.addBindValue(userId);
+    userQuery.addBindValue(username);
+    userQuery.addBindValue(passwordHash);
+    userQuery.addBindValue(engineer.id());
+
+    if (!userQuery.exec()) {
+        // If username already exists, try with a number suffix
+        QString alternateUsername = username;
+        int suffix = 2;
+        while (!userQuery.exec() && suffix <= 100) {
+            alternateUsername = username + QString::number(suffix);
+            userQuery.prepare("INSERT INTO users (id, username, password, role, engineer_id, created_at, updated_at) "
+                              "VALUES (?, ?, ?, 'engineer', ?, GETDATE(), GETDATE())");
+            userQuery.addBindValue(userId);
+            userQuery.addBindValue(alternateUsername);
+            userQuery.addBindValue(passwordHash);
+            userQuery.addBindValue(engineer.id());
+            suffix++;
+        }
+
+        if (suffix > 100) {
+            Logger::instance().warning("EngineerRepository", "Could not create user account for engineer: " + engineer.name());
+        } else {
+            Logger::instance().info("EngineerRepository", "User account created: " + alternateUsername + " (password: password123)");
+        }
+    } else {
+        Logger::instance().info("EngineerRepository", "User account created: " + username + " (password: password123)");
+    }
+
     return true;
 }
 
@@ -184,4 +223,32 @@ bool EngineerRepository::remove(const QString& id)
 
     Logger::instance().info("EngineerRepository", "Engineer removed: " + id);
     return true;
+}
+
+QString EngineerRepository::generateUsernameFromName(const QString& name)
+{
+    // Convert name to lowercase username (e.g., "John Smith" -> "johnsmith")
+    QString username = name.toLower();
+
+    // Remove spaces, dots, apostrophes, and other special characters
+    username.replace(" ", "");
+    username.replace(".", "");
+    username.replace("'", "");
+    username.replace("-", "");
+    username.replace("_", "");
+
+    // Keep only alphanumeric characters
+    QString cleaned;
+    for (QChar c : username) {
+        if (c.isLetterOrNumber()) {
+            cleaned += c;
+        }
+    }
+
+    // If empty after cleaning, use a default
+    if (cleaned.isEmpty()) {
+        cleaned = "engineer";
+    }
+
+    return cleaned;
 }

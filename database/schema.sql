@@ -73,6 +73,12 @@ BEGIN
         [max_score] INT NOT NULL DEFAULT 3,
         [created_at] DATETIME DEFAULT GETDATE(),
         [updated_at] DATETIME DEFAULT GETDATE(),
+        -- Multi-Criteria Weighting (0.0 - 5.0 scale, default 3.0)
+        [safety_impact] FLOAT NOT NULL DEFAULT 3.0,       -- 30% weight - Risk if competency lacking
+        [production_impact] FLOAT NOT NULL DEFAULT 3.0,   -- 25% weight - Effect on output/quality
+        [frequency] FLOAT NOT NULL DEFAULT 3.0,           -- 20% weight - How often used
+        [complexity] FLOAT NOT NULL DEFAULT 3.0,          -- 15% weight - Difficulty to master
+        [future_value] FLOAT NOT NULL DEFAULT 3.0,        -- 10% weight - Career/strategic importance
         CONSTRAINT [FK_competencies_machines] FOREIGN KEY ([machine_id])
             REFERENCES [dbo].[machines]([id]) ON DELETE CASCADE
     );
@@ -197,8 +203,17 @@ GO
 
 -- Create indexes for better performance
 CREATE NONCLUSTERED INDEX [IX_engineers_shift] ON [dbo].[engineers]([shift]) WHERE [shift] IS NOT NULL;
-CREATE NONCLUSTERED INDEX [IX_machines_area] ON [dbo].[machines]([production_area_id]);
-CREATE NONCLUSTERED INDEX [IX_competencies_machine] ON [dbo].[competencies]([machine_id]);
+
+-- Covering indexes for optimized hierarchy loading (replaces basic indexes)
+-- These include all columns needed for JOIN queries to avoid table lookups
+CREATE NONCLUSTERED INDEX [IX_machines_area_covering]
+    ON [dbo].[machines]([production_area_id], [name])
+    INCLUDE ([id], [importance], [created_at], [updated_at]);
+
+CREATE NONCLUSTERED INDEX [IX_competencies_machine_covering]
+    ON [dbo].[competencies]([machine_id], [name])
+    INCLUDE ([id], [max_score], [safety_impact], [production_impact], [frequency], [complexity], [future_value], [created_at], [updated_at]);
+
 CREATE NONCLUSTERED INDEX [IX_assessments_engineer] ON [dbo].[assessments]([engineer_id]);
 CREATE NONCLUSTERED INDEX [IX_core_skills_category] ON [dbo].[core_skills]([category_id]);
 CREATE NONCLUSTERED INDEX [IX_core_skill_assessments_engineer] ON [dbo].[core_skill_assessments]([engineer_id]);

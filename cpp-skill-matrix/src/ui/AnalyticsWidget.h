@@ -52,6 +52,8 @@ private:
     void setupAutomatedInsightsTab(QWidget* insightsWidget);
     void setupEngineerRadarTab(QWidget* engineerRadarWidget);
     void setupShiftOverviewTab(QWidget* shiftOverviewWidget);
+    void setupCriticalSkillsTab(QWidget* criticalSkillsWidget);
+    void setupMachineReadinessTab(QWidget* machineReadinessWidget);
 
     // Data update methods
     void updateTrendsData();
@@ -59,6 +61,8 @@ private:
     void updateAutomatedInsights();
     void updateEngineerRadarData();
     void updateShiftOverviewData();
+    void updateCriticalSkillsData();
+    void updateMachineReadinessData();
 
     // Helper methods
     struct PredictionData {
@@ -86,6 +90,34 @@ private:
     };
     QList<Insight> generateAutomatedInsights();
 
+    // New data structures for advanced analytics
+    struct CompetencyRiskPoint {
+        QString name;
+        int competencyId;
+        double proficiency;      // 0-100% (team average)
+        double importance;       // 0-5.0 from weight
+        QString riskLevel;       // "critical", "maintain", "defer", "excess"
+    };
+
+    struct MachineReadiness {
+        QString machineName;
+        int machineId;
+        int proficientCount;     // engineers with score >= 2
+        int expertCount;         // engineers with score == 3
+        int totalEngineers;
+        double coveragePercent;
+        bool isCritical;         // < 50% coverage
+        int importance;
+    };
+
+    struct TrainingRecommendation {
+        QString competencyName;
+        int engineersNeed;
+        double impactScore;      // 0-10
+        QString reason;
+        QString priority;        // "urgent", "high", "medium"
+    };
+
     // Radar chart helper methods
     QPolarChart* createRadarChart(const QMap<QString, double>& data,
                                   const QString& title,
@@ -99,6 +131,11 @@ private:
     QMap<QString, double> calculateShiftCoreSkillsRadarData(const QString& shift);
     QString abbreviateLabel(const QString& label) const;
 
+    // Advanced analytics calculation methods
+    QList<CompetencyRiskPoint> calculateCompetencyRisks();
+    QList<MachineReadiness> calculateMachineReadiness();
+    QList<TrainingRecommendation> calculateTrainingROI();
+
 private:
     // Navigation
     QStackedWidget* contentStack_;
@@ -107,6 +144,8 @@ private:
     QPushButton* insightsButton_;
     QPushButton* engineerRadarButton_;
     QPushButton* shiftOverviewButton_;
+    QPushButton* criticalSkillsButton_;
+    QPushButton* machineReadinessButton_;
 
     // Trends Tab Components
     QLabel* currentCompletionLabel_;
@@ -125,6 +164,14 @@ private:
     QComboBox* engineerSelector_;
     QChartView* engineerProductionRadarView_;
     QChartView* engineerCoreSkillsRadarView_;
+
+    // Critical Skills Tab Components
+    QChartView* riskMatrixChartView_;
+    QListWidget* trainingPriorityList_;
+
+    // Machine Readiness Tab Components
+    QListWidget* machineReadinessList_;
+    QListWidget* vulnerabilityList_;
 
     // Shift Overview Tab Components
     QComboBox* shiftFilterCombo_;

@@ -1,5 +1,6 @@
 #include "ProductionAreasWidget.h"
 #include "../utils/Logger.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -140,17 +141,27 @@ void ProductionAreasWidget::setupUI()
 
 void ProductionAreasWidget::loadProductionAreas()
 {
-    allAreas_ = repository_.findAllAreas();
+    // Use global cache and refresh it to ensure we have latest data
+    DataCache& cache = DataCache::instance();
 
-    if (!repository_.lastError().isEmpty()) {
-        Logger::instance().error("ProductionAreasWidget", "Failed to load areas: " + repository_.lastError());
-        QMessageBox::critical(this, "Error", "Failed to load production areas: " + repository_.lastError());
+    // Refresh cache from database (single optimized query)
+    cache.refresh();
+
+    if (!cache.isLoaded()) {
+        Logger::instance().error("ProductionAreasWidget", "Failed to load data cache: " + cache.lastError());
+        QMessageBox::critical(this, "Error", "Failed to load production areas: " + cache.lastError());
         return;
     }
 
+    // Get data from cache (instant, no database queries)
+    allAreas_ = cache.getAreas();
     loadAreaFilter();
 
-    Logger::instance().info("ProductionAreasWidget", QString("Loaded %1 production areas").arg(allAreas_.size()));
+    Logger::instance().info("ProductionAreasWidget",
+        QString("Loaded from cache: %1 areas, %2 machines, %3 competencies")
+            .arg(cache.getTotalAreas())
+            .arg(cache.getTotalMachines())
+            .arg(cache.getTotalCompetencies()));
 }
 
 void ProductionAreasWidget::loadAreaFilter()
@@ -207,9 +218,12 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
 {
     treeWidget_->clear();
 
+    // Use global cache for instant data access
+    DataCache& cache = DataCache::instance();
+
     if (areaId == -1) {
-        // Show all areas with their machines
-        for (const ProductionArea& area : allAreas_) {
+        // Show all areas with their machines (using global cache)
+        for (const ProductionArea& area : cache.getAreas()) {
             QTreeWidgetItem* areaItem = new QTreeWidgetItem(treeWidget_);
             areaItem->setText(0, area.name());
             areaItem->setText(1, "Production Area");
@@ -221,8 +235,8 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
             areaFont.setBold(true);
             areaItem->setFont(0, areaFont);
 
-            // Load machines for this area
-            QList<Machine> machines = repository_.findMachinesByArea(area.id());
+            // Get machines for this area from cache
+            QList<Machine> machines = cache.getMachinesByArea(area.id());
             for (const Machine& machine : machines) {
                 QTreeWidgetItem* machineItem = new QTreeWidgetItem(areaItem);
                 machineItem->setText(0, machine.name());
@@ -231,8 +245,8 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
                 machineItem->setText(3, QString::number(machine.id()));
                 machineItem->setData(0, Qt::UserRole, MachineItem);
 
-                // Load competencies for this machine
-                QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
+                // Get competencies for this machine from cache
+                QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
                 for (const Competency& competency : competencies) {
                     QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
                     competencyItem->setText(0, competency.name());
@@ -250,8 +264,8 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
             areaItem->setExpanded(true);
         }
     } else {
-        // Show only machines for selected area
-        QList<Machine> machines = repository_.findMachinesByArea(areaId);
+        // Show only machines for selected area (using global cache)
+        QList<Machine> machines = cache.getMachinesByArea(areaId);
 
         for (const Machine& machine : machines) {
             QTreeWidgetItem* machineItem = new QTreeWidgetItem(treeWidget_);
@@ -265,8 +279,8 @@ void ProductionAreasWidget::loadMachinesForArea(int areaId)
             machineFont.setBold(true);
             machineItem->setFont(0, machineFont);
 
-            // Load competencies for this machine
-            QList<Competency> competencies = repository_.findCompetenciesByMachine(machine.id());
+            // Get competencies for this machine from cache
+            QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
             for (const Competency& competency : competencies) {
                 QTreeWidgetItem* competencyItem = new QTreeWidgetItem(machineItem);
                 competencyItem->setText(0, competency.name());

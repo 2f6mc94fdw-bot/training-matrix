@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "../core/Application.h"
+#include "../core/DataCache.h"
 #include "../database/DatabaseManager.h"
 #include "../core/Constants.h"
 #include "../utils/Logger.h"
@@ -45,6 +46,22 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setupUI();
     restoreSettings();
+
+    // Load global cache for fast data access across all widgets
+    DataCache& cache = DataCache::instance();
+    if (!cache.isLoaded()) {
+        Logger::instance().info("MainWindow", "Loading production data cache...");
+        cache.load();
+        if (cache.isLoaded()) {
+            Logger::instance().info("MainWindow",
+                QString("Cache loaded: %1 areas, %2 machines, %3 competencies")
+                    .arg(cache.getTotalAreas())
+                    .arg(cache.getTotalMachines())
+                    .arg(cache.getTotalCompetencies()));
+        } else {
+            Logger::instance().warning("MainWindow", "Cache failed to load: " + cache.lastError());
+        }
+    }
 
     Logger::instance().info("MainWindow", "Main window created");
 }

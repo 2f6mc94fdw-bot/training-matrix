@@ -1,5 +1,6 @@
 #include "AssessmentWidget.h"
 #include "../utils/Logger.h"
+#include "../core/DataCache.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -166,16 +167,18 @@ void AssessmentWidget::loadEngineerCards()
     // Pre-load all machines and competencies
     QMap<int, QString> areaNames;
     cachedAreaToMachines_.clear();
+    DataCache& cache = DataCache::instance();
+
     for (const ProductionArea& area : allAreas) {
         areaNames[area.id()] = area.name();
 
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> machines = cache.getMachinesByArea(area.id());
         QList<MachineData> machineDataList;
 
         for (const Machine& machine : machines) {
             MachineData data;
             data.machine = machine;
-            data.competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            data.competencies = cache.getCompetenciesByMachine(machine.id());
             if (!data.competencies.isEmpty()) {
                 machineDataList.append(data);
             }
@@ -571,14 +574,16 @@ void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* 
     int trainedCompetencies = 0;
 
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    DataCache& cache = DataCache::instance();
+
     for (const ProductionArea& area : areas) {
         if (filterAreaId != 0 && area.id() != filterAreaId) {
             continue;
         }
 
-        QList<Machine> machines = productionRepo_.findMachinesByArea(area.id());
+        QList<Machine> machines = cache.getMachinesByArea(area.id());
         for (const Machine& machine : machines) {
-            QList<Competency> competencies = productionRepo_.findCompetenciesByMachine(machine.id());
+            QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
 
             for (const Competency& competency : competencies) {
                 totalCompetencies++;
