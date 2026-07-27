@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QDateTime>
+#include <QFutureWatcher>
 #include "../database/ProductionRepository.h"
 #include "../models/ProductionArea.h"
 #include "../models/Machine.h"
@@ -30,7 +31,9 @@ public:
 
     // Cache lifecycle
     bool isLoaded() const { return isLoaded_; }
+    bool isLoading() const { return isLoading_; }
     void load();
+    void loadAsync();
     void refresh();
     void invalidate();
 
@@ -56,16 +59,28 @@ signals:
     void cacheInvalidated();
 
 private:
+    struct AsyncLoadResult {
+        ProductionHierarchy hierarchy;
+        QString error;
+        bool success = false;
+        quint64 requestId = 0;
+    };
+
     DataCache();
     ~DataCache();
     DataCache(const DataCache&) = delete;
     DataCache& operator=(const DataCache&) = delete;
+    void applyHierarchy(const ProductionHierarchy& hierarchy);
 
     ProductionRepository repository_;
     ProductionHierarchy hierarchy_;
     bool isLoaded_;
+    bool isLoading_;
     QDateTime lastLoadTime_;
     QString lastError_;
+    QFutureWatcher<AsyncLoadResult>* loadWatcher_;
+    quint64 asyncRequestCounter_;
+    quint64 expectedAsyncRequestId_;
 
     // Quick lookup maps
     QHash<int, ProductionArea> areasById_;

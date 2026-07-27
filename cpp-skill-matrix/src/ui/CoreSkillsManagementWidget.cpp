@@ -15,6 +15,39 @@
 #include <QScrollArea>
 #include <QFrame>
 
+namespace {
+QString managementCategoryIdForCoreSkill(const QString& rawCategoryId,
+                                         const QString& rawCategoryName = QString(),
+                                         const QString& skillName = QString(),
+                                         const QString& storedDiscipline = QString())
+{
+    const QString discipline = storedDiscipline.trimmed().toLower();
+    if (discipline == "mechanical" || discipline == "electrical" || discipline == "software") {
+        return discipline;
+    }
+    const QString combined = (rawCategoryId + " " + rawCategoryName + " " + skillName).toLower();
+    if (combined.contains("mechanical")) {
+        return "mechanical";
+    }
+    if (combined.contains("electrical")) {
+        return "electrical";
+    }
+    if (combined.contains("software")) {
+        return "software";
+    }
+    return QString();
+}
+
+QList<CoreSkillCategory> managementCategories()
+{
+    QList<CoreSkillCategory> categories;
+    categories.append(CoreSkillCategory("mechanical", "Mechanical", "Mechanical"));
+    categories.append(CoreSkillCategory("electrical", "Electrical", "Electrical"));
+    categories.append(CoreSkillCategory("software", "Software", "Software"));
+    return categories;
+}
+}
+
 CoreSkillsManagementWidget::CoreSkillsManagementWidget(QWidget* parent)
     : QWidget(parent)
     , categoryFilterCombo_(nullptr)
@@ -101,8 +134,14 @@ void CoreSkillsManagementWidget::loadCoreSkills()
 {
     treeWidget_->clear();
 
-    // Load all categories
-    allCategories_ = repository_.findAllCategories();
+    const QList<CoreSkillCategory> rawCategories = repository_.findAllCategories();
+    allCategories_ = managementCategories();
+    QMap<QString, QString> rawCategoryNameById;
+    QMap<QString, QString> rawCategoryDisciplineById;
+    for (const CoreSkillCategory& category : rawCategories) {
+        rawCategoryNameById.insert(category.id(), category.name());
+        rawCategoryDisciplineById.insert(category.id(), category.discipline());
+    }
 
     // Get filter selection
     QString selectedCategoryId = categoryFilterCombo_->currentData().toString();
@@ -111,8 +150,24 @@ void CoreSkillsManagementWidget::loadCoreSkills()
     QList<CoreSkill> allSkills = repository_.findAllSkills();
 
     if (selectedCategoryId.isEmpty()) {
-        // Show all categories with their skills
+        // Show the three top-level disciplines only and fold legacy subcategories into them.
         for (const CoreSkillCategory& category : allCategories_) {
+            QList<CoreSkill> groupedSkills;
+            for (const CoreSkill& skill : allSkills) {
+                const QString mappedCategoryId = managementCategoryIdForCoreSkill(
+                    skill.categoryId(),
+                    rawCategoryNameById.value(skill.categoryId()),
+                    skill.name(),
+                    rawCategoryDisciplineById.value(skill.categoryId()));
+                if (mappedCategoryId == category.id()) {
+                    groupedSkills.append(skill);
+                }
+            }
+
+            if (groupedSkills.isEmpty()) {
+                continue;
+            }
+
             QTreeWidgetItem* categoryItem = new QTreeWidgetItem(treeWidget_);
             categoryItem->setText(0, category.name());
             categoryItem->setText(1, category.id());
@@ -124,39 +179,43 @@ void CoreSkillsManagementWidget::loadCoreSkills()
             boldFont.setBold(true);
             categoryItem->setFont(0, boldFont);
 
-            // Add skills for this category
-            for (const CoreSkill& skill : allSkills) {
-                if (skill.categoryId() == category.id()) {
-                    QTreeWidgetItem* skillItem = new QTreeWidgetItem(categoryItem);
-                    skillItem->setText(0, skill.name());
-                    skillItem->setText(1, skill.id());
-                    skillItem->setText(2, QString::number(skill.maxScore()));
-                    skillItem->setText(3, QString::number(skill.calculatedWeight(), 'f', 2));
-                    skillItem->setData(0, Qt::UserRole, SkillItem);
-                    skillItem->setData(1, Qt::UserRole, skill.id());
-                    skillItem->setData(2, Qt::UserRole, category.id());
-                }
-            }
-
-            categoryItem->setExpanded(true);
-        }
-    } else {
-        // Show only skills for selected category
-        for (const CoreSkill& skill : allSkills) {
-            if (skill.categoryId() == selectedCategoryId) {
-                QTreeWidgetItem* skillItem = new QTreeWidgetItem(treeWidget_);
+            for (const CoreSkill& skill : groupedSkills) {
+                QTreeWidgetItem* skillItem = new QTreeWidgetItem(categoryItem);
                 skillItem->setText(0, skill.name());
                 skillItem->setText(1, skill.id());
                 skillItem->setText(2, QString::number(skill.maxScore()));
                 skillItem->setText(3, QString::number(skill.calculatedWeight(), 'f', 2));
                 skillItem->setData(0, Qt::UserRole, SkillItem);
                 skillItem->setData(1, Qt::UserRole, skill.id());
-                skillItem->setData(2, Qt::UserRole, selectedCategoryId);
-
-                QFont boldFont = skillItem->font(0);
-                boldFont.setBold(true);
-                skillItem->setFont(0, boldFont);
+                skillItem->setData(2, Qt::UserRole, category.id());
             }
+
+            categoryItem->setExpanded(true);
+        }
+    } else {
+        // Show only skills for the selected top-level discipline.
+        for (const CoreSkill& skill : allSkills) {
+            const QString mappedCategoryId = managementCategoryIdForCoreSkill(
+                skill.categoryId(),
+                rawCategoryNameById.value(skill.categoryId()),
+                skill.name(),
+                rawCategoryDisciplineById.value(skill.categoryId()));
+            if (mappedCategoryId != selectedCategoryId) {
+                continue;
+            }
+
+            QTreeWidgetItem* skillItem = new QTreeWidgetItem(treeWidget_);
+            skillItem->setText(0, skill.name());
+            skillItem->setText(1, skill.id());
+            skillItem->setText(2, QString::number(skill.maxScore()));
+            skillItem->setText(3, QString::number(skill.calculatedWeight(), 'f', 2));
+            skillItem->setData(0, Qt::UserRole, SkillItem);
+            skillItem->setData(1, Qt::UserRole, skill.id());
+            skillItem->setData(2, Qt::UserRole, selectedCategoryId);
+
+            QFont boldFont = skillItem->font(0);
+            boldFont.setBold(true);
+            skillItem->setFont(0, boldFont);
         }
     }
 
@@ -279,7 +338,19 @@ void CoreSkillsManagementWidget::showSkillDialog(const QString& parentCategoryId
         }
     }
     if (skill) {
-        int index = categoryCombo->findData(skill->categoryId());
+        const QList<CoreSkillCategory> rawCategories = repository_.findAllCategories();
+        QMap<QString, QString> rawCategoryNameById;
+        QMap<QString, QString> rawCategoryDisciplineById;
+        for (const CoreSkillCategory& category : rawCategories) {
+            rawCategoryNameById.insert(category.id(), category.name());
+            rawCategoryDisciplineById.insert(category.id(), category.discipline());
+        }
+        const QString mappedCategoryId = managementCategoryIdForCoreSkill(
+            skill->categoryId(),
+            rawCategoryNameById.value(skill->categoryId()),
+            skill->name(),
+            rawCategoryDisciplineById.value(skill->categoryId()));
+        int index = categoryCombo->findData(mappedCategoryId);
         if (index >= 0) {
             categoryCombo->setCurrentIndex(index);
         }
@@ -450,8 +521,8 @@ void CoreSkillsManagementWidget::onAddClicked()
     QTreeWidgetItem* selectedItem = treeWidget_->currentItem();
 
     if (!selectedItem) {
-        // No selection - show category dialog
-        showCategoryDialog();
+        // Default to adding a skill into one of the three main disciplines.
+        showSkillDialog("");
         return;
     }
 

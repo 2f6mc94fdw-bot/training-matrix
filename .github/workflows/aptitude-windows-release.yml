@@ -1,0 +1,109 @@
+name: Aptitude Windows Release Validation
+
+on:
+  push:
+    paths:
+      - "cpp-skill-matrix/**"
+      - ".github/workflows/aptitude-windows-release.yml"
+  pull_request:
+    paths:
+      - "cpp-skill-matrix/**"
+      - ".github/workflows/aptitude-windows-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-package:
+    name: Build Windows x64 package
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          arch: "win64_msvc2022_64"
+          modules: "qtcharts"
+          cache: true
+
+      - name: Build and package Aptitude
+        shell: pwsh
+        run: |
+          if (-not $env:QT_ROOT_DIR) {
+            throw "install-qt-action did not provide QT_ROOT_DIR"
+          }
+
+          .\cpp-skill-matrix\deployment\windows\Build-Aptitude.ps1 `
+            -QtRoot $env:QT_ROOT_DIR `
+            -SourceDir .\cpp-skill-matrix
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aptitude-Windows-x64
+          path: cpp-skill-matrix/deployment/windows/output/Aptitude-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  database-contract:
+    name: Validate clean SQL Server deployment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SA_PASSWORD: "Aptitude-CI-Only!2026"
+      TEST_DATABASE: "aptitude_ci_validation"
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: "Developer"
+          MSSQL_SA_PASSWORD: "Aptitude-CI-Only!2026"
+        ports:
+          - 1433:1433
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Wait for SQL Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="${{ job.services.sqlserver.id }}"
+          for attempt in {1..60}; do
+            if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd \
+              -C -S localhost -U sa -P "$SA_PASSWORD" -Q "SELECT 1" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "SQL Server did not become ready" >&2
+          exit 1
+
+      - name: Apply and validate schema twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="${{ job.services.sqlserver.id }}"
+          sqlcmd=(docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$SA_PASSWORD" -b)
+
+          docker cp cpp-skill-matrix/resources/database/schema.sql "$container:/tmp/aptitude-schema.sql"
+          docker cp cpp-skill-matrix/deployment/windows/PRODUCTION_SCHEMA_MIGRATION.sql "$container:/tmp/aptitude-migration.sql"
+          docker cp cpp-skill-matrix/deployment/windows/VALIDATE_DATABASE.sql "$container:/tmp/aptitude-validation.sql"
+
+          "${sqlcmd[@]}" -Q "CREATE DATABASE [$TEST_DATABASE];"
+
+          for pass in 1 2; do
+            echo "Database contract pass $pass"
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-schema.sql
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-migration.sql
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-validation.sql
+          done

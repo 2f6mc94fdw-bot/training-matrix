@@ -9,10 +9,13 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QPolarChart>
 #include <QComboBox>
+#include <QHash>
 #include "../database/AssessmentRepository.h"
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/CoreSkillsRepository.h"
+
+class EngineerDevelopmentWidget;
 
 class AnalyticsWidget : public QWidget
 {
@@ -54,6 +57,7 @@ private:
     void setupShiftOverviewTab(QWidget* shiftOverviewWidget);
     void setupCriticalSkillsTab(QWidget* criticalSkillsWidget);
     void setupMachineReadinessTab(QWidget* machineReadinessWidget);
+    void ensureCoreSkillsCacheLoaded();
 
     // Data update methods
     void updateTrendsData();
@@ -89,6 +93,7 @@ private:
         QString message;
     };
     QList<Insight> generateAutomatedInsights();
+    QList<Insight> generateManagerInsights();
 
     // New data structures for advanced analytics
     struct CompetencyRiskPoint {
@@ -100,12 +105,17 @@ private:
     };
 
     struct MachineReadiness {
+        QString areaName;
+        int areaId;
         QString machineName;
         int machineId;
         int proficientCount;     // engineers with score >= 2
         int expertCount;         // engineers with score == 3
         int totalEngineers;
         double coveragePercent;
+        double averageScore;             // weighted mean of recorded assessments, 0-3
+        double assessmentCoveragePercent;
+        int competencyCount;
         bool isCritical;         // < 50% coverage
         int importance;
     };
@@ -146,6 +156,7 @@ private:
     QPushButton* shiftOverviewButton_;
     QPushButton* criticalSkillsButton_;
     QPushButton* machineReadinessButton_;
+    EngineerDevelopmentWidget* engineerDevelopmentWidget_;
 
     // Trends Tab Components
     QLabel* currentCompletionLabel_;
@@ -170,6 +181,7 @@ private:
     QListWidget* trainingPriorityList_;
 
     // Machine Readiness Tab Components
+    QComboBox* machineReadinessAreaFilter_;
     QListWidget* machineReadinessList_;
     QListWidget* vulnerabilityList_;
 
@@ -189,10 +201,34 @@ private:
     QList<Engineer> cachedEngineers_;
     QList<Assessment> cachedAssessments_;
     QList<ProductionArea> cachedAreas_;
+    QList<CoreSkill> cachedCoreSkills_;
+    QList<CoreSkillCategory> cachedCoreSkillCategories_;
+    QList<CoreSkillAssessment> cachedCoreSkillAssessments_;
     int cachedTotalCompetencies_;
+
+    // Derived lookup caches for fast analytics calculations
+    QHash<QString, QHash<int, int>> assessmentScoreByEngineerAndCompetency_;
+    QHash<int, QList<Competency>> competenciesByMachine_;
+    QHash<int, QList<Machine>> machinesByArea_;
+    QHash<int, int> machineAreaById_;
+    QHash<int, int> machineImportanceById_;
+    QHash<int, double> competencyWeightById_;
+    QHash<int, int> competencyMachineById_;
+    QHash<int, QString> areaNameById_;
+    QHash<QString, QList<CoreSkillAssessment>> coreSkillAssessmentsByEngineer_;
+    QHash<QString, CoreSkill> coreSkillById_;
+    QHash<QString, QString> coreSkillCategoryNameBySkillId_;
+    QHash<QString, QString> coreSkillDisciplineBySkillId_;
+
+    // Per-engineer memoization to speed repeated radar updates
+    QHash<QString, QMap<QString, double>> engineerProductionRadarCache_;
+    QHash<QString, QMap<QString, double>> engineerCoreSkillsRadarCache_;
 
     // Lazy loading state
     bool isFirstShow_;
+    bool waitingForCacheWarmup_;
+    bool insightsLoaded_;
+    bool coreSkillsCacheLoaded_;
 
     // Chart sizing state
     int engineerRadarChartHeight_;

@@ -29,7 +29,7 @@ ProductionAreasWidget::ProductionAreasWidget(QWidget* parent)
     , manageAreasButton_(nullptr)
 {
     setupUI();
-    loadProductionAreas();
+    loadProductionAreas(false);
     Logger::instance().info("ProductionAreasWidget", "Production Areas widget initialized");
 }
 
@@ -139,13 +139,14 @@ void ProductionAreasWidget::setupUI()
     setLayout(mainLayout);
 }
 
-void ProductionAreasWidget::loadProductionAreas()
+void ProductionAreasWidget::loadProductionAreas(bool forceRefresh)
 {
-    // Use global cache and refresh it to ensure we have latest data
     DataCache& cache = DataCache::instance();
-
-    // Refresh cache from database (single optimized query)
-    cache.refresh();
+    if (forceRefresh) {
+        cache.refresh();
+    } else if (!cache.isLoaded()) {
+        cache.load();
+    }
 
     if (!cache.isLoaded()) {
         Logger::instance().error("ProductionAreasWidget", "Failed to load data cache: " + cache.lastError());
@@ -380,6 +381,7 @@ void ProductionAreasWidget::showAreaManagementDialog()
         if (reply == QMessageBox::Yes) {
             int areaId = current->data(Qt::UserRole).toInt();
             if (repository_.removeArea(areaId)) {
+                DataCache::instance().invalidate();
                 QMessageBox::information(&dialog, "Success", "Area deleted successfully.");
                 // Refresh list
                 areaList->clear();
@@ -407,7 +409,7 @@ void ProductionAreasWidget::showAreaManagementDialog()
     dialog.setLayout(mainLayout);
 
     if (dialog.exec() == QDialog::Accepted) {
-        loadProductionAreas();
+        loadProductionAreas(true);
     }
 }
 
@@ -466,6 +468,8 @@ void ProductionAreasWidget::showAreaDialog(const ProductionArea* area)
         if (!success) {
             Logger::instance().error("ProductionAreasWidget", "Failed to save area: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save production area: " + repository_.lastError());
+        } else {
+            DataCache::instance().invalidate();
         }
     }
 }
@@ -535,7 +539,8 @@ void ProductionAreasWidget::showMachineDialog(int parentAreaId, const Machine* m
             Logger::instance().error("ProductionAreasWidget", "Failed to save machine: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save machine: " + repository_.lastError());
         } else {
-            loadAreaFilter();
+            DataCache::instance().invalidate();
+            loadProductionAreas(true);
         }
     }
 }
@@ -707,7 +712,8 @@ void ProductionAreasWidget::showCompetencyDialog(int parentMachineId, const Comp
             Logger::instance().error("ProductionAreasWidget", "Failed to save competency: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to save competency: " + repository_.lastError());
         } else {
-            loadAreaFilter();
+            DataCache::instance().invalidate();
+            loadProductionAreas(true);
         }
     }
 }
@@ -788,7 +794,7 @@ void ProductionAreasWidget::onEditClicked()
         ProductionArea area = repository_.findAreaById(id);
         if (area.id() > 0) {
             showAreaDialog(&area);
-            loadProductionAreas();
+            loadProductionAreas(true);
         }
     } else if (itemType == MachineItem) {
         Machine machine = repository_.findMachineById(id);
@@ -842,13 +848,10 @@ void ProductionAreasWidget::onDeleteClicked()
         }
 
         if (success) {
+            DataCache::instance().invalidate();
             Logger::instance().info("ProductionAreasWidget", "Deleted item: " + name);
             QMessageBox::information(this, "Success", QString("%1 deleted successfully.").arg(QString(itemTypeName[0].toUpper()) + itemTypeName.mid(1)));
-            if (itemType == AreaItem) {
-                loadProductionAreas();
-            } else {
-                loadAreaFilter();
-            }
+            loadProductionAreas(true);
         } else {
             Logger::instance().error("ProductionAreasWidget", "Failed to delete: " + repository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to delete item: " + repository_.lastError());
@@ -858,7 +861,7 @@ void ProductionAreasWidget::onDeleteClicked()
 
 void ProductionAreasWidget::onRefreshClicked()
 {
-    loadProductionAreas();
+    loadProductionAreas(true);
 }
 
 void ProductionAreasWidget::onTreeItemDoubleClicked(QTreeWidgetItem* item, int column)
@@ -872,7 +875,7 @@ void ProductionAreasWidget::onTreeItemDoubleClicked(QTreeWidgetItem* item, int c
         ProductionArea area = repository_.findAreaById(id);
         if (area.id() > 0) {
             showAreaDialog(&area);
-            loadProductionAreas();
+            loadProductionAreas(true);
         }
     } else if (itemType == MachineItem) {
         Machine machine = repository_.findMachineById(id);

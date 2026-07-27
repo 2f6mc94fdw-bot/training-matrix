@@ -266,8 +266,8 @@ void UsersWidget::showUserDialog(const User* user)
             if (success) {
                 Logger::instance().info("UsersWidget", "Created user: " + username);
                 QMessageBox::information(this, "Success",
-                    QString("User created successfully.\nUsername: %1\nPassword: %2\n\nPlease save this password securely.")
-                    .arg(username).arg(password));
+                    QString("User created successfully for '%1'.\n\nShare credentials with the user through an approved secure channel.")
+                        .arg(username));
             }
         }
 
@@ -302,8 +302,8 @@ void UsersWidget::showPasswordResetDialog(const User& user)
         if (success) {
             Logger::instance().info("UsersWidget", "Password reset for user: " + user.username());
             QMessageBox::information(this, "Success",
-                QString("Password reset successfully.\n\nUsername: %1\nNew Password: %2\n\nPlease provide this to the user securely.")
-                .arg(user.username()).arg(newPassword));
+                QString("Password reset successfully for '%1'.\n\nCommunicate the new password through an approved secure channel.")
+                    .arg(user.username()));
         } else {
             Logger::instance().error("UsersWidget", "Failed to reset password: " + userRepository_.lastError());
             QMessageBox::critical(this, "Error", "Failed to reset password: " + userRepository_.lastError());

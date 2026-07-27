@@ -2,12 +2,14 @@
 #include "../utils/Logger.h"
 #include "../core/Constants.h"
 #include "../core/DataCache.h"
+#include "../core/Application.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QFont>
 #include <QScrollArea>
 #include <QMessageBox>
+#include <QGraphicsDropShadowEffect>
 
 MyAssessmentsWidget::MyAssessmentsWidget(const QString& engineerId, QWidget* parent)
     : QWidget(parent)
@@ -16,7 +18,11 @@ MyAssessmentsWidget::MyAssessmentsWidget(const QString& engineerId, QWidget* par
     , assessmentsContainer_(nullptr)
     , saveButton_(nullptr)
     , refreshButton_(nullptr)
+    , markNotificationsReadButton_(nullptr)
     , summaryLabel_(nullptr)
+    , notificationsSummaryLabel_(nullptr)
+    , notificationsContainer_(nullptr)
+    , notificationsLayout_(nullptr)
 {
     setupUI();
     loadAssessments();
@@ -42,7 +48,8 @@ void MyAssessmentsWidget::setupUI()
     mainLayout->addWidget(titleLabel);
 
     // Description
-    QLabel* descLabel = new QLabel("View and update your machine competency assessments.", this);
+    QLabel* descLabel = new QLabel(
+        "Propose changes to your machine competency scores. Changes become official after manager approval.", this);
     descLabel->setWordWrap(true);
     mainLayout->addWidget(descLabel);
 
@@ -55,9 +62,34 @@ void MyAssessmentsWidget::setupUI()
     summaryLabel_->setStyleSheet("QLabel { color: " + QString(Constants::BRAND_ACCENT) + "; padding: 10px; }");
     mainLayout->addWidget(summaryLabel_);
 
+    // Manager notifications panel
+    QGroupBox* notificationsBox = new QGroupBox("Manager Updates", this);
+    QVBoxLayout* notificationsBoxLayout = new QVBoxLayout(notificationsBox);
+    notificationsBoxLayout->setSpacing(8);
+
+    notificationsSummaryLabel_ = new QLabel("No manager updates", this);
+    notificationsSummaryLabel_->setStyleSheet("QLabel { color: #475569; font-size: 12px; }");
+    notificationsBoxLayout->addWidget(notificationsSummaryLabel_);
+
+    notificationsContainer_ = new QWidget(this);
+    notificationsLayout_ = new QVBoxLayout(notificationsContainer_);
+    notificationsLayout_->setSpacing(6);
+    notificationsLayout_->setContentsMargins(0, 0, 0, 0);
+    notificationsBoxLayout->addWidget(notificationsContainer_);
+
+    markNotificationsReadButton_ = new QPushButton("Mark Updates as Read", this);
+    markNotificationsReadButton_->setMinimumWidth(170);
+    connect(markNotificationsReadButton_, &QPushButton::clicked, this, &MyAssessmentsWidget::onMarkNotificationsReadClicked);
+    notificationsBoxLayout->addWidget(markNotificationsReadButton_, 0, Qt::AlignLeft);
+
+    mainLayout->addWidget(notificationsBox);
+
     // Skill level legend
-    QLabel* legendLabel = new QLabel("Competency Levels: 0 = Not Trained | 1 = Basic | 2 = Competent | 3 = Expert", this);
+    QLabel* legendLabel = new QLabel(
+        "Competency Levels: 0 = No knowledge | 1 = Limited (less than 3 occurrences) | "
+        "2 = Trained (greater than 3 occurrences) | 3 = Able to train others competently", this);
     legendLabel->setStyleSheet("QLabel { color: #666; font-size: 11pt; }");
+    legendLabel->setWordWrap(true);
     mainLayout->addWidget(legendLabel);
 
     // Scrollable assessments container
@@ -76,7 +108,7 @@ void MyAssessmentsWidget::setupUI()
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
 
-    saveButton_ = new QPushButton("Save My Assessments", this);
+    saveButton_ = new QPushButton("Submit Changes for Approval", this);
     refreshButton_ = new QPushButton("Refresh", this);
 
     connect(saveButton_, &QPushButton::clicked, this, &MyAssessmentsWidget::onSaveClicked);
@@ -103,22 +135,40 @@ void MyAssessmentsWidget::loadAssessments()
     }
     scoreButtonGroups_.clear();
 
+    // Clear manager notifications UI
+    QLayoutItem* noteItem;
+    while ((noteItem = notificationsLayout_->takeAt(0)) != nullptr) {
+        if (noteItem->widget()) {
+            noteItem->widget()->deleteLater();
+        }
+        delete noteItem;
+    }
+
     // Load production data
     QList<ProductionArea> areas = productionRepo_.findAllAreas();
 
     // Load this engineer's assessments
-    QList<Assessment> assessments = assessmentRepo_.findAll();
+    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId_);
 
     // Create a map of assessment key -> score for quick lookup
     QMap<QString, int> assessmentScores;
     for (const Assessment& assessment : assessments) {
-        if (assessment.engineerId() == engineerId_) {
-            QString key = QString("%1_%2_%3")
-                .arg(assessment.productionAreaId())
-                .arg(assessment.machineId())
-                .arg(assessment.competencyId());
-            assessmentScores[key] = assessment.score();
-        }
+        QString key = QString("%1_%2_%3")
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        assessmentScores[key] = assessment.score();
+    }
+
+    QMap<QString, int> pendingScores;
+    const QList<AssessmentSubmission> pendingSubmissions =
+        submissionRepo_.findPendingByEngineer(engineerId_, "production");
+    for (const AssessmentSubmission& submission : pendingSubmissions) {
+        const QString key = QString("%1_%2_%3")
+            .arg(submission.productionAreaId)
+            .arg(submission.machineId)
+            .arg(submission.competencyId);
+        pendingScores[key] = submission.proposedScore;
     }
 
     // Track statistics
@@ -127,6 +177,9 @@ void MyAssessmentsWidget::loadAssessments()
 
     // Create a card for each production area
     DataCache& cache = DataCache::instance();
+    if (!cache.isLoaded()) {
+        cache.load();
+    }
     for (const ProductionArea& area : areas) {
         // Get machines for this area
         QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
@@ -194,21 +247,25 @@ void MyAssessmentsWidget::loadAssessments()
                 compLabel->setMaximumWidth(500);
                 compLayout->addWidget(compLabel, 1);
 
-                compLayout->addStretch();
+                compLayout->addSpacing(16);
 
                 // Get current score
                 QString key = QString("%1_%2_%3")
                     .arg(area.id())
                     .arg(machine.id())
                     .arg(competency.id());
-                int currentScore = assessmentScores.value(key, 0);
+                const int approvedScore = assessmentScores.value(key, 0);
+                const bool pendingApproval = pendingScores.contains(key);
+                const int currentScore = pendingApproval
+                    ? pendingScores.value(key)
+                    : approvedScore;
 
-                if (currentScore > 0) {
+                if (approvedScore > 0) {
                     trainedCompetencies++;
                 }
 
                 // Create score buttons (0-3)
-                createScoreButtons(compLayout, area.id(), machine.id(), competency.id(), currentScore);
+                createScoreButtons(compLayout, area.id(), machine.id(), competency.id(), currentScore, pendingApproval);
 
                 cardLayout->addLayout(compLayout);
             }
@@ -223,12 +280,42 @@ void MyAssessmentsWidget::loadAssessments()
     // Update summary
     double completionRate = totalCompetencies > 0 ? (double)trainedCompetencies / totalCompetencies * 100.0 : 0.0;
 
-    QString summaryText = QString("📊 %1 of %2 competencies trained (%.1%%)")
+    QString summaryText = QString("Approved: %1 of %2 competencies trained (%3%) | Pending changes: %4")
         .arg(trainedCompetencies)
         .arg(totalCompetencies)
-        .arg(completionRate, 0, 'f', 1);
+        .arg(completionRate, 0, 'f', 1)
+        .arg(pendingSubmissions.size());
 
     summaryLabel_->setText(summaryText);
+
+    // Load notifications about manager adjustments
+    const QList<EngineerNotification> notifications = notificationRepo_.findByEngineer(engineerId_, true, 20);
+    if (notifications.isEmpty()) {
+        notificationsSummaryLabel_->setText("No unread manager updates.");
+        markNotificationsReadButton_->setEnabled(false);
+    } else {
+        notificationsSummaryLabel_->setText(
+            QString("%1 unread manager update%2").arg(notifications.size()).arg(notifications.size() == 1 ? "" : "s"));
+        markNotificationsReadButton_->setEnabled(true);
+
+        for (const EngineerNotification& note : notifications) {
+            QLabel* noteLabel = new QLabel(
+                QString("%1  |  %2\n%3")
+                    .arg(note.createdAt.toString("dd MMM yyyy HH:mm"))
+                    .arg(note.title)
+                    .arg(note.message),
+                this);
+            noteLabel->setWordWrap(true);
+            noteLabel->setStyleSheet(
+                "QLabel {"
+                "  border: 1px solid #cbd5e1;"
+                "  border-radius: 8px;"
+                "  padding: 8px;"
+                "  background-color: #f8fafc;"
+                "}");
+            notificationsLayout_->addWidget(noteLabel);
+        }
+    }
 
     Logger::instance().info("MyAssessmentsWidget",
         QString("Loaded %1 competencies (%2 trained) for engineer %3")
@@ -238,7 +325,7 @@ void MyAssessmentsWidget::loadAssessments()
 }
 
 void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, int machineId,
-                                             int competencyId, int currentScore)
+                                             int competencyId, int currentScore, bool pendingApproval)
 {
     // Score labels and colors
     struct ScoreInfo {
@@ -260,8 +347,13 @@ void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, in
 
     for (int score = 0; score < 4; score++) {
         QPushButton* button = new QPushButton(scoreInfos[score].label);
-        button->setFixedSize(32, 32);
+        button->setFixedSize(60, 48);
         button->setCursor(Qt::PointingHandCursor);
+        auto* shadow = new QGraphicsDropShadowEffect(button);
+        shadow->setBlurRadius(12);
+        shadow->setOffset(0, 2);
+        shadow->setColor(QColor(15, 23, 42, 40));
+        button->setGraphicsEffect(shadow);
 
         // Store metadata
         button->setProperty("areaId", areaId);
@@ -281,28 +373,38 @@ void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, in
                 "    background-color: %1;"
                 "    color: white;"
                 "    border: 2px solid %1;"
-                "    border-radius: 16px;"
+                "    border-radius: 14px;"
+                "    padding: 0px;"
+                "    min-width: 0px;"
+                "    min-height: 0px;"
+                "    text-align: center;"
                 "    font-weight: bold;"
-                "    font-size: 12px;"
+                "    font-size: 20px;"
                 "}"
                 "QPushButton:hover {"
-                "    opacity: 0.9;"
+                "    border: 2px solid #1e293b;"
+                "    background-color: %1;"
                 "}"
             ).arg(scoreInfos[score].color);
         } else {
             // Inactive button: transparent background, colored border
             buttonStyle = QString(
                 "QPushButton {"
-                "    background-color: transparent;"
-                "    color: #64748b;"
-                "    border: 2px solid #e2e8f0;"
-                "    border-radius: 16px;"
-                "    font-size: 12px;"
+                "    background-color: #f8fafc;"
+                "    color: #475569;"
+                "    border: 2px solid #cbd5e1;"
+                "    border-radius: 14px;"
+                "    padding: 0px;"
+                "    min-width: 0px;"
+                "    min-height: 0px;"
+                "    text-align: center;"
+                "    font-size: 20px;"
+                "    font-weight: bold;"
                 "}"
                 "QPushButton:hover {"
                 "    border-color: %1;"
                 "    color: %1;"
-                "    background-color: rgba(255, 255, 255, 0.05);"
+                "    background-color: #e2e8f0;"
                 "}"
             ).arg(scoreInfos[score].color);
         }
@@ -313,6 +415,14 @@ void MyAssessmentsWidget::createScoreButtons(QHBoxLayout* layout, int areaId, in
 
         layout->addWidget(button);
         buttonGroup.buttons[score] = button;
+    }
+
+    if (pendingApproval) {
+        QLabel* pendingLabel = new QLabel("Pending approval", this);
+        pendingLabel->setStyleSheet(
+            "QLabel { color: #b45309; background: #fffbeb; border: 1px solid #fbbf24; "
+            "border-radius: 8px; padding: 6px 10px; font-weight: 600; }");
+        layout->addWidget(pendingLabel);
     }
 
     scoreButtonGroups_.append(buttonGroup);
@@ -354,27 +464,37 @@ void MyAssessmentsWidget::onScoreButtonClicked()
                         "    background-color: %1;"
                         "    color: white;"
                         "    border: 2px solid %1;"
-                        "    border-radius: 16px;"
+                        "    border-radius: 14px;"
+                        "    padding: 0px;"
+                        "    min-width: 0px;"
+                        "    min-height: 0px;"
+                        "    text-align: center;"
                         "    font-weight: bold;"
-                        "    font-size: 12px;"
+                        "    font-size: 20px;"
                         "}"
                         "QPushButton:hover {"
-                        "    opacity: 0.9;"
+                        "    border: 2px solid #1e293b;"
+                        "    background-color: %1;"
                         "}"
                     ).arg(scoreColors[i]);
                 } else {
                     buttonStyle = QString(
                         "QPushButton {"
-                        "    background-color: transparent;"
-                        "    color: #64748b;"
-                        "    border: 2px solid #e2e8f0;"
-                        "    border-radius: 16px;"
-                        "    font-size: 12px;"
+                        "    background-color: #f8fafc;"
+                        "    color: #475569;"
+                        "    border: 2px solid #cbd5e1;"
+                        "    border-radius: 14px;"
+                        "    padding: 0px;"
+                        "    min-width: 0px;"
+                        "    min-height: 0px;"
+                        "    text-align: center;"
+                        "    font-size: 20px;"
+                        "    font-weight: bold;"
                         "}"
                         "QPushButton:hover {"
                         "    border-color: %1;"
                         "    color: %1;"
-                        "    background-color: rgba(255, 255, 255, 0.05);"
+                        "    background-color: #e2e8f0;"
                         "}"
                     ).arg(scoreColors[i]);
                 }
@@ -395,8 +515,33 @@ void MyAssessmentsWidget::onScoreButtonClicked()
 
 void MyAssessmentsWidget::onSaveClicked()
 {
-    int savedCount = 0;
+    int submittedCount = 0;
     int errorCount = 0;
+
+    QList<Assessment> existingAssessments = assessmentRepo_.findByEngineer(engineerId_);
+    QMap<QString, int> existingScores;
+    for (const Assessment& assessment : existingAssessments) {
+        const QString key = QString("%1_%2_%3")
+            .arg(assessment.productionAreaId())
+            .arg(assessment.machineId())
+            .arg(assessment.competencyId());
+        existingScores[key] = assessment.score();
+    }
+
+    QMap<QString, int> pendingScores;
+    const QList<AssessmentSubmission> pendingSubmissions =
+        submissionRepo_.findPendingByEngineer(engineerId_, "production");
+    for (const AssessmentSubmission& submission : pendingSubmissions) {
+        const QString key = QString("%1_%2_%3")
+            .arg(submission.productionAreaId)
+            .arg(submission.machineId)
+            .arg(submission.competencyId);
+        pendingScores[key] = submission.proposedScore;
+    }
+
+    Session* session = Application::instance().session();
+    const QString submittedByUserId = session ? session->userId() : QString();
+    const QString submittedByName = session ? session->username() : QString();
 
     // Loop through all button groups and find selected score for each competency
     for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
@@ -410,33 +555,58 @@ void MyAssessmentsWidget::onSaveClicked()
             }
         }
 
-        Assessment assessment(0, engineerId_, buttonGroup.areaId, buttonGroup.machineId,
-                            buttonGroup.competencyId, selectedScore);
+        const QString scoreKey = QString("%1_%2_%3")
+            .arg(buttonGroup.areaId)
+            .arg(buttonGroup.machineId)
+            .arg(buttonGroup.competencyId);
+        const int approvedScore = existingScores.value(scoreKey, 0);
+        const int displayedScore = pendingScores.contains(scoreKey)
+            ? pendingScores.value(scoreKey)
+            : approvedScore;
 
-        if (assessmentRepo_.saveOrUpdate(assessment)) {
-            savedCount++;
+        if (selectedScore == displayedScore) {
+            continue;
+        }
+
+        if (submissionRepo_.submitProduction(
+                engineerId_, buttonGroup.areaId, buttonGroup.machineId,
+                buttonGroup.competencyId, selectedScore,
+                submittedByUserId, submittedByName)) {
+            submittedCount++;
         } else {
             errorCount++;
             Logger::instance().error("MyAssessmentsWidget",
-                QString("Failed to save assessment: %1").arg(assessmentRepo_.lastError()));
+                QString("Failed to submit assessment: %1").arg(submissionRepo_.lastError()));
         }
     }
 
     if (errorCount > 0) {
         QMessageBox::warning(this, "Partial Success",
-            QString("Saved %1 assessments, but %2 failed.").arg(savedCount).arg(errorCount));
+            QString("Submitted %1 changes, but %2 failed.").arg(submittedCount).arg(errorCount));
+    } else if (submittedCount == 0) {
+        QMessageBox::information(this, "No Changes", "There are no new assessment changes to submit.");
     } else {
-        Logger::instance().info("MyAssessmentsWidget", QString("Saved %1 assessments").arg(savedCount));
-        QMessageBox::information(this, "Success",
-            QString("Successfully saved %1 assessments.").arg(savedCount));
-
-        // Refresh to update summary statistics
-        loadAssessments();
+        Logger::instance().info("MyAssessmentsWidget", QString("Submitted %1 assessment changes").arg(submittedCount));
+        QMessageBox::information(this, "Submitted for Approval",
+            QString("Submitted %1 assessment change%2 for manager approval.")
+                .arg(submittedCount)
+                .arg(submittedCount == 1 ? "" : "s"));
     }
+    loadAssessments();
 }
 
 void MyAssessmentsWidget::onRefreshClicked()
 {
     loadAssessments();
     Logger::instance().info("MyAssessmentsWidget", "Assessments refreshed");
+}
+
+void MyAssessmentsWidget::onMarkNotificationsReadClicked()
+{
+    if (!notificationRepo_.markAllReadForEngineer(engineerId_)) {
+        QMessageBox::warning(this, "Update Failed",
+            "Could not mark manager updates as read: " + notificationRepo_.lastError());
+        return;
+    }
+    loadAssessments();
 }

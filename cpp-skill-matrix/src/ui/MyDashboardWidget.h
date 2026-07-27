@@ -5,6 +5,8 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QListWidget>
+#include <QMap>
+#include <QPointF>
 #include <QtCharts/QChart>
 #include <QtCharts/QChartView>
 #include <QtCharts/QPolarChart>
@@ -28,6 +30,7 @@ protected:
 
 private slots:
     void onRefreshClicked();
+    void onCoreSkillRadarPointClicked(const QPointF& point);
 
 private:
     void setupUI();
@@ -36,6 +39,8 @@ private:
     void updateAreasOfWeakness();
     void createProductionAreaRadarChart();
     void createCoreSkillsRadarChart();
+    void updateCoreSkillDisciplineDrilldown(const QString& discipline);
+    void updateDisciplineButtonStyles();
     QChart* createRadarChart(const QMap<QString, double>& data, const QString& title, const QColor& color);
 
 private:
@@ -50,10 +55,15 @@ private:
 
     // Areas of weakness
     QListWidget* weaknessListWidget_;
+    QListWidget* strengthsListWidget_;
 
     // Radar charts
     QChartView* productionAreaChartView_;
     QChartView* coreSkillsChartView_;
+    QLabel* coreSkillDrilldownLabel_;
+    QListWidget* coreSkillGapListWidget_;
+    QListWidget* coreSkillStrengthListWidget_;
+    QMap<QString, QPushButton*> disciplineButtons_;
 
     // Buttons
     QPushButton* refreshButton_;
@@ -68,6 +78,8 @@ private:
     Engineer currentEngineer_;
     QList<Assessment> assessments_;
     QList<CoreSkillAssessment> coreSkillAssessments_;
+    QStringList coreSkillRadarLabels_;
+    QString activeDiscipline_;
 };
 
 #endif // MYDASHBOARDWIDGET_H

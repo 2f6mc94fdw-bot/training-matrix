@@ -17,6 +17,7 @@ public:
     QString name() const { return name_; }
     QDate dateEarned() const { return dateEarned_; }
     QDate expiryDate() const { return expiryDate_; }
+    QString certificateFilePath() const { return certificateFilePath_; }
     QDateTime createdAt() const { return createdAt_; }
 
     void setId(int id) { id_ = id; }
@@ -24,6 +25,7 @@ public:
     void setName(const QString& name) { name_ = name; }
     void setDateEarned(const QDate& dateEarned) { dateEarned_ = dateEarned; }
     void setExpiryDate(const QDate& expiryDate) { expiryDate_ = expiryDate; }
+    void setCertificateFilePath(const QString& certificateFilePath) { certificateFilePath_ = certificateFilePath; }
     void setCreatedAt(const QDateTime& createdAt) { createdAt_ = createdAt; }
 
     bool isValid() const;
@@ -38,6 +40,7 @@ private:
     QString name_;
     QDate dateEarned_;
     QDate expiryDate_;
+    QString certificateFilePath_;
     QDateTime createdAt_;
 };
 

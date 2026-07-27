@@ -3,6 +3,7 @@
 #include <QPainterPath>
 #include <QLinearGradient>
 #include <QtMath>
+#include <QPalette>
 
 AptitudeLogoWidget::AptitudeLogoWidget(QWidget* parent)
     : QWidget(parent)
@@ -107,7 +108,7 @@ void AptitudeLogoWidget::paintEvent(QPaintEvent* event)
         painter.fillPath(sideFace, segmentColors[i].darker(130));
     }
 
-    // Draw "APTITUDE" text in SOLID WHITE below the hexagon
+    // Draw "APTITUDE" text below the hexagon with adaptive contrast.
     QFont font = painter.font();
     font.setFamily("Arial");
     font.setPointSize(logoSize_ / 9);
@@ -115,7 +116,14 @@ void AptitudeLogoWidget::paintEvent(QPaintEvent* event)
     font.setLetterSpacing(QFont::AbsoluteSpacing, 3);
     painter.setFont(font);
 
-    painter.setPen(QColor(255, 255, 255));  // Solid white text
+    const QColor bgColor = palette().color(QPalette::Window);
+    const bool lightBackground = bgColor.lightness() > 150;
+    const QColor textColor = lightBackground ? QColor("#0f172a") : QColor("#f8fafc");
+    const QColor shadowColor = lightBackground ? QColor(255, 255, 255, 120) : QColor(0, 0, 0, 120);
+
     QRectF textRect(0, logoSize_ * 0.72, logoSize_, 40);
+    painter.setPen(shadowColor);
+    painter.drawText(textRect.translated(0, 1), Qt::AlignCenter, "APTITUDE");
+    painter.setPen(textColor);
     painter.drawText(textRect, Qt::AlignCenter, "APTITUDE");
 }

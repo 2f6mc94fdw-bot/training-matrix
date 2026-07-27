@@ -3,6 +3,9 @@ build/
 build-*/
 cmake-build-*/
 out/
+deployment/windows/output/
+deployment/Aptitude_Windows_Source_Handover_*/
+deployment/untitled folder/
 
 # Qt specific
 *.pro.user

@@ -1,59 +1,322 @@
 #include "AssessmentWidget.h"
-#include "../utils/Logger.h"
+
 #include "../core/DataCache.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGridLayout>
+#include "../core/Application.h"
+#include "../models/Assessment.h"
+#include "../models/ProductionArea.h"
+#include "../utils/Logger.h"
+
+#include <QtConcurrent/QtConcurrent>
+#include <QComboBox>
 #include <QGroupBox>
-#include <QLabel>
-#include <QScrollArea>
+#include <QHeaderView>
+#include <QHBoxLayout>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
 #include <QShowEvent>
+#include <QStyledItemDelegate>
+#include <QUuid>
 #include <algorithm>
+
+namespace {
+class ScoreComboDelegate : public QStyledItemDelegate
+{
+public:
+    explicit ScoreComboDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override
+    {
+        QComboBox* editor = new QComboBox(parent);
+        editor->addItem("0 - Not Trained", 0);
+        editor->addItem("1 - Basic", 1);
+        editor->addItem("2 - Competent", 2);
+        editor->addItem("3 - Expert", 3);
+        return editor;
+    }
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+        QComboBox* combo = qobject_cast<QComboBox*>(editor);
+        if (!combo) {
+            return;
+        }
+        const int score = index.model()->data(index, Qt::EditRole).toInt();
+        const int comboIndex = combo->findData(score);
+        combo->setCurrentIndex(comboIndex >= 0 ? comboIndex : 0);
+    }
+
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
+    {
+        QComboBox* combo = qobject_cast<QComboBox*>(editor);
+        if (!combo) {
+            return;
+        }
+        model->setData(index, combo->currentData(), Qt::EditRole);
+    }
+
+    void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex&) const override
+    {
+        editor->setGeometry(option.rect);
+    }
+};
+} // namespace
+
+AssessmentTableModel::AssessmentTableModel(QObject* parent)
+    : QAbstractTableModel(parent)
+{
+}
+
+int AssessmentTableModel::rowCount(const QModelIndex& parent) const
+{
+    if (parent.isValid()) {
+        return 0;
+    }
+    return rows_.size();
+}
+
+int AssessmentTableModel::columnCount(const QModelIndex& parent) const
+{
+    Q_UNUSED(parent);
+    return ColumnCount;
+}
+
+QVariant AssessmentTableModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() < 0 || index.row() >= rows_.size()) {
+        return QVariant();
+    }
+
+    const AssessmentTableRow& row = rows_.at(index.row());
+
+    if (role == Qt::DisplayRole) {
+        switch (index.column()) {
+            case EngineerColumn:
+                return row.engineerName;
+            case AreaColumn:
+                return row.areaName;
+            case MachineColumn:
+                return row.machineName;
+            case CompetencyColumn:
+                return row.competencyName;
+            case ScoreColumn:
+                return row.score;
+            default:
+                return QVariant();
+        }
+    }
+
+    if (role == Qt::EditRole && index.column() == ScoreColumn) {
+        return row.score;
+    }
+
+    if (role == EngineerIdRole) {
+        return row.engineerId;
+    }
+    if (role == AreaIdRole) {
+        return row.areaId;
+    }
+    if (role == MachineIdRole) {
+        return row.machineId;
+    }
+    if (role == CompetencyIdRole) {
+        return row.competencyId;
+    }
+    if (role == ScoreRole) {
+        return row.score;
+    }
+
+    return QVariant();
+}
+
+QVariant AssessmentTableModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
+        return QAbstractTableModel::headerData(section, orientation, role);
+    }
+
+    switch (section) {
+        case EngineerColumn:
+            return "Engineer";
+        case AreaColumn:
+            return "Area";
+        case MachineColumn:
+            return "Machine";
+        case CompetencyColumn:
+            return "Competency";
+        case ScoreColumn:
+            return "Score";
+        default:
+            return QVariant();
+    }
+}
+
+Qt::ItemFlags AssessmentTableModel::flags(const QModelIndex& index) const
+{
+    if (!index.isValid()) {
+        return Qt::NoItemFlags;
+    }
+
+    Qt::ItemFlags itemFlags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+    if (index.column() == ScoreColumn) {
+        itemFlags |= Qt::ItemIsEditable;
+    }
+    return itemFlags;
+}
+
+bool AssessmentTableModel::setData(const QModelIndex& index, const QVariant& value, int role)
+{
+    if (!index.isValid() || index.column() != ScoreColumn || role != Qt::EditRole) {
+        return false;
+    }
+
+    const int newScore = value.toInt();
+    if (newScore < 0 || newScore > 3) {
+        return false;
+    }
+
+    AssessmentTableRow& row = rows_[index.row()];
+    const int oldScore = row.score;
+    if (oldScore == newScore) {
+        return false;
+    }
+
+    row.score = newScore;
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole, ScoreRole});
+    emit scoreEdited(index.row(), row.engineerId, row.areaId, row.machineId, row.competencyId, oldScore, newScore);
+    return true;
+}
+
+void AssessmentTableModel::setRows(QVector<AssessmentTableRow> rows)
+{
+    beginResetModel();
+    rows_ = std::move(rows);
+    endResetModel();
+}
+
+bool AssessmentTableModel::setScoreForRow(int row, int score, bool emitChangeSignal)
+{
+    if (row < 0 || row >= rows_.size() || score < 0 || score > 3) {
+        return false;
+    }
+
+    const int oldScore = rows_[row].score;
+    if (oldScore == score) {
+        return true;
+    }
+
+    rows_[row].score = score;
+    const QModelIndex rowIndex = index(row, ScoreColumn);
+    emit dataChanged(rowIndex, rowIndex, {Qt::DisplayRole, Qt::EditRole, ScoreRole});
+    if (emitChangeSignal) {
+        const AssessmentTableRow& rowData = rows_[row];
+        emit scoreEdited(row, rowData.engineerId, rowData.areaId, rowData.machineId, rowData.competencyId, oldScore, score);
+    }
+    return true;
+}
+
+AssessmentFilterProxyModel::AssessmentFilterProxyModel(QObject* parent)
+    : QSortFilterProxyModel(parent)
+    , areaFilterId_(0)
+    , engineerFilterText_("")
+{
+}
+
+void AssessmentFilterProxyModel::setAreaFilterId(int areaId)
+{
+    areaFilterId_ = areaId;
+    invalidateFilter();
+}
+
+void AssessmentFilterProxyModel::setEngineerFilterText(const QString& text)
+{
+    engineerFilterText_ = text.trimmed();
+    invalidateFilter();
+}
+
+bool AssessmentFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
+{
+    if (areaFilterId_ != 0) {
+        const QModelIndex areaIndex = sourceModel()->index(sourceRow, AssessmentTableModel::AreaColumn, sourceParent);
+        if (sourceModel()->data(areaIndex, AssessmentTableModel::AreaIdRole).toInt() != areaFilterId_) {
+            return false;
+        }
+    }
+
+    if (engineerFilterText_.isEmpty()) {
+        return true;
+    }
+
+    const QModelIndex engineerIndex = sourceModel()->index(sourceRow, AssessmentTableModel::EngineerColumn, sourceParent);
+    const QString engineerName = sourceModel()->data(engineerIndex, Qt::DisplayRole).toString();
+    return engineerName.contains(engineerFilterText_, Qt::CaseInsensitive);
+}
 
 AssessmentWidget::AssessmentWidget(QWidget* parent)
     : QWidget(parent)
     , areaFilterCombo_(nullptr)
-    , engineersLayout_(nullptr)
-    , engineersContainer_(nullptr)
-    , isFirstShow_(true)
+    , engineerSearchEdit_(nullptr)
     , loadingLabel_(nullptr)
+    , summaryLabel_(nullptr)
+    , assessmentsTable_(nullptr)
+    , mainLayout_(nullptr)
+    , tableModel_(nullptr)
+    , proxyModel_(nullptr)
+    , loadWatcher_(nullptr)
+    , isFirstShow_(true)
+    , isLoading_(false)
+    , isApplyingRollback_(false)
+    , totalCompetencies_(0)
+    , trainedCompetencies_(0)
 {
     setupUI();
-
-    Logger::instance().info("AssessmentWidget", "Assessment widget initialized");
+    loadWatcher_ = new QFutureWatcher<AssessmentLoadResult>(this);
+    connect(loadWatcher_, &QFutureWatcher<AssessmentLoadResult>::finished,
+            this, &AssessmentWidget::onBackgroundLoadFinished);
+    Logger::instance().info("AssessmentWidget", "Assessment widget initialized (model/view)");
 }
 
-AssessmentWidget::~AssessmentWidget()
+AssessmentWidget::~AssessmentWidget() = default;
+
+void AssessmentWidget::showEvent(QShowEvent* event)
 {
+    QWidget::showEvent(event);
+
+    if (isFirstShow_) {
+        isFirstShow_ = false;
+        loadAssessments();
+    }
 }
 
 void AssessmentWidget::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(16);
-    mainLayout->setContentsMargins(24, 24, 24, 24);
+    mainLayout_ = new QVBoxLayout(this);
+    mainLayout_->setSpacing(14);
+    mainLayout_->setContentsMargins(24, 24, 24, 24);
 
-    // Title
-    QLabel* titleLabel = new QLabel("Competency Assessment", this);
+    QLabel* titleLabel = new QLabel("Production Assessments", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(32);
+    titleFont.setPointSize(30);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
-    mainLayout->addWidget(titleLabel);
+    mainLayout_->addWidget(titleLabel);
 
-    // Subtitle
-    QLabel* subtitleLabel = new QLabel("Assess engineer competencies by production area", this);
+    QLabel* subtitleLabel = new QLabel("Manager review workspace: filter, adjust scores, and track coverage", this);
     QFont subtitleFont = subtitleLabel->font();
     subtitleFont.setPointSize(14);
     subtitleLabel->setFont(subtitleFont);
-    subtitleLabel->setStyleSheet("color: #64748b;");
-    mainLayout->addWidget(subtitleLabel);
-    mainLayout->addSpacing(16);
+    subtitleLabel->setStyleSheet("color: #475569;");
+    mainLayout_->addWidget(subtitleLabel);
 
-    // Filter bar
+    QGroupBox* controlBox = new QGroupBox(this);
+    QVBoxLayout* controlLayout = new QVBoxLayout(controlBox);
+    controlLayout->setContentsMargins(14, 12, 14, 10);
+    controlLayout->setSpacing(10);
+
     QHBoxLayout* filterLayout = new QHBoxLayout();
-    filterLayout->setSpacing(12);
+    filterLayout->setSpacing(10);
 
     QLabel* filterLabel = new QLabel("Filter by Area:", this);
     QFont filterFont = filterLabel->font();
@@ -63,21 +326,31 @@ void AssessmentWidget::setupUI()
     filterLayout->addWidget(filterLabel);
 
     areaFilterCombo_ = new QComboBox(this);
-    areaFilterCombo_->setMinimumWidth(250);
+    areaFilterCombo_->setMinimumWidth(260);
     areaFilterCombo_->addItem("All Areas", 0);
 
-    // Load production areas
-    QList<ProductionArea> areas = productionRepo_.findAllAreas();
+    const QList<ProductionArea> areas = productionRepo_.findAllAreas();
     for (const ProductionArea& area : areas) {
         areaFilterCombo_->addItem(area.name(), area.id());
     }
 
-    connect(areaFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &AssessmentWidget::onAreaFilterChanged);
-
+    connect(areaFilterCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &AssessmentWidget::onAreaFilterChanged);
     filterLayout->addWidget(areaFilterCombo_);
 
-    // Refresh button
+    QLabel* searchLabel = new QLabel("Engineer:", this);
+    searchLabel->setFont(filterFont);
+    filterLayout->addWidget(searchLabel);
+
+    engineerSearchEdit_ = new QLineEdit(this);
+    engineerSearchEdit_->setPlaceholderText("Search engineer name...");
+    engineerSearchEdit_->setClearButtonEnabled(true);
+    engineerSearchEdit_->setMinimumWidth(220);
+    connect(engineerSearchEdit_, &QLineEdit::textChanged, this, [this](const QString& text) {
+        proxyModel_->setEngineerFilterText(text);
+        updateSummary();
+    });
+    filterLayout->addWidget(engineerSearchEdit_);
+
     QPushButton* refreshButton = new QPushButton("Refresh", this);
     refreshButton->setMinimumWidth(100);
     connect(refreshButton, &QPushButton::clicked, this, &AssessmentWidget::onRefreshClicked);
@@ -85,102 +358,201 @@ void AssessmentWidget::setupUI()
 
     filterLayout->addStretch();
 
-    mainLayout->addLayout(filterLayout);
-    mainLayout->addSpacing(8);
+    summaryLabel_ = new QLabel(this);
+    summaryLabel_->setStyleSheet("color: #475569; font-size: 13px; font-weight: 700;");
+    filterLayout->addWidget(summaryLabel_);
 
-    // Scrollable engineer cards container
-    QScrollArea* scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    controlLayout->addLayout(filterLayout);
 
-    engineersContainer_ = new QWidget();
-    engineersLayout_ = new QVBoxLayout(engineersContainer_);
-    engineersLayout_->setSpacing(16);
-    engineersLayout_->setContentsMargins(0, 0, 0, 0);
-    engineersLayout_->addStretch();
+    QLabel* editHintLabel = new QLabel("Tip: click a score cell to adjust it. Engineer will be notified when a manager changes a score.", this);
+    editHintLabel->setStyleSheet("color: #64748b; font-size: 12px;");
+    controlLayout->addWidget(editHintLabel);
 
-    scrollArea->setWidget(engineersContainer_);
-    mainLayout->addWidget(scrollArea);
+    mainLayout_->addWidget(controlBox);
 
-    // Add loading label (initially hidden)
-    loadingLabel_ = new QLabel("Loading engineers...", this);
-    QFont loadingFont = loadingLabel_->font();
-    loadingFont.setPointSize(16);
-    loadingFont.setBold(true);
-    loadingLabel_->setFont(loadingFont);
+    loadingLabel_ = new QLabel("Loading assessments...", this);
     loadingLabel_->setAlignment(Qt::AlignCenter);
-    loadingLabel_->setStyleSheet("color: #64748b; padding: 40px;");
+    loadingLabel_->setStyleSheet("color: #64748b; font-size: 14px; padding: 8px;");
     loadingLabel_->setVisible(false);
-    engineersLayout_->insertWidget(0, loadingLabel_);
+    mainLayout_->addWidget(loadingLabel_);
 
-    setLayout(mainLayout);
+    tableModel_ = new AssessmentTableModel(this);
+    proxyModel_ = new AssessmentFilterProxyModel(this);
+    proxyModel_->setSourceModel(tableModel_);
+    proxyModel_->setDynamicSortFilter(true);
 
-    // Don't load data here - wait for showEvent() (lazy loading)
-    // This makes tab switching instant
+    assessmentsTable_ = new QTableView(this);
+    assessmentsTable_->setModel(proxyModel_);
+    assessmentsTable_->setAlternatingRowColors(true);
+    assessmentsTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    assessmentsTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+    assessmentsTable_->setSortingEnabled(true);
+    assessmentsTable_->setEditTriggers(QAbstractItemView::CurrentChanged | QAbstractItemView::SelectedClicked);
+    assessmentsTable_->setWordWrap(false);
+    assessmentsTable_->verticalHeader()->setVisible(false);
+    assessmentsTable_->verticalHeader()->setDefaultSectionSize(36);
+    assessmentsTable_->horizontalHeader()->setStretchLastSection(true);
+    assessmentsTable_->horizontalHeader()->setSectionResizeMode(AssessmentTableModel::EngineerColumn, QHeaderView::ResizeToContents);
+    assessmentsTable_->horizontalHeader()->setSectionResizeMode(AssessmentTableModel::AreaColumn, QHeaderView::ResizeToContents);
+    assessmentsTable_->horizontalHeader()->setSectionResizeMode(AssessmentTableModel::MachineColumn, QHeaderView::ResizeToContents);
+    assessmentsTable_->horizontalHeader()->setSectionResizeMode(AssessmentTableModel::CompetencyColumn, QHeaderView::Stretch);
+    assessmentsTable_->horizontalHeader()->setSectionResizeMode(AssessmentTableModel::ScoreColumn, QHeaderView::ResizeToContents);
+    assessmentsTable_->setItemDelegateForColumn(AssessmentTableModel::ScoreColumn, new ScoreComboDelegate(this));
+    mainLayout_->addWidget(assessmentsTable_);
+
+    connect(tableModel_, &AssessmentTableModel::scoreEdited, this, &AssessmentWidget::onScoreEdited);
 }
 
-void AssessmentWidget::showEvent(QShowEvent* event)
+void AssessmentWidget::loadAssessments()
 {
-    QWidget::showEvent(event);
-
-    // Lazy loading: only load data on first show
-    if (isFirstShow_) {
-        isFirstShow_ = false;
-        loadEngineerCards();
+    if (isLoading_) {
+        return;
     }
-}
+    isLoading_ = true;
 
-void AssessmentWidget::loadEngineerCards()
-{
-    // Show loading label IMMEDIATELY (before any blocking work)
     loadingLabel_->setVisible(true);
-    loadingLabel_->setText("Loading data from database...");
+    loadingLabel_->setText("Loading assessment data...");
+    loadTimer_.start();
 
-    // Clear existing cards
-    QLayoutItem* item;
-    while ((item = engineersLayout_->takeAt(0)) != nullptr) {
-        if (item->widget() && item->widget() != loadingLabel_) {
-            item->widget()->deleteLater();
+    const QSqlDatabase mainDb = DatabaseManager::instance().database();
+    if (!mainDb.isOpen()) {
+        loadingLabel_->setVisible(false);
+        isLoading_ = false;
+        QMessageBox::warning(this, "Database Error", "Database connection is not open.");
+        return;
+    }
+
+    const QString driver = mainDb.driverName();
+    const QString databaseName = mainDb.databaseName();
+    const QString connectOptions = mainDb.connectOptions();
+
+    auto future = QtConcurrent::run([driver, databaseName, connectOptions]() -> AssessmentLoadResult {
+        AssessmentLoadResult result;
+        const QString connName = QString("AssessmentWidgetLoad_%1")
+                                     .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+
+        {
+            QSqlDatabase workerDb = QSqlDatabase::addDatabase(driver, connName);
+            workerDb.setDatabaseName(databaseName);
+            workerDb.setConnectOptions(connectOptions);
+
+            if (!workerDb.open()) {
+                result.error = workerDb.lastError().text();
+                workerDb = QSqlDatabase();
+                QSqlDatabase::removeDatabase(connName);
+                return result;
+            }
+
+            QSqlQuery engineerQuery(workerDb);
+            engineerQuery.setForwardOnly(true);
+            if (!engineerQuery.exec("SELECT id, name, shift, created_at, updated_at FROM engineers ORDER BY name")) {
+                result.error = engineerQuery.lastError().text();
+                workerDb.close();
+                workerDb = QSqlDatabase();
+                QSqlDatabase::removeDatabase(connName);
+                return result;
+            }
+
+            while (engineerQuery.next()) {
+                Engineer engineer;
+                engineer.setId(engineerQuery.value(0).toString());
+                engineer.setName(engineerQuery.value(1).toString());
+                engineer.setShift(engineerQuery.value(2).toString());
+                engineer.setCreatedAt(engineerQuery.value(3).toDateTime());
+                engineer.setUpdatedAt(engineerQuery.value(4).toDateTime());
+                result.engineers.append(engineer);
+            }
+
+            QSqlQuery areaQuery(workerDb);
+            areaQuery.setForwardOnly(true);
+            if (!areaQuery.exec("SELECT id, name, created_at, updated_at FROM production_areas ORDER BY name")) {
+                result.error = areaQuery.lastError().text();
+                workerDb.close();
+                workerDb = QSqlDatabase();
+                QSqlDatabase::removeDatabase(connName);
+                return result;
+            }
+
+            while (areaQuery.next()) {
+                ProductionArea area;
+                area.setId(areaQuery.value(0).toInt());
+                area.setName(areaQuery.value(1).toString());
+                area.setCreatedAt(areaQuery.value(2).toDateTime());
+                area.setUpdatedAt(areaQuery.value(3).toDateTime());
+                result.areas.append(area);
+            }
+
+            QSqlQuery assessmentQuery(workerDb);
+            assessmentQuery.setForwardOnly(true);
+            if (!assessmentQuery.exec("SELECT id, engineer_id, production_area_id, machine_id, competency_id, score, created_at, updated_at FROM assessments")) {
+                result.error = assessmentQuery.lastError().text();
+                workerDb.close();
+                workerDb = QSqlDatabase();
+                QSqlDatabase::removeDatabase(connName);
+                return result;
+            }
+
+            while (assessmentQuery.next()) {
+                Assessment assessment;
+                assessment.setId(assessmentQuery.value(0).toInt());
+                assessment.setEngineerId(assessmentQuery.value(1).toString());
+                assessment.setProductionAreaId(assessmentQuery.value(2).toInt());
+                assessment.setMachineId(assessmentQuery.value(3).toInt());
+                assessment.setCompetencyId(assessmentQuery.value(4).toInt());
+                assessment.setScore(assessmentQuery.value(5).toInt());
+                assessment.setCreatedAt(assessmentQuery.value(6).toDateTime());
+                assessment.setUpdatedAt(assessmentQuery.value(7).toDateTime());
+                result.assessments.append(assessment);
+            }
+
+            workerDb.close();
+            workerDb = QSqlDatabase();
         }
-        delete item;
-    }
-    scoreButtonGroups_.clear();
 
-    Logger::instance().info("AssessmentWidget", "Loading assessment data...");
+        QSqlDatabase::removeDatabase(connName);
+        result.success = true;
+        return result;
+    });
 
-    // Load all data from database (optimized with caching)
-    cachedEngineers_ = engineerRepo_.findAll();
-    QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
-    QList<Assessment> allAssessments = assessmentRepo_.findAll();
+    loadWatcher_->setFuture(future);
+}
 
-    // Build assessment lookup map for O(1) access
+void AssessmentWidget::applyLoadedData(const AssessmentLoadResult& result)
+{
     cachedAssessmentScores_.clear();
-    for (const Assessment& assessment : allAssessments) {
-        QString key = QString("%1_%2_%3_%4")
-            .arg(assessment.engineerId())
-            .arg(assessment.productionAreaId())
-            .arg(assessment.machineId())
-            .arg(assessment.competencyId());
-        cachedAssessmentScores_[key] = assessment.score();
+    cachedAreaToMachines_.clear();
+    cachedAreaNames_.clear();
+    areaTotalCompetencies_.clear();
+    areaTrainedCompetencies_.clear();
+    totalCompetencies_ = 0;
+    trainedCompetencies_ = 0;
+
+    for (const Assessment& assessment : result.assessments) {
+        cachedAssessmentScores_[assessmentKey(
+            assessment.engineerId(),
+            assessment.productionAreaId(),
+            assessment.machineId(),
+            assessment.competencyId())] = assessment.score();
     }
 
-    // Pre-load all machines and competencies
-    QMap<int, QString> areaNames;
-    cachedAreaToMachines_.clear();
     DataCache& cache = DataCache::instance();
+    if (!cache.isLoaded()) {
+        cache.load();
+    }
+    int competenciesPerEngineer = 0;
 
-    for (const ProductionArea& area : allAreas) {
-        areaNames[area.id()] = area.name();
-
-        QList<Machine> machines = cache.getMachinesByArea(area.id());
+    for (const ProductionArea& area : result.areas) {
+        cachedAreaNames_[area.id()] = area.name();
         QList<MachineData> machineDataList;
 
+        const QList<Machine> machines = cache.getMachinesByArea(area.id());
         for (const Machine& machine : machines) {
-            MachineData data;
-            data.machine = machine;
-            data.competencies = cache.getCompetenciesByMachine(machine.id());
-            if (!data.competencies.isEmpty()) {
-                machineDataList.append(data);
+            MachineData machineData;
+            machineData.machine = machine;
+            machineData.competencies = cache.getCompetenciesByMachine(machine.id());
+            if (!machineData.competencies.isEmpty()) {
+                competenciesPerEngineer += machineData.competencies.size();
+                machineDataList.append(machineData);
             }
         }
 
@@ -189,431 +561,172 @@ void AssessmentWidget::loadEngineerCards()
         }
     }
 
-    cachedAreaNames_ = areaNames;
+    QList<Engineer> sortedEngineers = result.engineers;
+    std::sort(sortedEngineers.begin(), sortedEngineers.end(), [](const Engineer& lhs, const Engineer& rhs) {
+        return lhs.name() < rhs.name();
+    });
 
-    // Sort engineers by name
-    std::sort(cachedEngineers_.begin(), cachedEngineers_.end(),
-              [](const Engineer& a, const Engineer& b) {
-                  return a.name() < b.name();
-              });
+    QVector<AssessmentTableRow> rows;
+    rows.reserve(sortedEngineers.size() * std::max(1, competenciesPerEngineer));
 
-    Logger::instance().info("AssessmentWidget",
-        QString("Loaded %1 engineers from database. Creating UI...")
-            .arg(cachedEngineers_.size()));
-
-    if (cachedEngineers_.isEmpty()) {
-        loadingLabel_->setText("No engineers found");
-        return;
-    }
-
-    // Option A: Load all cards at once (brief freeze, zero jutter)
-    // Professional apps load everything in one go for smooth experience
-    int filterAreaId = areaFilterCombo_->currentData().toInt();
-
-    for (int i = 0; i < cachedEngineers_.size(); i++) {
-        const Engineer& engineer = cachedEngineers_[i];
-
-        // Create engineer card
-        QGroupBox* engineerCard = new QGroupBox(this);
-        engineerCard->setStyleSheet(
-            "QGroupBox {"
-            "    border: 2px solid #e2e8f0;"
-            "    border-radius: 8px;"
-            "    padding: 20px;"
-            "    background-color: transparent;"
-            "}"
-        );
-
-        QVBoxLayout* cardLayout = new QVBoxLayout(engineerCard);
-        cardLayout->setSpacing(16);
-
-        // Engineer header
-        QHBoxLayout* headerLayout = new QHBoxLayout();
-
-        QLabel* engineerName = new QLabel(engineer.name(), this);
-        QFont nameFont = engineerName->font();
-        nameFont.setPointSize(20);
-        nameFont.setBold(true);
-        engineerName->setFont(nameFont);
-        headerLayout->addWidget(engineerName);
-
-        headerLayout->addStretch();
-
-        // Summary label
-        QLabel* summaryLabel = new QLabel(this);
-        QFont summaryFont = summaryLabel->font();
-        summaryFont.setPointSize(14);
-        summaryLabel->setFont(summaryFont);
-        summaryLabel->setStyleSheet("color: #64748b;");
-        headerLayout->addWidget(summaryLabel);
-
-        cardLayout->addLayout(headerLayout);
-
-        // Use cached data
-        bool hasContent = false;
-        int totalCompetencies = 0;
-        int trainedCompetencies = 0;
-
-        // Iterate through cached area-to-machines mapping
-        for (auto it = cachedAreaToMachines_.constBegin(); it != cachedAreaToMachines_.constEnd(); ++it) {
-            int areaId = it.key();
-
-            // Skip if filtering and doesn't match
-            if (filterAreaId != 0 && areaId != filterAreaId) {
-                continue;
-            }
-
-            const QList<MachineData>& machines = it.value();
-
-            // Get area name from cache (O(1) lookup, no database query)
-            QString areaName = cachedAreaNames_.value(areaId, "Unknown Area");
-
-            // Area header
-            QLabel* areaLabel = new QLabel(areaName, this);
-            QFont areaFont = areaLabel->font();
-            areaFont.setPointSize(16);
-            areaFont.setBold(true);
-            areaLabel->setFont(areaFont);
-            areaLabel->setStyleSheet("color: #334155; margin-top: 8px;");
-            cardLayout->addWidget(areaLabel);
+    for (const Engineer& engineer : sortedEngineers) {
+        for (auto areaIt = cachedAreaToMachines_.cbegin(); areaIt != cachedAreaToMachines_.cend(); ++areaIt) {
+            const int areaId = areaIt.key();
+            const QString areaName = cachedAreaNames_.value(areaId, "Unknown Area");
+            const QList<MachineData>& machines = areaIt.value();
 
             for (const MachineData& machineData : machines) {
-                hasContent = true;
-
-                // Machine header
-                QLabel* machineLabel = new QLabel("  " + machineData.machine.name(), this);
-                QFont machineFont = machineLabel->font();
-                machineFont.setPointSize(14);
-                machineFont.setWeight(QFont::Medium);
-                machineLabel->setFont(machineFont);
-                machineLabel->setStyleSheet("color: #475569; margin-left: 16px;");
-                cardLayout->addWidget(machineLabel);
-
-                // Competencies grid
                 for (const Competency& competency : machineData.competencies) {
-                    totalCompetencies++;
+                    const QString key = assessmentKey(engineer.id(), areaId, machineData.machine.id(), competency.id());
+                    const int score = cachedAssessmentScores_.value(key, 0);
 
-                    QHBoxLayout* compLayout = new QHBoxLayout();
-                    compLayout->setSpacing(12);
-                    compLayout->setContentsMargins(32, 4, 0, 4);
+                    AssessmentTableRow row;
+                    row.engineerId = engineer.id();
+                    row.engineerName = engineer.name();
+                    row.areaId = areaId;
+                    row.areaName = areaName;
+                    row.machineId = machineData.machine.id();
+                    row.machineName = machineData.machine.name();
+                    row.competencyId = competency.id();
+                    row.competencyName = competency.name();
+                    row.score = score;
+                    rows.append(row);
 
-                    // Competency name
-                    QLabel* compLabel = new QLabel(competency.name(), this);
-                    QFont compFont = compLabel->font();
-                    compFont.setPointSize(13);
-                    compLabel->setFont(compFont);
-                    compLabel->setWordWrap(true);
-                    compLabel->setMinimumWidth(250);
-                    compLabel->setMaximumWidth(500);
-                    compLayout->addWidget(compLabel, 1);
-
-                    compLayout->addStretch();
-
-                    // Get current score from cached data
-                    QString key = QString("%1_%2_%3_%4")
-                        .arg(engineer.id())
-                        .arg(areaId)
-                        .arg(machineData.machine.id())
-                        .arg(competency.id());
-                    int currentScore = cachedAssessmentScores_.value(key, -1);
-
-                    if (currentScore > 0) {
-                        trainedCompetencies++;
+                    ++totalCompetencies_;
+                    ++areaTotalCompetencies_[areaId];
+                    if (score > 0) {
+                        ++trainedCompetencies_;
+                        ++areaTrainedCompetencies_[areaId];
                     }
-
-                    // Create score buttons (0-3)
-                    createScoreButtons(compLayout, engineer.id(), areaId, machineData.machine.id(),
-                                     competency.id(), currentScore);
-
-                    cardLayout->addLayout(compLayout);
                 }
             }
         }
-
-        // Only add card if it has content
-        if (hasContent) {
-            // Update summary using already calculated values
-            QString summaryText = QString("%1/%2 competencies trained")
-                                     .arg(trainedCompetencies)
-                                     .arg(totalCompetencies);
-            summaryLabel->setText(summaryText);
-            engineersLayout_->insertWidget(engineersLayout_->count() - 1, engineerCard);
-        } else {
-            delete engineerCard;
-        }
     }
 
-    // Hide loading label - all done
-    loadingLabel_->setVisible(false);
-
-    Logger::instance().info("AssessmentWidget",
-        QString("Created %1 engineer cards").arg(cachedEngineers_.size()));
+    tableModel_->setRows(std::move(rows));
+    proxyModel_->setAreaFilterId(areaFilterCombo_->currentData().toInt());
+    assessmentsTable_->sortByColumn(AssessmentTableModel::EngineerColumn, Qt::AscendingOrder);
 }
 
-
-void AssessmentWidget::createScoreButtons(QHBoxLayout* layout, const QString& engineerId,
-                                         int areaId, int machineId, int competencyId,
-                                         int currentScore)
+void AssessmentWidget::onBackgroundLoadFinished()
 {
-    // Score labels and colors
-    struct ScoreInfo {
-        QString label;
-        QString color;
-    };
+    const AssessmentLoadResult result = loadWatcher_->result();
+    isLoading_ = false;
 
-    QList<ScoreInfo> scoreInfos = {
-        {"0", "#ff6b6b"},  // Not Trained - Red
-        {"1", "#fbbf24"},  // Basic - Yellow
-        {"2", "#60a5fa"},  // Competent - Blue
-        {"3", "#4ade80"}   // Expert - Green
-    };
-
-    ScoreButtonGroup buttonGroup;
-    buttonGroup.engineerId = engineerId;
-    buttonGroup.competencyId = QString::number(competencyId);
-
-    for (int score = 0; score < 4; score++) {
-        QPushButton* button = new QPushButton(scoreInfos[score].label, this);
-        button->setFixedSize(32, 32);
-        button->setCursor(Qt::PointingHandCursor);
-
-        // Store metadata
-        button->setProperty("engineerId", engineerId);
-        button->setProperty("areaId", areaId);
-        button->setProperty("machineId", machineId);
-        button->setProperty("competencyId", competencyId);
-        button->setProperty("score", score);
-
-        // Style button based on whether it's selected
-        bool isSelected = (score == currentScore);
-
-        QString buttonStyle;
-        if (isSelected) {
-            // Active button: colored background, white text
-            buttonStyle = QString(
-                "QPushButton {"
-                "    background-color: %1;"
-                "    color: white;"
-                "    border: 2px solid %1;"
-                "    border-radius: 16px;"
-                "    font-weight: bold;"
-                "    font-size: 12px;"
-                "}"
-                "QPushButton:hover {"
-                "    opacity: 0.9;"
-                "}"
-            ).arg(scoreInfos[score].color);
-        } else {
-            // Inactive button: transparent background, colored border
-            buttonStyle = QString(
-                "QPushButton {"
-                "    background-color: transparent;"
-                "    color: #64748b;"
-                "    border: 2px solid #e2e8f0;"
-                "    border-radius: 16px;"
-                "    font-size: 12px;"
-                "}"
-                "QPushButton:hover {"
-                "    border-color: %1;"
-                "    color: %1;"
-                "    background-color: rgba(255, 255, 255, 0.05);"
-                "}"
-            ).arg(scoreInfos[score].color);
-        }
-
-        button->setStyleSheet(buttonStyle);
-
-        connect(button, &QPushButton::clicked, this, &AssessmentWidget::onScoreButtonClicked);
-
-        layout->addWidget(button);
-        buttonGroup.buttons[score] = button;
-    }
-
-    scoreButtonGroups_.append(buttonGroup);
-}
-
-void AssessmentWidget::onScoreButtonClicked()
-{
-    QPushButton* clickedButton = qobject_cast<QPushButton*>(sender());
-    if (!clickedButton) {
+    if (!result.success) {
+        loadingLabel_->setVisible(false);
+        const QString errorText = result.error.isEmpty() ? "Unknown database error" : result.error;
+        Logger::instance().error("AssessmentWidget", QString("Background load failed: %1").arg(errorText));
+        QMessageBox::warning(this, "Load Failed", QString("Failed to load assessment data.\n%1").arg(errorText));
         return;
     }
 
-    QString engineerId = clickedButton->property("engineerId").toString();
-    int areaId = clickedButton->property("areaId").toInt();
-    int machineId = clickedButton->property("machineId").toInt();
-    int competencyId = clickedButton->property("competencyId").toInt();
-    int score = clickedButton->property("score").toInt();
+    applyLoadedData(result);
+    loadingLabel_->setVisible(false);
+    updateSummary();
 
-    // Save assessment to database
-    Assessment assessment(0, engineerId, areaId, machineId, competencyId, score);
-
-    if (assessmentRepo_.saveOrUpdate(assessment)) {
-        Logger::instance().info("AssessmentWidget",
-            QString("Saved score %1 for engineer %2, competency %3")
-                .arg(score).arg(engineerId).arg(competencyId));
-
-        // Update button styles in this group
-        // Find all buttons for this competency
-        for (int i = 0; i < 4; i++) {
-            // Find the sibling buttons
-            QWidget* parent = clickedButton->parentWidget();
-            if (!parent) continue;
-
-            QHBoxLayout* layout = qobject_cast<QHBoxLayout*>(parent->layout());
-            if (!layout) continue;
-
-            // Iterate through buttons in this layout
-            for (int j = 0; j < layout->count(); j++) {
-                QLayoutItem* item = layout->itemAt(j);
-                if (!item || !item->widget()) continue;
-
-                QPushButton* btn = qobject_cast<QPushButton*>(item->widget());
-                if (!btn) continue;
-
-                // Check if same competency
-                if (btn->property("engineerId").toString() == engineerId &&
-                    btn->property("competencyId").toInt() == competencyId) {
-
-                    int btnScore = btn->property("score").toInt();
-                    bool isSelected = (btnScore == score);
-
-                    // Score colors
-                    QStringList colors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
-                    QString color = colors[btnScore];
-
-                    QString buttonStyle;
-                    if (isSelected) {
-                        buttonStyle = QString(
-                            "QPushButton {"
-                            "    background-color: %1;"
-                            "    color: white;"
-                            "    border: 2px solid %1;"
-                            "    border-radius: 16px;"
-                            "    font-weight: bold;"
-                            "    font-size: 12px;"
-                            "}"
-                            "QPushButton:hover {"
-                            "    opacity: 0.9;"
-                            "}"
-                        ).arg(color);
-                    } else {
-                        buttonStyle = QString(
-                            "QPushButton {"
-                            "    background-color: white;"
-                            "    color: #64748b;"
-                            "    border: 2px solid #e2e8f0;"
-                            "    border-radius: 16px;"
-                            "    font-size: 12px;"
-                            "}"
-                            "QPushButton:hover {"
-                            "    border-color: %1;"
-                            "    color: %1;"
-                            "}"
-                        ).arg(color);
-                    }
-
-                    btn->setStyleSheet(buttonStyle);
-                }
-            }
-        }
-
-        // Update engineer summary
-        // Find the summary label for this engineer
-        for (int i = 0; i < engineersLayout_->count(); i++) {
-            QLayoutItem* item = engineersLayout_->itemAt(i);
-            if (!item || !item->widget()) continue;
-
-            QGroupBox* card = qobject_cast<QGroupBox*>(item->widget());
-            if (!card) continue;
-
-            QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
-            if (!cardLayout || cardLayout->count() == 0) continue;
-
-            QLayoutItem* headerItem = cardLayout->itemAt(0);
-            if (!headerItem) continue;
-
-            QHBoxLayout* headerLayout = qobject_cast<QHBoxLayout*>(headerItem->layout());
-            if (!headerLayout || headerLayout->count() < 3) continue;
-
-            QLayoutItem* summaryItem = headerLayout->itemAt(2);
-            if (!summaryItem || !summaryItem->widget()) continue;
-
-            QLabel* summaryLabel = qobject_cast<QLabel*>(summaryItem->widget());
-            if (summaryLabel) {
-                updateEngineerSummary(engineerId, summaryLabel);
-                break;
-            }
-        }
-
-    } else {
-        Logger::instance().error("AssessmentWidget",
-            QString("Failed to save assessment: %1").arg(assessmentRepo_.lastError()));
-        QMessageBox::warning(this, "Error",
-            "Failed to save assessment. Please try again.");
-    }
+    Logger::instance().info(
+        "AssessmentWidget",
+        QString("Loaded %1 assessment rows in %2 ms (background)")
+            .arg(tableModel_->rowCount())
+            .arg(loadTimer_.elapsed()));
 }
 
-void AssessmentWidget::updateEngineerSummary(const QString& engineerId, QLabel* summaryLabel)
+QString AssessmentWidget::assessmentKey(const QString& engineerId, int areaId, int machineId, int competencyId) const
 {
-    // OPTIMIZATION: Use cached data instead of repeated database queries
-    int filterAreaId = areaFilterCombo_->currentData().toInt();
+    return QString("%1_%2_%3_%4")
+        .arg(engineerId)
+        .arg(areaId)
+        .arg(machineId)
+        .arg(competencyId);
+}
 
-    // Load assessment scores once
-    QList<Assessment> assessments = assessmentRepo_.findByEngineer(engineerId);
-    QMap<QString, int> assessmentScores;
-    for (const Assessment& assessment : assessments) {
-        QString key = QString("%1_%2_%3")
-            .arg(assessment.productionAreaId())
-            .arg(assessment.machineId())
-            .arg(assessment.competencyId());
-        assessmentScores[key] = assessment.score();
+void AssessmentWidget::updateSummary()
+{
+    const int filterAreaId = areaFilterCombo_->currentData().toInt();
+    const int visibleRows = proxyModel_->rowCount();
+
+    int total = totalCompetencies_;
+    int trained = trainedCompetencies_;
+    if (filterAreaId != 0) {
+        total = areaTotalCompetencies_.value(filterAreaId, 0);
+        trained = areaTrainedCompetencies_.value(filterAreaId, 0);
     }
 
-    int totalCompetencies = 0;
-    int trainedCompetencies = 0;
-
-    QList<ProductionArea> areas = productionRepo_.findAllAreas();
-    DataCache& cache = DataCache::instance();
-
-    for (const ProductionArea& area : areas) {
-        if (filterAreaId != 0 && area.id() != filterAreaId) {
-            continue;
-        }
-
-        QList<Machine> machines = cache.getMachinesByArea(area.id());
-        for (const Machine& machine : machines) {
-            QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
-
-            for (const Competency& competency : competencies) {
-                totalCompetencies++;
-
-                QString key = QString("%1_%2_%3")
-                    .arg(area.id())
-                    .arg(machine.id())
-                    .arg(competency.id());
-
-                if (assessmentScores.value(key, 0) > 0) {
-                    trainedCompetencies++;
-                }
-            }
-        }
-    }
-
-    QString summaryText = QString("%1/%2 competencies trained")
-                             .arg(trainedCompetencies)
-                             .arg(totalCompetencies);
-    summaryLabel->setText(summaryText);
+    summaryLabel_->setText(
+        QString("%1 visible rows | %2/%3 trained")
+            .arg(visibleRows)
+            .arg(trained)
+            .arg(total));
 }
 
 void AssessmentWidget::onAreaFilterChanged(int index)
 {
     Q_UNUSED(index);
-    loadEngineerCards();
+    proxyModel_->setAreaFilterId(areaFilterCombo_->currentData().toInt());
+    updateSummary();
 }
 
 void AssessmentWidget::onRefreshClicked()
 {
-    loadEngineerCards();
-    Logger::instance().info("AssessmentWidget", "Refreshed assessment data");
+    if (isLoading_) {
+        return;
+    }
+    loadAssessments();
+}
+
+void AssessmentWidget::onScoreEdited(int sourceRow, const QString& engineerId, int areaId, int machineId, int competencyId, int oldScore, int newScore)
+{
+    if (isApplyingRollback_) {
+        return;
+    }
+
+    const QString key = assessmentKey(engineerId, areaId, machineId, competencyId);
+    const bool expectedHasScore = cachedAssessmentScores_.contains(key);
+    Session* session = Application::instance().session();
+    if (!session || !session->isAdmin()) {
+        isApplyingRollback_ = true;
+        tableModel_->setScoreForRow(sourceRow, oldScore, false);
+        isApplyingRollback_ = false;
+        QMessageBox::warning(this, "Permission Denied",
+            "An authenticated manager is required to update an official score.");
+        return;
+    }
+    const QString managerUserId = session ? session->userId() : QString();
+    const QString managerName = session ? session->username() : QString();
+
+    if (!assessmentWorkflowRepo_.saveOfficialProduction(
+            engineerId,
+            areaId,
+            machineId,
+            competencyId,
+            expectedHasScore,
+            oldScore,
+            newScore,
+            managerUserId,
+            managerName)) {
+        Logger::instance().error(
+            "AssessmentWidget",
+            QString("Failed to save assessment: %1").arg(assessmentWorkflowRepo_.lastError()));
+        isApplyingRollback_ = true;
+        tableModel_->setScoreForRow(sourceRow, oldScore, false);
+        isApplyingRollback_ = false;
+        QMessageBox::warning(this, "Save Failed",
+            assessmentWorkflowRepo_.lastError() + "\n\nThe displayed change has been reverted.");
+        if (assessmentWorkflowRepo_.lastError().startsWith("Conflict:")) {
+            loadAssessments();
+        }
+        return;
+    }
+
+    cachedAssessmentScores_[key] = newScore;
+
+    const bool wasTrained = oldScore > 0;
+    const bool nowTrained = newScore > 0;
+    if (wasTrained != nowTrained) {
+        const int delta = nowTrained ? 1 : -1;
+        trainedCompetencies_ += delta;
+        areaTrainedCompetencies_[areaId] = areaTrainedCompetencies_.value(areaId, 0) + delta;
+        updateSummary();
+    }
 }

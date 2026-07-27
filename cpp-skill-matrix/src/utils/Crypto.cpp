@@ -3,65 +3,61 @@
 #include <QRandomGenerator>
 #include <QDateTime>
 #include <QUuid>
+#include <QStringList>
+
+namespace {
+constexpr int kCurrentIterations = 120000;
+constexpr int kLegacyIterations = 10000;
+const QString kCurrentPrefix = "sm2";
+}
 
 QString Crypto::hashPassword(const QString& password)
 {
-    // IMPORTANT: For production, use BCrypt or Argon2 libraries
-    // This implementation uses PBKDF2-like approach with SHA-256
-    // It provides better security than plain hashing but is not as strong as BCrypt/Argon2
-
-    // Generate a unique salt per password (stored as prefix in the hash)
-    QString salt = generateSalt(16); // 16 bytes = 32 hex chars
-
-    // Perform PBKDF2-like derivation with 10000 iterations
-    QByteArray derived = password.toUtf8() + QByteArray::fromHex(salt.toUtf8());
-
-    // Apply 10000 rounds of hashing (PBKDF2-like)
-    for (int i = 0; i < 10000; i++) {
-        QCryptographicHash hasher(QCryptographicHash::Sha256);
-        hasher.addData(derived);
-        hasher.addData(QByteArray::number(i)); // Include iteration count
-        derived = hasher.result();
-    }
-
-    // Return format: salt$hash (allows verification with same salt)
-    return salt + "$" + derived.toHex();
+    // Versioned format for migration support:
+    // sm2$<iterations>$<salt_hex>$<derived_hex>
+    const QString salt = generateSalt(16);
+    const QByteArray derived = derivePasswordHash(password, salt, kCurrentIterations);
+    return QString("%1$%2$%3$%4")
+        .arg(kCurrentPrefix)
+        .arg(kCurrentIterations)
+        .arg(salt)
+        .arg(QString::fromUtf8(derived.toHex()));
 }
 
 bool Crypto::verifyPassword(const QString& password, const QString& hash)
 {
-    // Check if hash contains salt separator (new format: salt$hash)
+    // Current format: sm2$iterations$salt$hash
+    if (hash.startsWith(kCurrentPrefix + "$")) {
+        const QStringList parts = hash.split("$");
+        if (parts.size() != 4) {
+            return false;
+        }
+        bool ok = false;
+        const int iterations = parts[1].toInt(&ok);
+        if (!ok || iterations < 1000) {
+            return false;
+        }
+        const QByteArray derived = derivePasswordHash(password, parts[2], iterations);
+        return constantTimeEquals(derived.toHex(), parts[3].toUtf8());
+    }
+
+    // Previous salted format: salt$hash
     if (hash.contains("$")) {
-        // New format with salt
-        QStringList parts = hash.split("$");
+        const QStringList parts = hash.split("$");
         if (parts.size() != 2) {
             return false;
         }
-
-        QString salt = parts[0];
-        QString storedHash = parts[1];
-
-        // Derive hash with same salt
-        QByteArray derived = password.toUtf8() + QByteArray::fromHex(salt.toUtf8());
-
-        for (int i = 0; i < 10000; i++) {
-            QCryptographicHash hasher(QCryptographicHash::Sha256);
-            hasher.addData(derived);
-            hasher.addData(QByteArray::number(i));
-            derived = hasher.result();
-        }
-
-        return derived.toHex() == storedHash;
+        const QByteArray derived = derivePasswordHash(password, parts[0], kLegacyIterations);
+        return constantTimeEquals(derived.toHex(), parts[1].toUtf8());
     } else {
-        // Legacy format without salt (for backward compatibility)
-        // This is the old insecure method - kept only for existing passwords
+        // Old unsalted format kept for backward compatibility
         QString hashed = password;
         for (int i = 0; i < 10; i++) {
             QByteArray data = hashed.toUtf8();
             QByteArray hashBytes = QCryptographicHash::hash(data, QCryptographicHash::Sha256);
             hashed = hashBytes.toHex();
         }
-        return hashed == hash;
+        return constantTimeEquals(hashed.toUtf8(), hash.toUtf8());
     }
 }
 
@@ -102,4 +98,46 @@ QString Crypto::sha256(const QString& data)
     QByteArray bytes = data.toUtf8();
     QByteArray hash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
     return hash.toHex();
+}
+
+bool Crypto::needsRehash(const QString& storedHash)
+{
+    if (!storedHash.startsWith(kCurrentPrefix + "$")) {
+        return true;
+    }
+
+    const QStringList parts = storedHash.split("$");
+    if (parts.size() != 4) {
+        return true;
+    }
+
+    bool ok = false;
+    const int iterations = parts[1].toInt(&ok);
+    return !ok || iterations < kCurrentIterations;
+}
+
+QByteArray Crypto::derivePasswordHash(const QString& password, const QString& saltHex, int iterations)
+{
+    QByteArray derived = password.toUtf8() + QByteArray::fromHex(saltHex.toUtf8());
+    for (int i = 0; i < iterations; ++i) {
+        QCryptographicHash hasher(QCryptographicHash::Sha256);
+        hasher.addData(derived);
+        hasher.addData(QByteArray::number(i));
+        derived = hasher.result();
+    }
+    return derived;
+}
+
+bool Crypto::constantTimeEquals(const QByteArray& a, const QByteArray& b)
+{
+    const int maxSize = qMax(a.size(), b.size());
+    quint8 diff = static_cast<quint8>(a.size() ^ b.size());
+
+    for (int i = 0; i < maxSize; ++i) {
+        const quint8 av = i < a.size() ? static_cast<quint8>(a.at(i)) : 0;
+        const quint8 bv = i < b.size() ? static_cast<quint8>(b.at(i)) : 0;
+        diff |= static_cast<quint8>(av ^ bv);
+    }
+
+    return diff == 0;
 }

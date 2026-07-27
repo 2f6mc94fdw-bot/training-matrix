@@ -20,6 +20,8 @@ private slots:
     void onEngineerFilterChanged(int index);
     void onAddClicked();
     void onDeleteClicked();
+    void onUploadClicked();
+    void onOpenClicked();
     void onRefreshClicked();
 
 private:
@@ -33,6 +35,8 @@ private:
     QTableWidget* certificationsTable_;
     QPushButton* addButton_;
     QPushButton* deleteButton_;
+    QPushButton* uploadButton_;
+    QPushButton* openButton_;
     QPushButton* refreshButton_;
 
     CertificationRepository certificationRepo_;
