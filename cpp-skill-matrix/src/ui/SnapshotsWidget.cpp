@@ -1,10 +1,15 @@
 #include "SnapshotsWidget.h"
+#include "../database/AssessmentRepository.h"
+#include "../database/CoreSkillsRepository.h"
 #include "../utils/Logger.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 SnapshotsWidget::SnapshotsWidget(QWidget* parent)
     : QWidget(parent)
@@ -85,10 +90,47 @@ void SnapshotsWidget::onCreateSnapshotClicked()
         "Enter snapshot description:", QLineEdit::Normal, "", &ok);
 
     if (ok && !description.isEmpty()) {
+        AssessmentRepository assessmentRepo;
+        CoreSkillsRepository coreSkillsRepo;
+        const QList<Assessment> assessments = assessmentRepo.findAll();
+        const QList<CoreSkillAssessment> coreSkillAssessments = coreSkillsRepo.findAllAssessments();
+
+        QJsonArray assessmentsArray;
+        for (const Assessment& assessment : assessments) {
+            QJsonObject item;
+            item["id"] = assessment.id();
+            item["engineerId"] = assessment.engineerId();
+            item["productionAreaId"] = assessment.productionAreaId();
+            item["machineId"] = assessment.machineId();
+            item["competencyId"] = assessment.competencyId();
+            item["score"] = assessment.score();
+            item["createdAt"] = assessment.createdAt().toString(Qt::ISODate);
+            item["updatedAt"] = assessment.updatedAt().toString(Qt::ISODate);
+            assessmentsArray.append(item);
+        }
+
+        QJsonArray coreAssessmentsArray;
+        for (const CoreSkillAssessment& assessment : coreSkillAssessments) {
+            QJsonObject item;
+            item["id"] = assessment.id();
+            item["engineerId"] = assessment.engineerId();
+            item["categoryId"] = assessment.categoryId();
+            item["skillId"] = assessment.skillId();
+            item["score"] = assessment.score();
+            item["createdAt"] = assessment.createdAt().toString(Qt::ISODate);
+            item["updatedAt"] = assessment.updatedAt().toString(Qt::ISODate);
+            coreAssessmentsArray.append(item);
+        }
+
+        QJsonObject snapshotData;
+        snapshotData["assessments"] = assessmentsArray;
+        snapshotData["coreSkillAssessments"] = coreAssessmentsArray;
+        snapshotData["capturedAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
         Snapshot snapshot;
         snapshot.setDescription(description);
         snapshot.setTimestamp(QDateTime::currentDateTime());
-        snapshot.setData("{}"); // Placeholder - would contain serialized assessment data
+        snapshot.setData(QString::fromUtf8(QJsonDocument(snapshotData).toJson(QJsonDocument::Compact)));
 
         if (snapshotRepo_.save(snapshot)) {
             Logger::instance().info("SnapshotsWidget", "Created snapshot: " + description);

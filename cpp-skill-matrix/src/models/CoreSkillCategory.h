@@ -9,15 +9,17 @@ class CoreSkillCategory
 {
 public:
     CoreSkillCategory();
-    CoreSkillCategory(const QString& id, const QString& name);
+    CoreSkillCategory(const QString& id, const QString& name, const QString& discipline = QString());
     ~CoreSkillCategory();
 
     QString id() const { return id_; }
     QString name() const { return name_; }
+    QString discipline() const { return discipline_; }
     QDateTime createdAt() const { return createdAt_; }
 
     void setId(const QString& id) { id_ = id; }
     void setName(const QString& name) { name_ = name; }
+    void setDiscipline(const QString& discipline) { discipline_ = discipline; }
     void setCreatedAt(const QDateTime& createdAt) { createdAt_ = createdAt; }
 
     bool isValid() const;
@@ -29,6 +31,7 @@ public:
 private:
     QString id_;
     QString name_;
+    QString discipline_;
     QDateTime createdAt_;
 };
 

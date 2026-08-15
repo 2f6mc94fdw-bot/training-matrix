@@ -32,7 +32,9 @@ public:
      */
     bool connect(const QString& server, const QString& database,
                 const QString& user, const QString& password,
-                int port = 1433);
+                int port = 1433,
+                bool encrypt = true,
+                bool trustServerCertificate = true);
 
     /**
      * @brief Disconnect from database
@@ -123,6 +125,12 @@ private:
     void setupConnection(const QString& server, const QString& database,
                         const QString& user, const QString& password,
                         int port);
+
+    /**
+     * @brief Verify that the connected database supports this client build
+     * @return true when all required tables and columns are present
+     */
+    bool verifyRequiredSchema();
 
 private:
     QSqlDatabase db_;

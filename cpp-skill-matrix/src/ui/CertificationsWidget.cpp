@@ -10,6 +10,14 @@
 #include <QDateEdit>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QHash>
+#include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QDesktopServices>
+#include <QStandardPaths>
+#include <QUrl>
 
 CertificationsWidget::CertificationsWidget(QWidget* parent)
     : QWidget(parent)
@@ -17,6 +25,8 @@ CertificationsWidget::CertificationsWidget(QWidget* parent)
     , certificationsTable_(nullptr)
     , addButton_(nullptr)
     , deleteButton_(nullptr)
+    , uploadButton_(nullptr)
+    , openButton_(nullptr)
     , refreshButton_(nullptr)
 {
     setupUI();
@@ -56,8 +66,8 @@ void CertificationsWidget::setupUI()
 
     // Table
     certificationsTable_ = new QTableWidget(this);
-    certificationsTable_->setColumnCount(6);
-    certificationsTable_->setHorizontalHeaderLabels({"ID", "Engineer", "Certification Name", "Date Earned", "Expiry Date", "Status"});
+    certificationsTable_->setColumnCount(7);
+    certificationsTable_->setHorizontalHeaderLabels({"ID", "Engineer", "Certification Name", "Date Earned", "Expiry Date", "Status", "Certificate"});
     certificationsTable_->horizontalHeader()->setStretchLastSection(true);
     certificationsTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     certificationsTable_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -72,14 +82,20 @@ void CertificationsWidget::setupUI()
 
     addButton_ = new QPushButton("Add Certification", this);
     deleteButton_ = new QPushButton("Delete Certification", this);
+    uploadButton_ = new QPushButton("Upload Certificate", this);
+    openButton_ = new QPushButton("Open Certificate", this);
     refreshButton_ = new QPushButton("Refresh", this);
 
     connect(addButton_, &QPushButton::clicked, this, &CertificationsWidget::onAddClicked);
     connect(deleteButton_, &QPushButton::clicked, this, &CertificationsWidget::onDeleteClicked);
+    connect(uploadButton_, &QPushButton::clicked, this, &CertificationsWidget::onUploadClicked);
+    connect(openButton_, &QPushButton::clicked, this, &CertificationsWidget::onOpenClicked);
     connect(refreshButton_, &QPushButton::clicked, this, &CertificationsWidget::onRefreshClicked);
 
     buttonLayout->addWidget(addButton_);
     buttonLayout->addWidget(deleteButton_);
+    buttonLayout->addWidget(uploadButton_);
+    buttonLayout->addWidget(openButton_);
     buttonLayout->addStretch();
     buttonLayout->addWidget(refreshButton_);
 
@@ -105,6 +121,11 @@ void CertificationsWidget::loadCertifications()
     certificationsTable_->setRowCount(0);
 
     QString filterEngineerId = engineerFilterCombo_->currentData().toString();
+    QHash<QString, QString> engineerNamesById;
+    const QList<Engineer> engineers = engineerRepo_.findAll();
+    for (const Engineer& engineer : engineers) {
+        engineerNamesById.insert(engineer.id(), engineer.name());
+    }
 
     QList<Certification> certifications;
     if (filterEngineerId.isEmpty()) {
@@ -117,9 +138,10 @@ void CertificationsWidget::loadCertifications()
 
     for (int i = 0; i < certifications.size(); ++i) {
         const Certification& cert = certifications[i];
+        const QString engineerName = engineerNamesById.value(cert.engineerId(), cert.engineerId());
 
         certificationsTable_->setItem(i, 0, new QTableWidgetItem(QString::number(cert.id())));
-        certificationsTable_->setItem(i, 1, new QTableWidgetItem(cert.engineerId()));
+        certificationsTable_->setItem(i, 1, new QTableWidgetItem(engineerName));
         certificationsTable_->setItem(i, 2, new QTableWidgetItem(cert.name()));
         certificationsTable_->setItem(i, 3, new QTableWidgetItem(cert.dateEarned().toString("yyyy-MM-dd")));
         certificationsTable_->setItem(i, 4, new QTableWidgetItem(cert.expiryDate().toString("yyyy-MM-dd")));
@@ -135,6 +157,10 @@ void CertificationsWidget::loadCertifications()
         }
 
         certificationsTable_->setItem(i, 5, statusItem);
+
+        QTableWidgetItem* fileItem = new QTableWidgetItem(cert.certificateFilePath().isEmpty() ? "Not uploaded" : "Uploaded");
+        fileItem->setData(Qt::UserRole, cert.certificateFilePath());
+        certificationsTable_->setItem(i, 6, fileItem);
     }
 
     Logger::instance().info("CertificationsWidget", QString("Loaded %1 certifications").arg(certifications.size()));
@@ -251,4 +277,92 @@ void CertificationsWidget::onRefreshClicked()
 {
     loadEngineers();
     loadCertifications();
+}
+
+void CertificationsWidget::onUploadClicked()
+{
+    int currentRow = certificationsTable_->currentRow();
+    if (currentRow < 0) {
+        QMessageBox::warning(this, "No Selection", "Please select a certification row first.");
+        return;
+    }
+
+    int id = certificationsTable_->item(currentRow, 0)->text().toInt();
+    const QString certName = certificationsTable_->item(currentRow, 2)->text();
+
+    QString selectedFile = QFileDialog::getOpenFileName(
+        this,
+        "Select Certificate File",
+        QString(),
+        "Certificate Files (*.pdf *.png *.jpg *.jpeg *.doc *.docx);;All Files (*.*)");
+    if (selectedFile.isEmpty()) {
+        return;
+    }
+
+    QString baseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (baseDir.isEmpty()) {
+        QMessageBox::critical(this, "Error", "Cannot determine app data directory for storing certificates.");
+        return;
+    }
+    QDir storageDir(baseDir + "/certificates");
+    if (!storageDir.exists() && !storageDir.mkpath(".")) {
+        QMessageBox::critical(this, "Error", "Failed to create certificate storage directory.");
+        return;
+    }
+
+    QFileInfo fileInfo(selectedFile);
+    QString safeName = fileInfo.fileName();
+    safeName.replace(" ", "_");
+    QString destinationPath = storageDir.filePath(
+        QString("cert_%1_%2_%3")
+            .arg(id)
+            .arg(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"))
+            .arg(safeName));
+
+    if (!QFile::copy(selectedFile, destinationPath)) {
+        QMessageBox::critical(this, "Error", "Failed to copy selected certificate file.");
+        return;
+    }
+
+    if (!certificationRepo_.updateCertificateFilePath(id, destinationPath)) {
+        QFile::remove(destinationPath);
+        QMessageBox::critical(this, "Error", "Failed to save certificate path: " + certificationRepo_.lastError());
+        return;
+    }
+
+    Logger::instance().info("CertificationsWidget",
+        QString("Uploaded certificate file for certification %1 (%2)").arg(id).arg(certName));
+    QMessageBox::information(this, "Success", "Certificate uploaded successfully.");
+    loadCertifications();
+}
+
+void CertificationsWidget::onOpenClicked()
+{
+    int currentRow = certificationsTable_->currentRow();
+    if (currentRow < 0) {
+        QMessageBox::warning(this, "No Selection", "Please select a certification row first.");
+        return;
+    }
+
+    QTableWidgetItem* fileItem = certificationsTable_->item(currentRow, 6);
+    if (!fileItem) {
+        QMessageBox::warning(this, "No File", "No certificate file is linked to this row.");
+        return;
+    }
+
+    QString filePath = fileItem->data(Qt::UserRole).toString();
+    if (filePath.isEmpty()) {
+        QMessageBox::warning(this, "No File", "No certificate has been uploaded for this certification yet.");
+        return;
+    }
+
+    QFileInfo info(filePath);
+    if (!info.exists()) {
+        QMessageBox::warning(this, "Missing File", "Linked certificate file was not found on disk.");
+        return;
+    }
+
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(filePath))) {
+        QMessageBox::warning(this, "Open Failed", "Could not open the certificate file.");
+    }
 }

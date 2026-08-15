@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QScrollArea>
+#include "../database/AssessmentSubmissionRepository.h"
 #include "../database/CoreSkillsRepository.h"
 #include "../database/EngineerRepository.h"
 
@@ -49,10 +50,13 @@ private:
         QString engineerId;
         QString categoryId;
         QString skillId;
+        bool hasInitialScore = false;
+        int initialScore = 0;
     };
     QList<ScoreButtonGroup> scoreButtonGroups_;
 
     CoreSkillsRepository coreSkillsRepo_;
+    AssessmentSubmissionRepository assessmentWorkflowRepo_;
     EngineerRepository engineerRepo_;
 
     bool isFirstShow_ = true;

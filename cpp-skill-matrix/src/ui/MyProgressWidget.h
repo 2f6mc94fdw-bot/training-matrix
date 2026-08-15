@@ -14,6 +14,7 @@
 #include "../database/CoreSkillsRepository.h"
 #include "../database/SnapshotRepository.h"
 #include "../database/CertificationRepository.h"
+#include "../database/DevelopmentPlanRepository.h"
 #include "../models/Engineer.h"
 #include "../models/Assessment.h"
 #include "../models/Snapshot.h"
@@ -78,6 +79,7 @@ private:
     CoreSkillsRepository coreSkillsRepo_;
     SnapshotRepository snapshotRepo_;
     CertificationRepository certificationRepo_;
+    DevelopmentPlanRepository developmentPlanRepo_;
 
     // Cached data
     Engineer currentEngineer_;

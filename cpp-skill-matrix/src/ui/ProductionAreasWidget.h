@@ -31,7 +31,7 @@ private slots:
 
 private:
     void setupUI();
-    void loadProductionAreas();
+    void loadProductionAreas(bool forceRefresh = false);
     void loadAreaFilter();
     void loadMachinesForArea(int areaId);
     void showAreaManagementDialog();

@@ -3,6 +3,9 @@ build/
 build-*/
 cmake-build-*/
 out/
+deployment/windows/output/
+deployment/Aptitude_Windows_Source_Handover_*/
+deployment/untitled folder/
 
 # Qt specific
 *.pro.user
@@ -17,7 +20,6 @@ ui_*.h
 *.qmlc
 *.jsc
 Makefile*
-*build-*
 *.qm
 .qmake.cache
 .qmake.stash
@@ -52,7 +54,6 @@ ui_*.h
 *.qmlc
 *.jsc
 Makefile*
-*build-*
 
 # Qt unit tests
 target_wrapper.*

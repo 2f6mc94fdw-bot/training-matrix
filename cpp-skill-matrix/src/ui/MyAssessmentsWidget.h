@@ -9,6 +9,9 @@
 #include <QScrollArea>
 #include "../database/AssessmentRepository.h"
 #include "../database/ProductionRepository.h"
+#include "../database/NotificationRepository.h"
+#include "../database/EngineerRepository.h"
+#include "../database/AssessmentSubmissionRepository.h"
 
 class MyAssessmentsWidget : public QWidget
 {
@@ -22,19 +25,24 @@ private slots:
     void onRefreshClicked();
     void onSaveClicked();
     void onScoreButtonClicked();
+    void onMarkNotificationsReadClicked();
 
 private:
     void setupUI();
     void loadAssessments();
     void createScoreButtons(QHBoxLayout* layout, int areaId, int machineId,
-                           int competencyId, int currentScore);
+                           int competencyId, int currentScore, bool pendingApproval);
 
     QString engineerId_;
     QVBoxLayout* assessmentsLayout_;
     QWidget* assessmentsContainer_;
     QPushButton* saveButton_;
     QPushButton* refreshButton_;
+    QPushButton* markNotificationsReadButton_;
     QLabel* summaryLabel_;
+    QLabel* notificationsSummaryLabel_;
+    QWidget* notificationsContainer_;
+    QVBoxLayout* notificationsLayout_;
 
     // Map to track score button groups
     struct ScoreButtonGroup {
@@ -47,6 +55,8 @@ private:
 
     AssessmentRepository assessmentRepo_;
     ProductionRepository productionRepo_;
+    NotificationRepository notificationRepo_;
+    AssessmentSubmissionRepository submissionRepo_;
 };
 
 #endif // MYASSESSMENTSWIDGET_H

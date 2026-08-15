@@ -15,6 +15,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QHash>
+#include <algorithm>
 
 MyProgressWidget::MyProgressWidget(const QString& engineerId, QWidget* parent)
     : QWidget(parent)
@@ -105,12 +107,12 @@ void MyProgressWidget::setupUI()
     stat1Layout->addStretch();
     statsLayout->addWidget(stat1);
 
-    // Stat card 2: Avg Growth Rate
+    // Stat card 2: Change vs Last Snapshot
     QGroupBox* stat2 = new QGroupBox(this);
     QVBoxLayout* stat2Layout = new QVBoxLayout(stat2);
-    QLabel* stat2Title = new QLabel("Avg Growth Rate", this);
+    QLabel* stat2Title = new QLabel("Change vs Last Snapshot", this);
     stat2Title->setStyleSheet("font-weight: bold; color: #666;");
-    avgGrowthRateLabel_ = new QLabel("+0.0%", this);
+    avgGrowthRateLabel_ = new QLabel("0.0 pts", this);
     avgGrowthRateLabel_->setFont(statFont);
     avgGrowthRateLabel_->setStyleSheet("color: #4CAF50;");
     stat2Layout->addWidget(stat2Title);
@@ -118,10 +120,10 @@ void MyProgressWidget::setupUI()
     stat2Layout->addStretch();
     statsLayout->addWidget(stat2);
 
-    // Stat card 3: Skills Gained
+    // Stat card 3: Competencies at 2+
     QGroupBox* stat3 = new QGroupBox(this);
     QVBoxLayout* stat3Layout = new QVBoxLayout(stat3);
-    QLabel* stat3Title = new QLabel("Skills Gained", this);
+    QLabel* stat3Title = new QLabel("Competencies at 2+", this);
     stat3Title->setStyleSheet("font-weight: bold; color: #666;");
     skillsGainedLabel_ = new QLabel("0", this);
     skillsGainedLabel_->setFont(statFont);
@@ -209,8 +211,8 @@ void MyProgressWidget::setupUI()
     // Goals/Targets
     QGroupBox* goalsGroup = new QGroupBox("Goals & Targets", this);
     QVBoxLayout* goalsLayout = new QVBoxLayout(goalsGroup);
-    QLabel* goalsNote = new QLabel("(Feature coming soon - set targets during 1-1 meetings)", this);
-    goalsNote->setStyleSheet("font-style: italic; color: #999; font-size: 10px;");
+    QLabel* goalsNote = new QLabel("Auto-generated action plan based on current assessments", this);
+    goalsNote->setStyleSheet("font-style: italic; color: #667085; font-size: 11px;");
     goalsLayout->addWidget(goalsNote);
     goalsListWidget_ = new QListWidget(this);
     goalsListWidget_->setMaximumHeight(200);
@@ -232,23 +234,9 @@ void MyProgressWidget::loadProgressData()
     // Load engineer data
     currentEngineer_ = engineerRepo_.findById(engineerId_);
 
-    // Load current assessments
-    QList<Assessment> allAssessments = assessmentRepo_.findAll();
-    assessments_.clear();
-    for (const Assessment& assessment : allAssessments) {
-        if (assessment.engineerId() == engineerId_) {
-            assessments_.append(assessment);
-        }
-    }
-
-    // Load core skill assessments
-    QList<CoreSkillAssessment> allCoreSkillAssessments = coreSkillsRepo_.findAllAssessments();
-    coreSkillAssessments_.clear();
-    for (const CoreSkillAssessment& assessment : allCoreSkillAssessments) {
-        if (assessment.engineerId() == engineerId_) {
-            coreSkillAssessments_.append(assessment);
-        }
-    }
+    // Load only this engineer's data to avoid full-table scans on large datasets.
+    assessments_ = assessmentRepo_.findByEngineer(engineerId_);
+    coreSkillAssessments_ = coreSkillsRepo_.findAssessmentsByEngineer(engineerId_);
 
     // Load snapshots
     snapshots_ = snapshotRepo_.findAll();
@@ -265,8 +253,18 @@ void MyProgressWidget::loadProgressData()
 
     // Update stats
     totalImprovementsLabel_->setText(QString::number(assessments_.size() + coreSkillAssessments_.size()));
-    avgGrowthRateLabel_->setText("+0.0%");  // Calculate from snapshots
-    skillsGainedLabel_->setText(QString::number(assessments_.size()));
+    int proficientCompetencies = 0;
+    for (const Assessment& assessment : assessments_) {
+        if (assessment.score() >= 2) {
+            proficientCompetencies++;
+        }
+    }
+    for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
+        if (assessment.score() >= 2) {
+            proficientCompetencies++;
+        }
+    }
+    skillsGainedLabel_->setText(QString::number(proficientCompetencies));
 
     // Count upcoming certifications (no expiry or expiry in future)
     int upcomingCerts = 0;
@@ -277,6 +275,62 @@ void MyProgressWidget::loadProgressData()
         }
     }
     upcomingCertsLabel_->setText(QString::number(upcomingCerts));
+
+    // Compare weighted average against the latest snapshot for a meaningful trend stat.
+    double currentTotal = 0.0;
+    int currentCount = 0;
+    for (const Assessment& assessment : assessments_) {
+        currentTotal += assessment.score();
+        currentCount++;
+    }
+    for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
+        currentTotal += assessment.score();
+        currentCount++;
+    }
+
+    double currentAverage = (currentCount > 0) ? (currentTotal / static_cast<double>(currentCount)) : 0.0;
+    double latestSnapshotAverage = currentAverage;
+
+    if (!snapshots_.isEmpty()) {
+        const Snapshot& latestSnapshot = snapshots_.first();
+        QJsonDocument doc = QJsonDocument::fromJson(latestSnapshot.data().toUtf8());
+        if (doc.isObject()) {
+            QJsonObject obj = doc.object();
+            double snapshotTotal = 0.0;
+            int snapshotCount = 0;
+
+            if (obj.contains("assessments")) {
+                for (const QJsonValue& val : obj["assessments"].toArray()) {
+                    QJsonObject assessment = val.toObject();
+                    if (assessment["engineerId"].toString() == engineerId_) {
+                        snapshotTotal += assessment["score"].toInt();
+                        snapshotCount++;
+                    }
+                }
+            }
+            if (obj.contains("coreSkillAssessments")) {
+                for (const QJsonValue& val : obj["coreSkillAssessments"].toArray()) {
+                    QJsonObject assessment = val.toObject();
+                    if (assessment["engineerId"].toString() == engineerId_) {
+                        snapshotTotal += assessment["score"].toInt();
+                        snapshotCount++;
+                    }
+                }
+            }
+
+            if (snapshotCount > 0) {
+                latestSnapshotAverage = snapshotTotal / static_cast<double>(snapshotCount);
+            }
+        }
+    }
+
+    const double delta = currentAverage - latestSnapshotAverage;
+    avgGrowthRateLabel_->setText(QString("%1%2 pts")
+        .arg(delta >= 0.0 ? "+" : "")
+        .arg(QString::number(delta, 'f', 1)));
+    avgGrowthRateLabel_->setStyleSheet(delta < 0.0
+        ? "color: #F04438;"
+        : "color: #16A34A;");
 }
 
 void MyProgressWidget::createSkillProgressChart()
@@ -300,6 +354,8 @@ void MyProgressWidget::createSkillProgressChart()
         }
     }
 
+    QVector<QPointF> points;
+
     // Current point (WEIGHTED)
     if (!assessments_.isEmpty()) {
         double weightedSum = 0.0;
@@ -320,7 +376,7 @@ void MyProgressWidget::createSkillProgressChart()
         double currentAvg = (totalWeights > 0.0) ? (weightedSum / totalWeights) : 0.0;
 
         QDateTime now = QDateTime::currentDateTime();
-        series->append(now.toMSecsSinceEpoch(), currentAvg);
+        points.append(QPointF(now.toMSecsSinceEpoch(), currentAvg));
     }
 
     // Parse snapshots for historical data
@@ -345,10 +401,17 @@ void MyProgressWidget::createSkillProgressChart()
                 if (count > 0) {
                     double avg = total / count;
                     QDateTime timestamp = snapshot.timestamp();
-                    series->append(timestamp.toMSecsSinceEpoch(), avg);
+                    points.append(QPointF(timestamp.toMSecsSinceEpoch(), avg));
                 }
             }
         }
+    }
+
+    std::sort(points.begin(), points.end(), [](const QPointF& a, const QPointF& b) {
+        return a.x() < b.x();
+    });
+    for (const QPointF& point : points) {
+        series->append(point);
     }
 
     chart->addSeries(series);
@@ -385,6 +448,8 @@ void MyProgressWidget::createCoreSkillProgressChart()
     // Load all core skills to get weights
     QList<CoreSkill> allCoreSkills = coreSkillsRepo_.findAllSkills();
 
+    QVector<QPointF> points;
+
     // Current point (WEIGHTED)
     if (!coreSkillAssessments_.isEmpty()) {
         double weightedSum = 0.0;
@@ -405,7 +470,7 @@ void MyProgressWidget::createCoreSkillProgressChart()
         double currentAvg = (totalWeights > 0.0) ? (weightedSum / totalWeights) : 0.0;
 
         QDateTime now = QDateTime::currentDateTime();
-        series->append(now.toMSecsSinceEpoch(), currentAvg);
+        points.append(QPointF(now.toMSecsSinceEpoch(), currentAvg));
     }
 
     // Parse snapshots for historical data
@@ -429,10 +494,17 @@ void MyProgressWidget::createCoreSkillProgressChart()
                 if (count > 0) {
                     double avg = total / count;
                     QDateTime timestamp = snapshot.timestamp();
-                    series->append(timestamp.toMSecsSinceEpoch(), avg);
+                    points.append(QPointF(timestamp.toMSecsSinceEpoch(), avg));
                 }
             }
         }
+    }
+
+    std::sort(points.begin(), points.end(), [](const QPointF& a, const QPointF& b) {
+        return a.x() < b.x();
+    });
+    for (const QPointF& point : points) {
+        series->append(point);
     }
 
     chart->addSeries(series);
@@ -467,6 +539,16 @@ void MyProgressWidget::updateSnapshotComparison()
             .arg(snapshot.timestamp().toString("yyyy-MM-dd HH:mm"))
             .arg(snapshot.description());
         snapshotCombo_->addItem(label, snapshot.id());
+    }
+
+    const bool hasSnapshots = snapshotCombo_->count() > 1;
+    snapshotCombo_->setEnabled(hasSnapshots);
+    changesListWidget_->clear();
+    if (!hasSnapshots) {
+        snapshotComparisonLabel_->setText("No snapshots available yet. Ask a manager to create one in the Snapshots tab.");
+        changesListWidget_->addItem("No historical data available.");
+    } else {
+        snapshotComparisonLabel_->setText("Select a snapshot to compare");
     }
 }
 
@@ -513,8 +595,76 @@ void MyProgressWidget::updateCertificationTimeline()
 void MyProgressWidget::updateGoalsProgress()
 {
     goalsListWidget_->clear();
-    goalsListWidget_->addItem("No goals/targets set yet");
-    goalsListWidget_->addItem("Goals feature will be added in a future update");
+    const QList<DevelopmentPlanItem> assignedItems = developmentPlanRepo_.findByEngineer(engineerId_, "active");
+    for (const DevelopmentPlanItem& plan : assignedItems) {
+        QString text = QString("%1 / %2\n%3\nTarget: %4 | Due: %5")
+            .arg(plan.productionAreaName, plan.machineName, plan.competencyName)
+            .arg(plan.targetScore)
+            .arg(plan.dueDate.isValid() ? plan.dueDate.toString("dd MMM yyyy") : "Not set");
+        if (!plan.managerNotes.isEmpty()) {
+            text += "\nManager guidance: " + plan.managerNotes;
+        } else if (!plan.guidance.isEmpty()) {
+            text += "\nNext step: " + plan.guidance;
+        }
+        QListWidgetItem* item = new QListWidgetItem(text, goalsListWidget_);
+        if (plan.dueDate.isValid() && plan.dueDate < QDate::currentDate()) {
+            item->setBackground(QColor("#fee2e2"));
+        } else {
+            item->setBackground(QColor("#eff6ff"));
+        }
+    }
+    if (!assignedItems.isEmpty()) {
+        return;
+    }
+
+    int lowProductionCount = 0;
+    for (const Assessment& assessment : assessments_) {
+        if (assessment.score() <= 1) {
+            lowProductionCount++;
+        }
+    }
+
+    int lowCoreCount = 0;
+    for (const CoreSkillAssessment& assessment : coreSkillAssessments_) {
+        if (assessment.score() <= 1) {
+            lowCoreCount++;
+        }
+    }
+
+    int expiredCerts = 0;
+    int expiringSoonCerts = 0;
+    const QDate today = QDate::currentDate();
+    for (const Certification& cert : certifications_) {
+        if (!cert.expiryDate().isValid()) {
+            continue;
+        }
+        int days = today.daysTo(cert.expiryDate());
+        if (days < 0) {
+            expiredCerts++;
+        } else if (days <= 90) {
+            expiringSoonCerts++;
+        }
+    }
+
+    if (lowProductionCount > 0) {
+        goalsListWidget_->addItem(
+            QString("Raise %1 production competencies from 0/1 to 2+").arg(lowProductionCount));
+    }
+    if (lowCoreCount > 0) {
+        goalsListWidget_->addItem(
+            QString("Raise %1 core skills from 0/1 to 2+").arg(lowCoreCount));
+    }
+    if (expiredCerts > 0) {
+        goalsListWidget_->addItem(
+            QString("Renew %1 expired certification(s)").arg(expiredCerts));
+    }
+    if (expiringSoonCerts > 0) {
+        goalsListWidget_->addItem(
+            QString("Plan renewal for %1 certification(s) expiring within 90 days").arg(expiringSoonCerts));
+    }
+    if (goalsListWidget_->count() == 0) {
+        goalsListWidget_->addItem("Maintain current standards and keep monthly reassessments up to date.");
+    }
 }
 
 void MyProgressWidget::onRefreshClicked()
@@ -556,6 +706,18 @@ void MyProgressWidget::onSnapshotComparisonChanged(int index)
     }
 
     QJsonObject obj = doc.object();
+    QHash<int, QString> competencyNamesById;
+    DataCache& cache = DataCache::instance();
+    const QList<ProductionArea> areas = cache.getAreas();
+    for (const ProductionArea& area : areas) {
+        const QList<Machine> machines = cache.getMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            const QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
+            for (const Competency& competency : competencies) {
+                competencyNamesById.insert(competency.id(), competency.name());
+            }
+        }
+    }
 
     // Compare competency assessments
     int improvementsCount = 0;
@@ -577,8 +739,11 @@ void MyProgressWidget::onSnapshotComparisonChanged(int index)
 
                     if (newScore > oldScore) {
                         improvementsCount++;
-                        QString change = QString("✓ Competency ID %1: %2 → %3 (+%4)")
-                            .arg(currentAssessment.competencyId())
+                        const QString competencyName = competencyNamesById.value(
+                            currentAssessment.competencyId(),
+                            QString("Competency %1").arg(currentAssessment.competencyId()));
+                        QString change = QString("✓ %1: %2 -> %3 (+%4)")
+                            .arg(competencyName)
                             .arg(oldScore)
                             .arg(newScore)
                             .arg(newScore - oldScore);
@@ -587,8 +752,11 @@ void MyProgressWidget::onSnapshotComparisonChanged(int index)
                         changesListWidget_->addItem(item);
                     } else if (newScore < oldScore) {
                         declinesCount++;
-                        QString change = QString("↓ Competency ID %1: %2 → %3 (%4)")
-                            .arg(currentAssessment.competencyId())
+                        const QString competencyName = competencyNamesById.value(
+                            currentAssessment.competencyId(),
+                            QString("Competency %1").arg(currentAssessment.competencyId()));
+                        QString change = QString("↓ %1: %2 -> %3 (%4)")
+                            .arg(competencyName)
                             .arg(oldScore)
                             .arg(newScore)
                             .arg(newScore - oldScore);

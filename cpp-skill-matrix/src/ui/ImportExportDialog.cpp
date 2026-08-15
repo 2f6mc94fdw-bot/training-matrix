@@ -38,6 +38,14 @@ void ImportExportDialog::setupUI()
     titleLabel->setFont(titleFont);
     mainLayout->addWidget(titleLabel);
 
+    QLabel* safetyNote = new QLabel(
+        "Note: CSV/JSON import-export and in-app backup/restore are disabled in this build. "
+        "Use managed SQL backup procedures and validated migration scripts.",
+        this);
+    safetyNote->setWordWrap(true);
+    safetyNote->setStyleSheet("QLabel { color: #92400e; background: #fff7ed; border: 1px solid #fdba74; border-radius: 6px; padding: 8px; }");
+    mainLayout->addWidget(safetyNote);
+
     // Export Group
     QGroupBox* exportGroup = new QGroupBox("Export Data", this);
     QGridLayout* exportLayout = new QGridLayout(exportGroup);
@@ -47,6 +55,10 @@ void ImportExportDialog::setupUI()
 
     connect(exportCSVButton_, &QPushButton::clicked, this, &ImportExportDialog::onExportCSVClicked);
     connect(exportJSONButton_, &QPushButton::clicked, this, &ImportExportDialog::onExportJSONClicked);
+    exportCSVButton_->setEnabled(false);
+    exportJSONButton_->setEnabled(false);
+    exportCSVButton_->setToolTip("Disabled: use approved SQL backup/export process.");
+    exportJSONButton_->setToolTip("Disabled: use approved SQL backup/export process.");
 
     exportLayout->addWidget(exportCSVButton_, 0, 0);
     exportLayout->addWidget(exportJSONButton_, 0, 1);
@@ -62,6 +74,10 @@ void ImportExportDialog::setupUI()
 
     connect(importCSVButton_, &QPushButton::clicked, this, &ImportExportDialog::onImportCSVClicked);
     connect(importJSONButton_, &QPushButton::clicked, this, &ImportExportDialog::onImportJSONClicked);
+    importCSVButton_->setEnabled(false);
+    importJSONButton_->setEnabled(false);
+    importCSVButton_->setToolTip("Disabled: use validated migration/import scripts.");
+    importJSONButton_->setToolTip("Disabled: use validated migration/import scripts.");
 
     importLayout->addWidget(importCSVButton_, 0, 0);
     importLayout->addWidget(importJSONButton_, 0, 1);
@@ -77,6 +93,10 @@ void ImportExportDialog::setupUI()
 
     connect(backupButton_, &QPushButton::clicked, this, &ImportExportDialog::onBackupClicked);
     connect(restoreButton_, &QPushButton::clicked, this, &ImportExportDialog::onRestoreClicked);
+    backupButton_->setEnabled(false);
+    restoreButton_->setEnabled(false);
+    backupButton_->setToolTip("Disabled: use SQL Server backup jobs.");
+    restoreButton_->setToolTip("Disabled: use SQL restore runbook.");
 
     backupLayout->addWidget(backupButton_, 0, 0);
     backupLayout->addWidget(restoreButton_, 0, 1);

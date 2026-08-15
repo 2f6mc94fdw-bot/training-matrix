@@ -6,7 +6,7 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFormLayout>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QPixmap>
@@ -37,11 +37,31 @@ void DatabaseConnectionDialog::setupUI()
 {
     setWindowTitle("Database Connection - Aptitude");
     setModal(true);
-    setFixedSize(550, 450);
+    setFixedSize(640, 620);
+    setStyleSheet(
+        "QDialog { background-color: #f8fafc; color: #0f172a; }"
+        "QGroupBox { color: #0f172a; font-weight: 600; }"
+        "QLabel { color: #0f172a; }"
+        "QLineEdit, QSpinBox {"
+        "  background-color: #ffffff;"
+        "  color: #0f172a;"
+        "  border: 1px solid #cbd5e1;"
+        "  border-radius: 6px;"
+        "  padding: 6px 8px;"
+        "}"
+        "QLineEdit:focus, QSpinBox:focus {"
+        "  border: 2px solid #3b82f6;"
+        "}"
+        "QPushButton {"
+        "  min-height: 36px;"
+        "  border-radius: 6px;"
+        "  padding: 6px 12px;"
+        "}"
+    );
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(15);
-    mainLayout->setContentsMargins(40, 30, 40, 30);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(28, 22, 28, 22);
 
     // Logo
     QLabel* logoLabel = new QLabel(this);
@@ -62,7 +82,7 @@ void DatabaseConnectionDialog::setupUI()
     // Title
     QLabel* titleLabel = new QLabel("SQL Server Connection", this);
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(14);
+    titleFont.setPointSize(13);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);
@@ -70,48 +90,76 @@ void DatabaseConnectionDialog::setupUI()
     // Subtitle
     QLabel* subtitleLabel = new QLabel("Configure your database connection", this);
     QFont subtitleFont = subtitleLabel->font();
-    subtitleFont.setPointSize(10);
+    subtitleFont.setPointSize(11);
     subtitleLabel->setFont(subtitleFont);
     subtitleLabel->setAlignment(Qt::AlignCenter);
     subtitleLabel->setStyleSheet("color: #666;");
 
     // Connection form
     QGroupBox* formGroup = new QGroupBox("Connection Details", this);
-    QFormLayout* formLayout = new QFormLayout(formGroup);
-    formLayout->setSpacing(12);
+    QGridLayout* formLayout = new QGridLayout(formGroup);
+    formLayout->setHorizontalSpacing(12);
+    formLayout->setVerticalSpacing(10);
     formLayout->setContentsMargins(20, 20, 20, 20);
+
+    auto makeFieldLabel = [this](const QString& text) -> QLabel* {
+        QLabel* label = new QLabel(text, this);
+        QFont labelFont = label->font();
+        labelFont.setPointSize(11);
+        labelFont.setBold(true);
+        label->setFont(labelFont);
+        label->setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+        return label;
+    };
+
+    QLabel* serverLabel = makeFieldLabel("Server:");
+    QLabel* portLabel = makeFieldLabel("Port:");
+    QLabel* databaseLabel = makeFieldLabel("Database:");
+    QLabel* usernameLabel2 = makeFieldLabel("Username:");
+    QLabel* passwordLabel2 = makeFieldLabel("Password:");
 
     // Server
     serverEdit_ = new QLineEdit(this);
     serverEdit_->setPlaceholderText("localhost or IP address");
     serverEdit_->setMinimumHeight(35);
-    formLayout->addRow("Server:", serverEdit_);
+    serverEdit_->setMinimumWidth(320);
 
     // Port
     portSpinBox_ = new QSpinBox(this);
     portSpinBox_->setRange(1, 65535);
     portSpinBox_->setValue(1433);
     portSpinBox_->setMinimumHeight(35);
-    formLayout->addRow("Port:", portSpinBox_);
+    portSpinBox_->setMinimumWidth(320);
 
     // Database
     databaseEdit_ = new QLineEdit(this);
     databaseEdit_->setPlaceholderText("Database name");
     databaseEdit_->setMinimumHeight(35);
-    formLayout->addRow("Database:", databaseEdit_);
+    databaseEdit_->setMinimumWidth(320);
 
     // Username
     usernameEdit_ = new QLineEdit(this);
     usernameEdit_->setPlaceholderText("SQL Server username");
     usernameEdit_->setMinimumHeight(35);
-    formLayout->addRow("Username:", usernameEdit_);
+    usernameEdit_->setMinimumWidth(320);
 
     // Password
     passwordEdit_ = new QLineEdit(this);
     passwordEdit_->setEchoMode(QLineEdit::Password);
     passwordEdit_->setPlaceholderText("SQL Server password");
     passwordEdit_->setMinimumHeight(35);
-    formLayout->addRow("Password:", passwordEdit_);
+    passwordEdit_->setMinimumWidth(320);
+
+    formLayout->addWidget(serverLabel, 0, 0);
+    formLayout->addWidget(serverEdit_, 0, 1);
+    formLayout->addWidget(portLabel, 1, 0);
+    formLayout->addWidget(portSpinBox_, 1, 1);
+    formLayout->addWidget(databaseLabel, 2, 0);
+    formLayout->addWidget(databaseEdit_, 2, 1);
+    formLayout->addWidget(usernameLabel2, 3, 0);
+    formLayout->addWidget(usernameEdit_, 3, 1);
+    formLayout->addWidget(passwordLabel2, 4, 0);
+    formLayout->addWidget(passwordEdit_, 4, 1);
 
     // Status label
     statusLabel_ = new QLabel(this);
@@ -144,14 +192,14 @@ void DatabaseConnectionDialog::setupUI()
 
     // Main layout
     mainLayout->addWidget(logoLabel);
-    mainLayout->addSpacing(5);
+    mainLayout->addSpacing(2);
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(subtitleLabel);
-    mainLayout->addSpacing(10);
+    mainLayout->addSpacing(6);
     mainLayout->addWidget(formGroup);
-    mainLayout->addSpacing(5);
+    mainLayout->addSpacing(6);
     mainLayout->addWidget(statusLabel_);
-    mainLayout->addSpacing(10);
+    mainLayout->addSpacing(8);
     mainLayout->addLayout(buttonLayout);
 
     // Connections
@@ -173,22 +221,17 @@ void DatabaseConnectionDialog::loadSavedSettings()
     QString lastServer = config.databaseServer();
     QString lastDatabase = config.databaseName();
     QString lastUser = config.databaseUser();
-    QString lastPassword = config.databasePassword();
     int lastPort = config.databasePort();
 
     serverEdit_->setText(lastServer);
     databaseEdit_->setText(lastDatabase);
     usernameEdit_->setText(lastUser);
-    passwordEdit_->setText(lastPassword);
+    passwordEdit_->clear();
     portSpinBox_->setValue(lastPort);
 
     // Focus on first empty field, or password if all filled
     if (!lastServer.isEmpty() && !lastDatabase.isEmpty() && !lastUser.isEmpty()) {
-        if (lastPassword.isEmpty()) {
-            passwordEdit_->setFocus();
-        } else {
-            serverEdit_->setFocus();
-        }
+        passwordEdit_->setFocus();
     } else {
         serverEdit_->setFocus();
     }
@@ -202,9 +245,10 @@ void DatabaseConnectionDialog::saveSettings()
     config.setDatabaseServer(serverEdit_->text());
     config.setDatabaseName(databaseEdit_->text());
     config.setDatabaseUser(usernameEdit_->text());
-    config.setDatabasePassword(passwordEdit_->text());
     config.setDatabasePort(portSpinBox_->value());
 
+    // Do not persist database password in plaintext config.
+    config.remove("database.password");
     config.save();
 }
 
@@ -255,7 +299,9 @@ void DatabaseConnectionDialog::onTestConnection()
         database(),
         username(),
         password(),
-        port()
+        port(),
+        Config::instance().databaseEncrypt(),
+        Config::instance().databaseTrustServerCertificate()
     );
 
     if (success) {
@@ -298,7 +344,9 @@ void DatabaseConnectionDialog::onConnect()
         database(),
         username(),
         password(),
-        port()
+        port(),
+        Config::instance().databaseEncrypt(),
+        Config::instance().databaseTrustServerCertificate()
     );
 
     if (success) {

@@ -1,6 +1,7 @@
 #include "MyCoreSkillsWidget.h"
 #include "../utils/Logger.h"
 #include "../core/Constants.h"
+#include "../core/Application.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -8,6 +9,30 @@
 #include <QFont>
 #include <QScrollArea>
 #include <QMessageBox>
+#include <QGraphicsDropShadowEffect>
+
+namespace {
+QString coreSkillDiscipline(const CoreSkillCategory& category)
+{
+    if (!category.discipline().trimmed().isEmpty()) {
+        return category.discipline().trimmed();
+    }
+    const QString id = category.id().toLower();
+    const QString name = category.name().toLower();
+
+    if (name.contains("mechanical") || id.contains("mech")) {
+        return "Mechanical";
+    }
+    if (name.contains("electrical") || id.contains("elec")) {
+        return "Electrical";
+    }
+    if (name.contains("software") || id.contains("soft")) {
+        return "Software";
+    }
+
+    return "Software";
+}
+}
 
 MyCoreSkillsWidget::MyCoreSkillsWidget(const QString& engineerId, QWidget* parent)
     : QWidget(parent)
@@ -42,7 +67,8 @@ void MyCoreSkillsWidget::setupUI()
     mainLayout->addWidget(titleLabel);
 
     // Description
-    QLabel* descLabel = new QLabel("View and update your core skill assessments across Mechanical, Electrical, and Software competencies.", this);
+    QLabel* descLabel = new QLabel(
+        "Propose changes to your Mechanical, Electrical, and Software scores. Changes become official after manager approval.", this);
     descLabel->setWordWrap(true);
     mainLayout->addWidget(descLabel);
 
@@ -76,7 +102,7 @@ void MyCoreSkillsWidget::setupUI()
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
 
-    saveButton_ = new QPushButton("Save My Assessments", this);
+    saveButton_ = new QPushButton("Submit Changes for Approval", this);
     refreshButton_ = new QPushButton("Refresh", this);
 
     connect(saveButton_, &QPushButton::clicked, this, &MyCoreSkillsWidget::onSaveClicked);
@@ -106,6 +132,10 @@ void MyCoreSkillsWidget::loadCoreSkills()
     // Load all categories and skills
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
     QList<CoreSkill> skills = coreSkillsRepo_.findAllSkills();
+    QMap<QString, QList<CoreSkill>> skillsByCategory;
+    for (const CoreSkill& skill : skills) {
+        skillsByCategory[skill.categoryId()].append(skill);
+    }
 
     // Load this engineer's assessments
     QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAllAssessments();
@@ -118,17 +148,35 @@ void MyCoreSkillsWidget::loadCoreSkills()
         }
     }
 
+    QMap<QString, int> pendingScores;
+    const QList<AssessmentSubmission> pendingSubmissions =
+        submissionRepo_.findPendingByEngineer(engineerId_, "core");
+    for (const AssessmentSubmission& submission : pendingSubmissions) {
+        pendingScores[submission.skillId] = submission.proposedScore;
+    }
+
     // Track statistics
     int assessedCount = 0;
     int totalScore = 0;
     int maxPossibleScore = 0;
     int totalSkills = 0;
 
-    // Create a card for each category
+    QMap<QString, QList<CoreSkillCategory>> categoriesByDiscipline;
     for (const CoreSkillCategory& category : categories) {
-        // Create category card
-        QGroupBox* categoryCard = new QGroupBox(this);
-        categoryCard->setStyleSheet(
+        categoriesByDiscipline[coreSkillDiscipline(category)].append(category);
+    }
+
+    const QStringList disciplineOrder = {"Mechanical", "Electrical", "Software"};
+
+    // Create one card per discipline and render categories within each card.
+    for (const QString& discipline : disciplineOrder) {
+        const QList<CoreSkillCategory> disciplineCategories = categoriesByDiscipline.value(discipline);
+        if (disciplineCategories.isEmpty()) {
+            continue;
+        }
+
+        QGroupBox* disciplineCard = new QGroupBox(this);
+        disciplineCard->setStyleSheet(
             "QGroupBox {"
             "    border: 2px solid #e2e8f0;"
             "    border-radius: 8px;"
@@ -143,22 +191,34 @@ void MyCoreSkillsWidget::loadCoreSkills()
             "}"
         );
 
-        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        QVBoxLayout* cardLayout = new QVBoxLayout(disciplineCard);
         cardLayout->setSpacing(12);
 
-        // Category title
-        QLabel* categoryLabel = new QLabel(category.name(), this);
-        QFont categoryFont = categoryLabel->font();
-        categoryFont.setPointSize(14);
-        categoryFont.setBold(true);
-        categoryLabel->setFont(categoryFont);
-        cardLayout->addWidget(categoryLabel);
+        QLabel* disciplineLabel = new QLabel(QString("%1 Skills").arg(discipline), this);
+        QFont disciplineFont = disciplineLabel->font();
+        disciplineFont.setPointSize(14);
+        disciplineFont.setBold(true);
+        disciplineLabel->setFont(disciplineFont);
+        cardLayout->addWidget(disciplineLabel);
 
-        // Add skills for this category
-        bool hasSkills = false;
-        for (const CoreSkill& skill : skills) {
-            if (skill.categoryId() == category.id()) {
-                hasSkills = true;
+        bool disciplineHasSkills = false;
+        for (const CoreSkillCategory& category : disciplineCategories) {
+            const QList<CoreSkill> categorySkills = skillsByCategory.value(category.id());
+            if (categorySkills.isEmpty()) {
+                continue;
+            }
+
+            disciplineHasSkills = true;
+
+            QLabel* categoryLabel = new QLabel(category.name(), this);
+            QFont categoryFont = categoryLabel->font();
+            categoryFont.setPointSize(12);
+            categoryFont.setBold(true);
+            categoryLabel->setFont(categoryFont);
+            categoryLabel->setStyleSheet("QLabel { color: #475569; margin-top: 6px; }");
+            cardLayout->addWidget(categoryLabel);
+
+            for (const CoreSkill& skill : categorySkills) {
                 totalSkills++;
 
                 QHBoxLayout* skillLayout = new QHBoxLayout();
@@ -175,30 +235,33 @@ void MyCoreSkillsWidget::loadCoreSkills()
                 skillLabel->setMaximumWidth(500);
                 skillLayout->addWidget(skillLabel, 1);
 
-                skillLayout->addStretch();
+                skillLayout->addSpacing(16);
 
                 // Get current score
-                int currentScore = skillScores.value(skill.id(), 0);
+                const int approvedScore = skillScores.value(skill.id(), 0);
+                const bool pendingApproval = pendingScores.contains(skill.id());
+                const int currentScore = pendingApproval
+                    ? pendingScores.value(skill.id())
+                    : approvedScore;
 
                 // Create score buttons (0-3)
-                createScoreButtons(skillLayout, category.id(), skill.id(), currentScore);
+                createScoreButtons(skillLayout, category.id(), skill.id(), currentScore, pendingApproval);
 
                 cardLayout->addLayout(skillLayout);
 
                 // Track statistics
-                if (currentScore > 0) {
+                if (approvedScore > 0) {
                     assessedCount++;
-                    totalScore += currentScore;
+                    totalScore += approvedScore;
                 }
                 maxPossibleScore += skill.maxScore();
             }
         }
 
-        // Only add the card if it has skills
-        if (hasSkills) {
-            skillsLayout_->addWidget(categoryCard);
+        if (disciplineHasSkills) {
+            skillsLayout_->addWidget(disciplineCard);
         } else {
-            delete categoryCard;
+            delete disciplineCard;
         }
     }
 
@@ -210,12 +273,13 @@ void MyCoreSkillsWidget::loadCoreSkills()
     double averageScore = assessedCount > 0 ? (double)totalScore / assessedCount : 0.0;
     double overallScore = maxPossibleScore > 0 ? (double)totalScore / maxPossibleScore * 100.0 : 0.0;
 
-    QString summaryText = QString("📊 %1 of %2 skills assessed (%.1%%) | Average Score: %.2 / 3 | Overall: %.1%%")
+    QString summaryText = QString("Approved: %1 of %2 skills assessed (%3%) | Average: %4 / 3 | Overall: %5% | Pending: %6")
         .arg(assessedCount)
         .arg(totalSkills)
         .arg(completionRate, 0, 'f', 1)
         .arg(averageScore, 0, 'f', 2)
-        .arg(overallScore, 0, 'f', 1);
+        .arg(overallScore, 0, 'f', 1)
+        .arg(pendingSubmissions.size());
 
     summaryLabel_->setText(summaryText);
 
@@ -227,7 +291,7 @@ void MyCoreSkillsWidget::loadCoreSkills()
 }
 
 void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& categoryId,
-                                           const QString& skillId, int currentScore)
+                                           const QString& skillId, int currentScore, bool pendingApproval)
 {
     // Score labels and colors
     struct ScoreInfo {
@@ -248,8 +312,13 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
 
     for (int score = 0; score < 4; score++) {
         QPushButton* button = new QPushButton(scoreInfos[score].label);
-        button->setFixedSize(32, 32);
+        button->setFixedSize(60, 48);
         button->setCursor(Qt::PointingHandCursor);
+        auto* shadow = new QGraphicsDropShadowEffect(button);
+        shadow->setBlurRadius(12);
+        shadow->setOffset(0, 2);
+        shadow->setColor(QColor(15, 23, 42, 40));
+        button->setGraphicsEffect(shadow);
 
         // Store metadata
         button->setProperty("categoryId", categoryId);
@@ -268,28 +337,38 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
                 "    background-color: %1;"
                 "    color: white;"
                 "    border: 2px solid %1;"
-                "    border-radius: 16px;"
+                "    border-radius: 14px;"
+                "    padding: 0px;"
+                "    min-width: 0px;"
+                "    min-height: 0px;"
+                "    text-align: center;"
                 "    font-weight: bold;"
-                "    font-size: 12px;"
+                "    font-size: 20px;"
                 "}"
                 "QPushButton:hover {"
-                "    opacity: 0.9;"
+                "    border: 2px solid #1e293b;"
+                "    background-color: %1;"
                 "}"
             ).arg(scoreInfos[score].color);
         } else {
             // Inactive button: transparent background, colored border
             buttonStyle = QString(
                 "QPushButton {"
-                "    background-color: transparent;"
-                "    color: #64748b;"
-                "    border: 2px solid #e2e8f0;"
-                "    border-radius: 16px;"
-                "    font-size: 12px;"
+                "    background-color: #f8fafc;"
+                "    color: #475569;"
+                "    border: 2px solid #cbd5e1;"
+                "    border-radius: 14px;"
+                "    padding: 0px;"
+                "    min-width: 0px;"
+                "    min-height: 0px;"
+                "    text-align: center;"
+                "    font-size: 20px;"
+                "    font-weight: bold;"
                 "}"
                 "QPushButton:hover {"
                 "    border-color: %1;"
                 "    color: %1;"
-                "    background-color: rgba(255, 255, 255, 0.05);"
+                "    background-color: #e2e8f0;"
                 "}"
             ).arg(scoreInfos[score].color);
         }
@@ -300,6 +379,14 @@ void MyCoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& 
 
         layout->addWidget(button);
         buttonGroup.buttons[score] = button;
+    }
+
+    if (pendingApproval) {
+        QLabel* pendingLabel = new QLabel("Pending approval", this);
+        pendingLabel->setStyleSheet(
+            "QLabel { color: #b45309; background: #fffbeb; border: 1px solid #fbbf24; "
+            "border-radius: 8px; padding: 6px 10px; font-weight: 600; }");
+        layout->addWidget(pendingLabel);
     }
 
     scoreButtonGroups_.append(buttonGroup);
@@ -339,27 +426,37 @@ void MyCoreSkillsWidget::onScoreButtonClicked()
                         "    background-color: %1;"
                         "    color: white;"
                         "    border: 2px solid %1;"
-                        "    border-radius: 16px;"
+                        "    border-radius: 14px;"
+                        "    padding: 0px;"
+                        "    min-width: 0px;"
+                        "    min-height: 0px;"
+                        "    text-align: center;"
                         "    font-weight: bold;"
-                        "    font-size: 12px;"
+                        "    font-size: 20px;"
                         "}"
                         "QPushButton:hover {"
-                        "    opacity: 0.9;"
+                        "    border: 2px solid #1e293b;"
+                        "    background-color: %1;"
                         "}"
                     ).arg(scoreColors[i]);
                 } else {
                     buttonStyle = QString(
                         "QPushButton {"
-                        "    background-color: transparent;"
-                        "    color: #64748b;"
-                        "    border: 2px solid #e2e8f0;"
-                        "    border-radius: 16px;"
-                        "    font-size: 12px;"
+                        "    background-color: #f8fafc;"
+                        "    color: #475569;"
+                        "    border: 2px solid #cbd5e1;"
+                        "    border-radius: 14px;"
+                        "    padding: 0px;"
+                        "    min-width: 0px;"
+                        "    min-height: 0px;"
+                        "    text-align: center;"
+                        "    font-size: 20px;"
+                        "    font-weight: bold;"
                         "}"
                         "QPushButton:hover {"
                         "    border-color: %1;"
                         "    color: %1;"
-                        "    background-color: rgba(255, 255, 255, 0.05);"
+                        "    background-color: #e2e8f0;"
                         "}"
                     ).arg(scoreColors[i]);
                 }
@@ -380,8 +477,28 @@ void MyCoreSkillsWidget::onScoreButtonClicked()
 
 void MyCoreSkillsWidget::onSaveClicked()
 {
-    int savedCount = 0;
+    int submittedCount = 0;
     int errorCount = 0;
+
+    const QList<CoreSkillAssessment> existingAssessments = coreSkillsRepo_.findAllAssessments();
+    QMap<QString, int> existingScores;
+    for (const CoreSkillAssessment& assessment : existingAssessments) {
+        if (assessment.engineerId() != engineerId_) {
+            continue;
+        }
+        existingScores[assessment.skillId()] = assessment.score();
+    }
+
+    QMap<QString, int> pendingScores;
+    const QList<AssessmentSubmission> pendingSubmissions =
+        submissionRepo_.findPendingByEngineer(engineerId_, "core");
+    for (const AssessmentSubmission& submission : pendingSubmissions) {
+        pendingScores[submission.skillId] = submission.proposedScore;
+    }
+
+    Session* session = Application::instance().session();
+    const QString submittedByUserId = session ? session->userId() : QString();
+    const QString submittedByName = session ? session->username() : QString();
 
     // Loop through all button groups and find selected score for each skill
     for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
@@ -395,11 +512,14 @@ void MyCoreSkillsWidget::onSaveClicked()
             }
         }
 
-        CoreSkillAssessment assessment;
-        assessment.setEngineerId(engineerId_);
-        assessment.setCategoryId(buttonGroup.categoryId);
-        assessment.setSkillId(buttonGroup.skillId);
-        assessment.setScore(selectedScore);
+        const int approvedScore = existingScores.value(buttonGroup.skillId, 0);
+        const int displayedScore = pendingScores.contains(buttonGroup.skillId)
+            ? pendingScores.value(buttonGroup.skillId)
+            : approvedScore;
+
+        if (selectedScore == displayedScore) {
+            continue;
+        }
 
         Logger::instance().debug("MyCoreSkillsWidget",
             QString("Attempting to save: engineerId=%1, categoryId=%2, skillId=%3, score=%4")
@@ -408,28 +528,32 @@ void MyCoreSkillsWidget::onSaveClicked()
                 .arg(buttonGroup.skillId)
                 .arg(selectedScore));
 
-        if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
-            savedCount++;
+        if (submissionRepo_.submitCoreSkill(
+                engineerId_, buttonGroup.categoryId, buttonGroup.skillId,
+                selectedScore, submittedByUserId, submittedByName)) {
+            submittedCount++;
         } else {
             errorCount++;
             Logger::instance().error("MyCoreSkillsWidget",
-                QString("Failed to save assessment for skill %1: %2")
+                QString("Failed to submit assessment for skill %1: %2")
                     .arg(buttonGroup.skillId)
-                    .arg(coreSkillsRepo_.lastError()));
+                    .arg(submissionRepo_.lastError()));
         }
     }
 
     if (errorCount > 0) {
         QMessageBox::warning(this, "Partial Success",
-            QString("Saved %1 assessments, but %2 failed.").arg(savedCount).arg(errorCount));
+            QString("Submitted %1 changes, but %2 failed.").arg(submittedCount).arg(errorCount));
+    } else if (submittedCount == 0) {
+        QMessageBox::information(this, "No Changes", "There are no new core-skill changes to submit.");
     } else {
-        Logger::instance().info("MyCoreSkillsWidget", QString("Saved %1 core skill assessments").arg(savedCount));
-        QMessageBox::information(this, "Success",
-            QString("Successfully saved %1 core skill assessments.").arg(savedCount));
-
-        // Refresh to update summary statistics
-        loadCoreSkills();
+        Logger::instance().info("MyCoreSkillsWidget", QString("Submitted %1 core skill changes").arg(submittedCount));
+        QMessageBox::information(this, "Submitted for Approval",
+            QString("Submitted %1 core-skill change%2 for manager approval.")
+                .arg(submittedCount)
+                .arg(submittedCount == 1 ? "" : "s"));
     }
+    loadCoreSkills();
 }
 
 void MyCoreSkillsWidget::onRefreshClicked()

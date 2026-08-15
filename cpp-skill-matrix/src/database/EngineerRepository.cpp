@@ -2,6 +2,7 @@
 #include "DatabaseManager.h"
 #include "../utils/Logger.h"
 #include "../utils/Crypto.h"
+#include <QRandomGenerator>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
@@ -138,8 +139,10 @@ bool EngineerRepository::save(Engineer& engineer)
 
     // Automatically create a user account for this engineer
     QString username = generateUsernameFromName(engineer.name());
-    QString defaultPassword = "password123";
-    QString passwordHash = Crypto::hashPassword(defaultPassword);
+    // Security: never assign predictable default passwords.
+    QString temporaryPassword = QString::number(QRandomGenerator::global()->generate64(), 16)
+        + QString::number(QRandomGenerator::global()->generate64(), 16);
+    QString passwordHash = Crypto::hashPassword(temporaryPassword);
     QString userId = Crypto::generateId("user");
 
     QSqlQuery userQuery(db);
@@ -168,10 +171,12 @@ bool EngineerRepository::save(Engineer& engineer)
         if (suffix > 100) {
             Logger::instance().warning("EngineerRepository", "Could not create user account for engineer: " + engineer.name());
         } else {
-            Logger::instance().info("EngineerRepository", "User account created: " + alternateUsername + " (password: password123)");
+            Logger::instance().info("EngineerRepository",
+                "User account created: " + alternateUsername + " (temporary password generated, reset required)");
         }
     } else {
-        Logger::instance().info("EngineerRepository", "User account created: " + username + " (password: password123)");
+        Logger::instance().info("EngineerRepository",
+            "User account created: " + username + " (temporary password generated, reset required)");
     }
 
     return true;

@@ -1,7 +1,7 @@
 #include "Certification.h"
 
 Certification::Certification()
-    : id_(0), engineerId_(""), name_(""), dateEarned_(), expiryDate_(), createdAt_(QDateTime::currentDateTime()) {}
+    : id_(0), engineerId_(""), name_(""), dateEarned_(), expiryDate_(), certificateFilePath_(""), createdAt_(QDateTime::currentDateTime()) {}
 
 Certification::~Certification() {}
 
@@ -28,6 +28,7 @@ QJsonObject Certification::toJson() const
     json["name"] = name_;
     json["dateEarned"] = dateEarned_.toString(Qt::ISODate);
     json["expiryDate"] = expiryDate_.toString(Qt::ISODate);
+    json["certificateFilePath"] = certificateFilePath_;
     json["createdAt"] = createdAt_.toString(Qt::ISODate);
     return json;
 }
@@ -40,6 +41,7 @@ Certification Certification::fromJson(const QJsonObject& json)
     cert.setName(json["name"].toString());
     cert.setDateEarned(QDate::fromString(json["dateEarned"].toString(), Qt::ISODate));
     cert.setExpiryDate(QDate::fromString(json["expiryDate"].toString(), Qt::ISODate));
+    cert.setCertificateFilePath(json["certificateFilePath"].toString());
     cert.setCreatedAt(QDateTime::fromString(json["createdAt"].toString(), Qt::ISODate));
     return cert;
 }

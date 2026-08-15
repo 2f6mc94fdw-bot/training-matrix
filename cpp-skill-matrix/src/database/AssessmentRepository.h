@@ -11,6 +11,7 @@ public:
     ~AssessmentRepository();
 
     QList<Assessment> findAll();
+    QList<Assessment> findByMaxScore(int maxScore);
     QList<Assessment> findByEngineer(const QString& engineerId);
     Assessment findById(int id);
     bool saveOrUpdate(Assessment& assessment); // Upsert
