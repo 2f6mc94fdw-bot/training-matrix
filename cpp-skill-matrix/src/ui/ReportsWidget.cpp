@@ -185,6 +185,23 @@ QString ReportsWidget::generateEngineerSkillsReport()
     stream << "=" << QString("=").repeated(79) << "\n\n";
 
     QList<Engineer> engineers = engineerRepo_.findAll();
+    const QList<Assessment> allAssessments = assessmentRepo_.findAll();
+
+    DataCache& cache = DataCache::instance();
+    if (!cache.isLoaded()) {
+        cache.load();
+    }
+    const QList<ProductionArea> allAreas = productionRepo_.findAllAreas();
+    QMap<int, QString> competencyNameById;
+    for (const ProductionArea& area : allAreas) {
+        const QList<Machine> machines = cache.getMachinesByArea(area.id());
+        for (const Machine& machine : machines) {
+            const QList<Competency> competencies = cache.getCompetenciesByMachine(machine.id());
+            for (const Competency& competency : competencies) {
+                competencyNameById.insert(competency.id(), competency.name());
+            }
+        }
+    }
 
     if (engineers.isEmpty()) {
         stream << "No engineers found in the system.\n";
@@ -199,10 +216,8 @@ QString ReportsWidget::generateEngineerSkillsReport()
         stream << "Shift: " << engineer.shift() << "\n";
         stream << QString("-").repeated(79) << "\n";
 
-        // Get assessments for this engineer
-        QList<Assessment> assessments = assessmentRepo_.findAll();
         QList<Assessment> engineerAssessments;
-        for (const Assessment& a : assessments) {
+        for (const Assessment& a : allAssessments) {
             if (a.engineerId() == engineer.id()) {
                 engineerAssessments.append(a);
             }
@@ -234,7 +249,8 @@ QString ReportsWidget::generateEngineerSkillsReport()
                     default: scoreText = "Unknown"; break;
                 }
 
-                stream << "      - Competency " << a.competencyId()
+                const QString competencyName = competencyNameById.value(a.competencyId(), QString("Competency %1").arg(a.competencyId()));
+                stream << "      - " << competencyName
                        << ": " << scoreText << " (" << a.score() << ")\n";
             }
         }

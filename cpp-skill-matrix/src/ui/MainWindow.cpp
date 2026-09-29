@@ -17,9 +17,12 @@
 #include "MyCoreSkillsWidget.h"
 #include "MyAssessmentsWidget.h"
 #include "MyDashboardWidget.h"
+#include "MyCertificationsWidget.h"
 #include "MyProgressWidget.h"
 #include "ReportsWidget.h"
 #include "AnalyticsWidget.h"
+#include "ManagerReviewWidget.h"
+#include "NotificationsWidget.h"
 #include "CertificationsWidget.h"
 #include "SnapshotsWidget.h"
 #include "AuditLogWidget.h"
@@ -37,6 +40,7 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QSettings>
+#include <QTabWidget>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -46,22 +50,6 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setupUI();
     restoreSettings();
-
-    // Load global cache for fast data access across all widgets
-    DataCache& cache = DataCache::instance();
-    if (!cache.isLoaded()) {
-        Logger::instance().info("MainWindow", "Loading production data cache...");
-        cache.load();
-        if (cache.isLoaded()) {
-            Logger::instance().info("MainWindow",
-                QString("Cache loaded: %1 areas, %2 machines, %3 competencies")
-                    .arg(cache.getTotalAreas())
-                    .arg(cache.getTotalMachines())
-                    .arg(cache.getTotalCompetencies()));
-        } else {
-            Logger::instance().warning("MainWindow", "Cache failed to load: " + cache.lastError());
-        }
-    }
 
     Logger::instance().info("MainWindow", "Main window created");
 }
@@ -111,6 +99,7 @@ void MainWindow::setupMenuBar()
 void MainWindow::setupNavigationSidebar()
 {
     navigationList_ = new QListWidget(this);
+    navigationList_->setObjectName("navigationList");
     navigationList_->setMaximumWidth(Constants::SIDEBAR_WIDTH);
     navigationList_->setMinimumWidth(Constants::SIDEBAR_WIDTH);
 
@@ -119,27 +108,20 @@ void MainWindow::setupNavigationSidebar()
     bool isAdmin = session && session->isAdmin();
 
     if (isAdmin) {
-        // Admin navigation - full access to all features
-        navigationList_->addItem("Dashboard");
-        navigationList_->addItem("Engineers");
-        navigationList_->addItem("Users");
-        navigationList_->addItem("Production Areas");
-        navigationList_->addItem("Production Assessments");
-        navigationList_->addItem("Core Skills");
-        navigationList_->addItem("Core Skills Management");
-        navigationList_->addItem("Reports");
-        navigationList_->addItem("Analytics");
-        navigationList_->addItem("Certifications");
-        navigationList_->addItem("Snapshots");
-        navigationList_->addItem("Audit Log");
-        navigationList_->addItem("Import/Export");
+        navigationList_->addItem("Overview");
+        navigationList_->addItem("Team");
+        navigationList_->addItem("Assessments");
+        navigationList_->addItem("Approval Queue");
+        navigationList_->addItem("Skills Structure");
+        navigationList_->addItem("Development & Insights");
+        navigationList_->addItem("Compliance");
+        navigationList_->addItem("Action Inbox");
+        navigationList_->addItem("System Administration");
     } else {
-        // Engineer navigation - personal view only
-        navigationList_->addItem("My Dashboard");
-        navigationList_->addItem("My Production Assessments");
-        navigationList_->addItem("My Core Skills");
-        navigationList_->addItem("My Certifications");
-        navigationList_->addItem("My Progress");
+        navigationList_->addItem("Home");
+        navigationList_->addItem("My Assessments");
+        navigationList_->addItem("My Development");
+        navigationList_->addItem("My Qualifications");
     }
 
     connect(navigationList_, &QListWidget::currentRowChanged, this, &MainWindow::onNavigationItemClicked);
@@ -173,52 +155,45 @@ void MainWindow::setupCentralWidget()
         coreSkillsManagementWidget_ = nullptr;
         reportsWidget_ = nullptr;
         analyticsWidget_ = nullptr;
+        managerReviewWidget_ = nullptr;
+        notificationsWidget_ = nullptr;
         certificationsWidget_ = nullptr;
         snapshotsWidget_ = nullptr;
         auditLogWidget_ = nullptr;
         importExportWidget_ = nullptr;
 
-        // Create only the dashboard widget initially (default view)
+        // Create only the overview initially. The remaining workflow pages are lazy-loaded.
         dashboardWidget_ = new DashboardWidget(this);
 
-        // Add placeholder widgets to stack (will be replaced with real widgets on first access)
-        contentStack_->addWidget(dashboardWidget_);  // 0 - Dashboard
-        contentStack_->addWidget(new QWidget(this)); // 1 - Engineers (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 2 - Users (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 3 - Production Areas (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 4 - Production Assessments (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 5 - Core Skills (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 6 - Core Skills Management (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 7 - Reports (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 8 - Analytics (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 9 - Certifications (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 10 - Snapshots (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 11 - Audit Log (lazy)
-        contentStack_->addWidget(new QWidget(this)); // 12 - Import/Export (lazy)
+        contentStack_->addWidget(dashboardWidget_);   // 0 - Overview
+        contentStack_->addWidget(new QWidget(this));  // 1 - Team
+        contentStack_->addWidget(new QWidget(this));  // 2 - Assessments
+        contentStack_->addWidget(new QWidget(this));  // 3 - Approval Queue
+        contentStack_->addWidget(new QWidget(this));  // 4 - Skills Structure
+        contentStack_->addWidget(new QWidget(this));  // 5 - Development & Insights
+        contentStack_->addWidget(new QWidget(this));  // 6 - Compliance
+        contentStack_->addWidget(new QWidget(this));  // 7 - Action Inbox
+        contentStack_->addWidget(new QWidget(this));  // 8 - System Administration
     } else {
-        // Engineer widgets - personal view filtered by engineerId
-        // For now, create placeholder widgets - will be replaced with engineer-specific widgets
+        // Engineer workspaces are compact enough to create together and share one engineer scope.
         QString engineerId = session->engineerId();
 
-        // My Dashboard - shows personal overview
         MyDashboardWidget* myDashboard = new MyDashboardWidget(engineerId, this);
         contentStack_->addWidget(myDashboard);
 
-        // My Production Assessments - shows only their assessments
+        QTabWidget* assessmentsWorkspace = new QTabWidget(this);
+        assessmentsWorkspace->setDocumentMode(true);
         MyAssessmentsWidget* myAssessments = new MyAssessmentsWidget(engineerId, this);
-        contentStack_->addWidget(myAssessments);
-
-        // My Core Skills - shows only their core skills
         MyCoreSkillsWidget* myCoreSkills = new MyCoreSkillsWidget(engineerId, this);
-        contentStack_->addWidget(myCoreSkills);
+        assessmentsWorkspace->addTab(myAssessments, "Production Skills");
+        assessmentsWorkspace->addTab(myCoreSkills, "Core Skills");
+        contentStack_->addWidget(assessmentsWorkspace);
 
-        // My Certifications - shows only their certifications
-        QWidget* myCerts = new QLabel("Your certifications will appear here.", this);
-        contentStack_->addWidget(myCerts);
-
-        // My Progress - shows progress over time with targets
         MyProgressWidget* myProgress = new MyProgressWidget(engineerId, this);
         contentStack_->addWidget(myProgress);
+
+        MyCertificationsWidget* myCerts = new MyCertificationsWidget(engineerId, this);
+        contentStack_->addWidget(myCerts);
     }
 
     // Layout
@@ -226,6 +201,7 @@ void MainWindow::setupCentralWidget()
     mainLayout->addWidget(contentStack_, 1);
 
     setCentralWidget(centralWidget);
+    navigationList_->setCurrentRow(0);
 }
 
 void MainWindow::setupStatusBar()
@@ -276,108 +252,76 @@ void MainWindow::onNavigationItemClicked(int index)
             QWidget* newWidget = nullptr;
 
             switch (index) {
-                case 1: // Engineers
-                    if (!engineersWidget_) {
-                        engineersWidget_ = new EngineersWidget(this);
-                        newWidget = engineersWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Engineers widget");
-                    }
+                case 1: { // Team
+                    QTabWidget* tabs = new QTabWidget(this);
+                    tabs->setDocumentMode(true);
+                    engineersWidget_ = new EngineersWidget(tabs);
+                    usersWidget_ = new UsersWidget(tabs);
+                    tabs->addTab(engineersWidget_, "Engineers");
+                    tabs->addTab(usersWidget_, "User Accounts");
+                    newWidget = tabs;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Team workspace");
                     break;
-                case 2: // Users
-                    if (!usersWidget_) {
-                        usersWidget_ = new UsersWidget(this);
-                        newWidget = usersWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Users widget");
-                    }
+                }
+                case 2: { // Assessments
+                    QTabWidget* tabs = new QTabWidget(this);
+                    tabs->setDocumentMode(true);
+                    assessmentWidget_ = new AssessmentWidget(tabs);
+                    coreSkillsWidget_ = new CoreSkillsWidget(tabs);
+                    tabs->addTab(assessmentWidget_, "Production Skills");
+                    tabs->addTab(coreSkillsWidget_, "Core Skills");
+                    newWidget = tabs;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Assessments workspace");
                     break;
-                case 3: // Production Areas
-                    if (!productionAreasWidget_) {
-                        productionAreasWidget_ = new ProductionAreasWidget(this);
-                        newWidget = productionAreasWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Areas widget");
-                    }
+                }
+                case 3: // Approval Queue
+                    managerReviewWidget_ = new ManagerReviewWidget(this);
+                    newWidget = managerReviewWidget_;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Approval Queue");
                     break;
-                case 4: // Production Assessments
-                    if (!assessmentWidget_) {
-                        assessmentWidget_ = new AssessmentWidget(this);
-                        newWidget = assessmentWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Production Assessment widget");
-                    }
+                case 4: { // Skills Structure
+                    QTabWidget* tabs = new QTabWidget(this);
+                    tabs->setDocumentMode(true);
+                    productionAreasWidget_ = new ProductionAreasWidget(tabs);
+                    coreSkillsManagementWidget_ = new CoreSkillsManagementWidget(tabs);
+                    tabs->addTab(productionAreasWidget_, "Production Structure");
+                    tabs->addTab(coreSkillsManagementWidget_, "Core Skills Structure");
+                    newWidget = tabs;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Skills Structure workspace");
                     break;
-                case 5: // Core Skills
-                    if (!coreSkillsWidget_) {
-                        coreSkillsWidget_ = new CoreSkillsWidget(this);
-                        newWidget = coreSkillsWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills widget");
-                    }
+                }
+                case 5: { // Development & Insights
+                    QTabWidget* tabs = new QTabWidget(this);
+                    tabs->setDocumentMode(true);
+                    analyticsWidget_ = new AnalyticsWidget(tabs);
+                    reportsWidget_ = new ReportsWidget(tabs);
+                    tabs->addTab(analyticsWidget_, "Coverage & Development");
+                    tabs->addTab(reportsWidget_, "Reports & Export");
+                    newWidget = tabs;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Development & Insights workspace");
                     break;
-                case 6: // Core Skills Management
-                    if (!coreSkillsManagementWidget_) {
-                        coreSkillsManagementWidget_ = new CoreSkillsManagementWidget(this);
-                        newWidget = coreSkillsManagementWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Core Skills Management widget");
-                    }
+                }
+                case 6: // Compliance
+                    certificationsWidget_ = new CertificationsWidget(this);
+                    newWidget = certificationsWidget_;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Compliance workspace");
                     break;
-                case 7: // Reports
-                    if (!reportsWidget_) {
-                        reportsWidget_ = new ReportsWidget(this);
-                        newWidget = reportsWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Reports widget");
-                    }
+                case 7: // Action Inbox
+                    notificationsWidget_ = new NotificationsWidget(this);
+                    newWidget = notificationsWidget_;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded Action Inbox");
                     break;
-                case 8: // Analytics
-                    if (!analyticsWidget_) {
-                        analyticsWidget_ = new AnalyticsWidget(this);
-
-                        // Connect to import/export data change signal if import/export widget exists
-                        if (importExportWidget_) {
-                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
-                                    analyticsWidget_, &AnalyticsWidget::refresh);
-                        }
-
-                        newWidget = analyticsWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Analytics widget");
-                    }
+                case 8: { // System Administration
+                    QTabWidget* tabs = new QTabWidget(this);
+                    tabs->setDocumentMode(true);
+                    auditLogWidget_ = new AuditLogWidget(tabs);
+                    snapshotsWidget_ = new SnapshotsWidget(tabs);
+                    tabs->addTab(auditLogWidget_, "Audit Log");
+                    tabs->addTab(snapshotsWidget_, "Snapshots");
+                    newWidget = tabs;
+                    Logger::instance().debug("MainWindow", "Lazy-loaded System Administration workspace");
                     break;
-                case 9: // Certifications
-                    if (!certificationsWidget_) {
-                        certificationsWidget_ = new CertificationsWidget(this);
-                        newWidget = certificationsWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Certifications widget");
-                    }
-                    break;
-                case 10: // Snapshots
-                    if (!snapshotsWidget_) {
-                        snapshotsWidget_ = new SnapshotsWidget(this);
-                        newWidget = snapshotsWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Snapshots widget");
-                    }
-                    break;
-                case 11: // Audit Log
-                    if (!auditLogWidget_) {
-                        auditLogWidget_ = new AuditLogWidget(this);
-                        newWidget = auditLogWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Audit Log widget");
-                    }
-                    break;
-                case 12: // Import/Export
-                    if (!importExportWidget_) {
-                        importExportWidget_ = new ImportExportDialog(this);
-
-                        // Connect to dashboard and analytics if they exist
-                        if (dashboardWidget_) {
-                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
-                                    dashboardWidget_, &DashboardWidget::refresh);
-                        }
-                        if (analyticsWidget_) {
-                            connect(importExportWidget_, &ImportExportDialog::dataChanged,
-                                    analyticsWidget_, &AnalyticsWidget::refresh);
-                        }
-
-                        newWidget = importExportWidget_;
-                        Logger::instance().debug("MainWindow", "Lazy-loaded Import/Export widget");
-                    }
-                    break;
+                }
             }
 
             // Replace placeholder with real widget

@@ -21,7 +21,7 @@ QList<Certification> CertificationRepository::findAll()
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, engineer_id, name, date_earned, expiry_date, created_at "
+    query.prepare("SELECT id, engineer_id, name, date_earned, expiry_date, certificate_file_path, created_at "
                   "FROM certifications ORDER BY engineer_id, date_earned DESC");
 
     if (!query.exec()) {
@@ -37,7 +37,8 @@ QList<Certification> CertificationRepository::findAll()
         cert.setName(query.value(2).toString());
         cert.setDateEarned(query.value(3).toDate());
         cert.setExpiryDate(query.value(4).toDate());
-        cert.setCreatedAt(query.value(5).toDateTime());
+        cert.setCertificateFilePath(query.value(5).toString());
+        cert.setCreatedAt(query.value(6).toDateTime());
         certifications.append(cert);
     }
 
@@ -58,7 +59,7 @@ QList<Certification> CertificationRepository::findByEngineer(const QString& engi
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, engineer_id, name, date_earned, expiry_date, created_at "
+    query.prepare("SELECT id, engineer_id, name, date_earned, expiry_date, certificate_file_path, created_at "
                   "FROM certifications WHERE engineer_id = ? ORDER BY date_earned DESC");
     query.addBindValue(engineerId);
 
@@ -75,7 +76,8 @@ QList<Certification> CertificationRepository::findByEngineer(const QString& engi
         cert.setName(query.value(2).toString());
         cert.setDateEarned(query.value(3).toDate());
         cert.setExpiryDate(query.value(4).toDate());
-        cert.setCreatedAt(query.value(5).toDateTime());
+        cert.setCertificateFilePath(query.value(5).toString());
+        cert.setCreatedAt(query.value(6).toDateTime());
         certifications.append(cert);
     }
 
@@ -99,12 +101,13 @@ bool CertificationRepository::save(Certification& certification)
 
     if (certification.id() > 0) {
         // Update existing certification
-        query.prepare("UPDATE certifications SET engineer_id = ?, name = ?, date_earned = ?, expiry_date = ? "
+        query.prepare("UPDATE certifications SET engineer_id = ?, name = ?, date_earned = ?, expiry_date = ?, certificate_file_path = ? "
                      "WHERE id = ?");
         query.addBindValue(certification.engineerId());
         query.addBindValue(certification.name());
         query.addBindValue(certification.dateEarned());
         query.addBindValue(certification.expiryDate().isValid() ? QVariant(certification.expiryDate()) : QVariant());
+        query.addBindValue(certification.certificateFilePath().isEmpty() ? QVariant() : QVariant(certification.certificateFilePath()));
         query.addBindValue(certification.id());
 
         if (!query.exec()) {
@@ -117,12 +120,13 @@ bool CertificationRepository::save(Certification& certification)
         return true;
     } else {
         // Insert new certification
-        query.prepare("INSERT INTO certifications (engineer_id, name, date_earned, expiry_date, created_at) "
-                     "VALUES (?, ?, ?, ?, GETDATE())");
+        query.prepare("INSERT INTO certifications (engineer_id, name, date_earned, expiry_date, certificate_file_path, created_at) "
+                     "VALUES (?, ?, ?, ?, ?, GETDATE())");
         query.addBindValue(certification.engineerId());
         query.addBindValue(certification.name());
         query.addBindValue(certification.dateEarned());
         query.addBindValue(certification.expiryDate().isValid() ? QVariant(certification.expiryDate()) : QVariant());
+        query.addBindValue(certification.certificateFilePath().isEmpty() ? QVariant() : QVariant(certification.certificateFilePath()));
 
         if (!query.exec()) {
             lastError_ = query.lastError().text();
@@ -139,6 +143,68 @@ bool CertificationRepository::save(Certification& certification)
         Logger::instance().info("CertificationRepository", "Certification created: " + certification.name());
         return true;
     }
+}
+
+Certification CertificationRepository::findById(int id)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CertificationRepository", lastError_);
+        return Certification();
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT id, engineer_id, name, date_earned, expiry_date, certificate_file_path, created_at "
+                  "FROM certifications WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CertificationRepository", "findById failed: " + lastError_);
+        return Certification();
+    }
+
+    if (!query.next()) {
+        return Certification();
+    }
+
+    Certification cert;
+    cert.setId(query.value(0).toInt());
+    cert.setEngineerId(query.value(1).toString());
+    cert.setName(query.value(2).toString());
+    cert.setDateEarned(query.value(3).toDate());
+    cert.setExpiryDate(query.value(4).toDate());
+    cert.setCertificateFilePath(query.value(5).toString());
+    cert.setCreatedAt(query.value(6).toDateTime());
+    return cert;
+}
+
+bool CertificationRepository::updateCertificateFilePath(int id, const QString& filePath)
+{
+    lastError_.clear();
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CertificationRepository", lastError_);
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("UPDATE certifications SET certificate_file_path = ? WHERE id = ?");
+    query.addBindValue(filePath.isEmpty() ? QVariant() : QVariant(filePath));
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CertificationRepository", "updateCertificateFilePath failed: " + lastError_);
+        return false;
+    }
+
+    return true;
 }
 
 bool CertificationRepository::remove(int id)

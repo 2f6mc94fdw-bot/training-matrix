@@ -7,6 +7,8 @@
 
 class DashboardWidget;
 class AnalyticsWidget;
+class ManagerReviewWidget;
+class NotificationsWidget;
 class ImportExportDialog;
 
 class MainWindow : public QMainWindow
@@ -49,6 +51,8 @@ private:
     QWidget* coreSkillsManagementWidget_;
     QWidget* reportsWidget_;
     AnalyticsWidget* analyticsWidget_;
+    ManagerReviewWidget* managerReviewWidget_;
+    NotificationsWidget* notificationsWidget_;
     QWidget* certificationsWidget_;
     QWidget* snapshotsWidget_;
     QWidget* auditLogWidget_;

@@ -2,8 +2,6 @@
     <qresource prefix="/">
         <file>styles/light.qss</file>
         <file>styles/dark.qss</file>
-        <!-- TODO: Add logo and icon files -->
-        <!-- <file>images/aptitude-logo.png</file> -->
-        <!-- <file>images/aptitude-icon.png</file> -->
+        <file>images/aptitude-icon.png</file>
     </qresource>
 </RCC>

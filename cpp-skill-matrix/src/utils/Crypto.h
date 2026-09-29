@@ -56,7 +56,16 @@ public:
      */
     static QString sha256(const QString& data);
 
+    /**
+     * @brief Determine whether stored hash should be upgraded to current format
+     * @param storedHash Existing password hash from database
+     * @return true if hash is legacy/older format
+     */
+    static bool needsRehash(const QString& storedHash);
+
 private:
+    static QByteArray derivePasswordHash(const QString& password, const QString& saltHex, int iterations);
+    static bool constantTimeEquals(const QByteArray& a, const QByteArray& b);
     Crypto() = delete; // Static class
 };
 

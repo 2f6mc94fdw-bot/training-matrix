@@ -8,6 +8,9 @@
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include "../database/CoreSkillsRepository.h"
+#include "../database/NotificationRepository.h"
+#include "../database/EngineerRepository.h"
+#include "../database/AssessmentSubmissionRepository.h"
 
 class MyCoreSkillsWidget : public QWidget
 {
@@ -26,7 +29,7 @@ private:
     void setupUI();
     void loadCoreSkills();
     void createScoreButtons(QHBoxLayout* layout, const QString& categoryId,
-                           const QString& skillId, int currentScore);
+                           const QString& skillId, int currentScore, bool pendingApproval);
 
     QString engineerId_;
     QVBoxLayout* skillsLayout_;
@@ -44,6 +47,7 @@ private:
     QList<ScoreButtonGroup> scoreButtonGroups_;
 
     CoreSkillsRepository coreSkillsRepo_;
+    AssessmentSubmissionRepository submissionRepo_;
 };
 
 #endif // MYCORESKILLSWIDGET_H

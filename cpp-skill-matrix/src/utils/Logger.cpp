@@ -115,6 +115,10 @@ void Logger::log(LogLevel level, const QString& category, const QString& message
     // Write to file
     if (initialized_) {
         writeToFile(formattedMessage);
+        // Flush only for warning/error classes to reduce synchronous I/O overhead.
+        if (stream_ && level >= Warning) {
+            stream_->flush();
+        }
     }
 
     // Write to console
@@ -154,7 +158,6 @@ void Logger::writeToFile(const QString& formattedMessage)
 {
     if (stream_) {
         *stream_ << formattedMessage << "\n";
-        stream_->flush();
     }
 }
 

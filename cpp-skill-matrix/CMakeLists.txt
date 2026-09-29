@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(Aptitude VERSION 1.0.0 LANGUAGES CXX)
 
+option(APTITUDE_BUILD_INTEGRATION_TESTS "Build SQL Server workflow integration tests" OFF)
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -67,6 +69,9 @@ set(SOURCES
     src/database/CertificationRepository.cpp
     src/database/SnapshotRepository.cpp
     src/database/AuditLogRepository.cpp
+    src/database/NotificationRepository.cpp
+    src/database/DevelopmentPlanRepository.cpp
+    src/database/AssessmentSubmissionRepository.cpp
 
     # Controllers
     src/controllers/AuthController.cpp
@@ -94,9 +99,12 @@ set(SOURCES
     src/ui/MyCoreSkillsWidget.cpp
     src/ui/MyAssessmentsWidget.cpp
     src/ui/MyDashboardWidget.cpp
+    src/ui/MyCertificationsWidget.cpp
     src/ui/MyProgressWidget.cpp
     src/ui/ReportsWidget.cpp
     src/ui/AnalyticsWidget.cpp
+    src/ui/ManagerReviewWidget.cpp
+    src/ui/NotificationsWidget.cpp
     src/ui/CertificationsWidget.cpp
     src/ui/SnapshotsWidget.cpp
     src/ui/AuditLogWidget.cpp
@@ -105,6 +113,7 @@ set(SOURCES
     src/ui/ChangePasswordDialog.cpp
     src/ui/StyleManager.cpp
     src/ui/AptitudeLogoWidget.cpp
+    src/ui/EngineerDevelopmentWidget.cpp
 
     # UI Widgets
     src/ui/widgets/ChartWidget.cpp
@@ -154,6 +163,9 @@ set(HEADERS
     src/database/CertificationRepository.h
     src/database/SnapshotRepository.h
     src/database/AuditLogRepository.h
+    src/database/NotificationRepository.h
+    src/database/DevelopmentPlanRepository.h
+    src/database/AssessmentSubmissionRepository.h
 
     # Controllers
     src/controllers/AuthController.h
@@ -181,9 +193,12 @@ set(HEADERS
     src/ui/MyCoreSkillsWidget.h
     src/ui/MyAssessmentsWidget.h
     src/ui/MyDashboardWidget.h
+    src/ui/MyCertificationsWidget.h
     src/ui/MyProgressWidget.h
     src/ui/ReportsWidget.h
     src/ui/AnalyticsWidget.h
+    src/ui/ManagerReviewWidget.h
+    src/ui/NotificationsWidget.h
     src/ui/CertificationsWidget.h
     src/ui/SnapshotsWidget.h
     src/ui/AuditLogWidget.h
@@ -192,6 +207,7 @@ set(HEADERS
     src/ui/ChangePasswordDialog.h
     src/ui/StyleManager.h
     src/ui/AptitudeLogoWidget.h
+    src/ui/EngineerDevelopmentWidget.h
 
     # UI Widgets
     src/ui/widgets/ChartWidget.h
@@ -233,6 +249,25 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Network
     Qt6::Concurrent
 )
+
+if(APTITUDE_BUILD_INTEGRATION_TESTS)
+    add_executable(AptitudeSubmissionIntegrationTest
+        tests/AssessmentSubmissionRepositoryIntegrationTest.cpp
+        src/database/AssessmentSubmissionRepository.cpp
+        src/database/DatabaseManager.cpp
+        src/utils/Crypto.cpp
+        src/utils/Logger.cpp
+        src/database/AssessmentSubmissionRepository.h
+        src/database/DatabaseManager.h
+        src/utils/Crypto.h
+        src/utils/Logger.h
+        src/core/Constants.h
+    )
+    target_link_libraries(AptitudeSubmissionIntegrationTest
+        Qt6::Core
+        Qt6::Sql
+    )
+endif()
 
 # Platform-specific settings
 if(WIN32)

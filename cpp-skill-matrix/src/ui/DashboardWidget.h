@@ -5,6 +5,14 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QListWidget>
+#include <QCheckBox>
+#include <QShowEvent>
+#include <QFutureWatcher>
+#include <QHash>
+#include <QElapsedTimer>
+#include <QStringList>
+#include <QVector>
+#include <QComboBox>
 #include "../database/EngineerRepository.h"
 #include "../database/ProductionRepository.h"
 #include "../database/AssessmentRepository.h"
@@ -26,25 +34,36 @@ class DashboardWidget : public QWidget
 public:
     explicit DashboardWidget(QWidget* parent = nullptr);
     ~DashboardWidget();
+    void showEvent(QShowEvent* event) override;
 
 public slots:
-    void refresh() { loadStatistics(); }  // Public refresh method
+    void refresh();
 
 private slots:
     void onRefreshClicked();
+    void onWeightedScoreToggled(bool checked);
+    void onMetricsComputationFinished();
+    void onAreaFocusChanged(int index);
+    void clearDashboardFocus();
 
 private:
     void setupUI();
+    void loadStatisticsDeferred();
     void loadStatistics();
 
     // Section setup methods
     void setupCriticalAlertsSection(QVBoxLayout* mainLayout);
     void setupProductionHealthSection(QVBoxLayout* mainLayout);
+    void setupInteractiveFocusSection(QVBoxLayout* mainLayout);
     void setupMachineReadinessSection(QVBoxLayout* mainLayout);
     void setupShiftComparisonSection(QVBoxLayout* mainLayout);
     void setupTrainingPipelineSection(QVBoxLayout* mainLayout);
     void setupRecentActivitySection(QVBoxLayout* mainLayout);
     void setupQuickActionsSection(QVBoxLayout* mainLayout);
+    void setupAreaCoverageRadarSection(QVBoxLayout* mainLayout);
+    void setupTeamKnowledgeRadarSection(QVBoxLayout* mainLayout);
+    void setupEngineerScoresSection(QVBoxLayout* mainLayout);
+    void setupAreaProgressSection(QVBoxLayout* mainLayout);
 
     // Data update methods
     void updateCriticalAlerts();
@@ -53,7 +72,14 @@ private:
     void updateShiftComparison();
     void updateTrainingPipeline();
     void updateRecentActivity();
+    void updateAreaCoverageRadar();
+    void updateTeamKnowledgeRadar();
+    void updateEngineerScoresChart();
+    void updateAreaProgressChart();
+    void updateInteractiveFocusPanel();
+    void selectAreaFocus(int areaId);
 
+public:
     // Data structures for analytics
     struct MachineReadiness {
         QString machineName;
@@ -79,10 +105,19 @@ private:
         int engineerCount;
     };
 
+    struct EngineerScoreRowData {
+        QString name;
+        double rawPercent = 0.0;
+        double weightedCapabilityPercent = 0.0;
+        double confidencePercent = 0.0;
+    };
+
+private:
     // Calculation methods
     QList<MachineReadiness> calculateMachineReadiness();
     QList<TrainingRecommendation> calculateTrainingPriorities();
     QList<ShiftPerformance> calculateShiftPerformance();
+    QMap<QString, double> calculateProductionAreaCoverage();
 
 private:
     // Section 1: Critical Alerts
@@ -93,6 +128,13 @@ private:
     QLabel* criticalCompetenciesLabel_;
     QLabel* trainingInProgressLabel_;
     QLabel* promotionReadyLabel_;
+
+    // Interactive dashboard focus
+    QComboBox* areaFocusCombo_;
+    QLabel* focusTitleLabel_;
+    QLabel* focusDetailLabel_;
+    QPushButton* clearFocusButton_;
+    int selectedAreaId_;
 
     // Section 3: Machine Readiness
     QWidget* machineReadinessContainer_;
@@ -106,6 +148,21 @@ private:
 
     // Section 6: Recent Activity
     QListWidget* recentActivityList_;
+
+    // Section 7: Production area radar
+    QChartView* areaCoverageRadarView_;
+
+    // Section 8: Engineer scores
+    QChartView* engineerScoresChartView_;
+    QCheckBox* weightedScoreToggle_;
+    QLabel* topEngineerLabel_;
+    QLabel* worstEngineerLabel_;
+
+    // Section 9: 12-month area progress
+    QChartView* areaProgressChartView_;
+
+    // Section 10: Team knowledge radar
+    QChartView* teamKnowledgeRadarView_;
 
     // Section 7: Quick Actions (buttons)
     QPushButton* viewAnalyticsButton_;
@@ -121,6 +178,41 @@ private:
     ProductionRepository productionRepo_;
     AssessmentRepository assessmentRepo_;
     CoreSkillsRepository coreSkillsRepo_;
+
+    // Per-refresh cached data and indexes
+    QList<Engineer> cachedEngineers_;
+    QList<Assessment> cachedAssessments_;
+    QList<ProductionArea> cachedAreas_;
+    QHash<int, QList<Machine>> machinesByArea_;
+    QHash<int, QList<Competency>> competenciesByMachine_;
+    QHash<QString, QHash<int, int>> assessmentScoreByEngineerAndCompetency_;
+    QHash<QString, QList<Assessment>> assessmentsByEngineer_;
+    QList<MachineReadiness> machineReadinessCache_;
+    QList<TrainingRecommendation> trainingPrioritiesCache_;
+    QList<ShiftPerformance> shiftPerformanceCache_;
+    QMap<QString, double> areaCoverageCache_;
+    QList<EngineerScoreRowData> engineerScoreRowsCache_;
+    QStringList areaProgressMonthLabelsCache_;
+    QHash<int, QVector<double>> areaProgressByAreaIdCache_;
+    struct MetricsComputationResult {
+        QList<MachineReadiness> machineReadiness;
+        QList<TrainingRecommendation> trainingPriorities;
+        QList<ShiftPerformance> shiftPerformance;
+        QMap<QString, double> areaCoverage;
+        QList<EngineerScoreRowData> engineerScoreRows;
+        QStringList areaProgressMonthLabels;
+        QHash<int, QVector<double>> areaProgressByAreaId;
+    };
+    QFutureWatcher<MetricsComputationResult>* metricsWatcher_;
+    QElapsedTimer refreshTimer_;
+    QElapsedTimer computeTimer_;
+    qint64 lastDataFetchMs_;
+    qint64 lastComputeMs_;
+
+    bool isFirstShow_;
+    bool isLoading_;
+    bool waitingForCacheWarmup_;
+    bool showWeightedScores_;
 };
 
 #endif // DASHBOARDWIDGET_H

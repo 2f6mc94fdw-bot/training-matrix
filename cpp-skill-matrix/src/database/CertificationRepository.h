@@ -12,7 +12,9 @@ public:
 
     QList<Certification> findAll();
     QList<Certification> findByEngineer(const QString& engineerId);
+    Certification findById(int id);
     bool save(Certification& certification);
+    bool updateCertificateFilePath(int id, const QString& filePath);
     bool remove(int id);
 
     QString lastError() const { return lastError_; }

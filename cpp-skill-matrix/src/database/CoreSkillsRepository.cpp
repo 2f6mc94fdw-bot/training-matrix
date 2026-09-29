@@ -21,7 +21,7 @@ QList<CoreSkillCategory> CoreSkillsRepository::findAllCategories()
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, name, created_at FROM core_skill_categories ORDER BY name");
+    query.prepare("SELECT id, name, discipline, created_at FROM core_skill_categories ORDER BY discipline, name");
 
     if (!query.exec()) {
         lastError_ = query.lastError().text();
@@ -33,7 +33,8 @@ QList<CoreSkillCategory> CoreSkillsRepository::findAllCategories()
         CoreSkillCategory category;
         category.setId(query.value(0).toString());
         category.setName(query.value(1).toString());
-        category.setCreatedAt(query.value(2).toDateTime());
+        category.setDiscipline(query.value(2).toString());
+        category.setCreatedAt(query.value(3).toDateTime());
         categories.append(category);
     }
 
@@ -121,6 +122,46 @@ QList<CoreSkillAssessment> CoreSkillsRepository::findAllAssessments()
     }
 
     Logger::instance().debug("CoreSkillsRepository", QString("Found %1 core skill assessments").arg(assessments.size()));
+    return assessments;
+}
+
+QList<CoreSkillAssessment> CoreSkillsRepository::findAssessmentsByEngineer(const QString& engineerId)
+{
+    lastError_.clear();
+    QList<CoreSkillAssessment> assessments;
+    QSqlDatabase& db = DatabaseManager::instance().database();
+
+    if (!db.isOpen()) {
+        lastError_ = "Database not connected";
+        Logger::instance().error("CoreSkillsRepository", lastError_);
+        return assessments;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT id, engineer_id, category_id, skill_id, score, created_at, updated_at "
+                  "FROM core_skill_assessments WHERE engineer_id = ? ORDER BY category_id, skill_id");
+    query.addBindValue(engineerId);
+
+    if (!query.exec()) {
+        lastError_ = query.lastError().text();
+        Logger::instance().error("CoreSkillsRepository", "findAssessmentsByEngineer failed: " + lastError_);
+        return assessments;
+    }
+
+    while (query.next()) {
+        CoreSkillAssessment assessment;
+        assessment.setId(query.value(0).toInt());
+        assessment.setEngineerId(query.value(1).toString());
+        assessment.setCategoryId(query.value(2).toString());
+        assessment.setSkillId(query.value(3).toString());
+        assessment.setScore(query.value(4).toInt());
+        assessment.setCreatedAt(query.value(5).toDateTime());
+        assessment.setUpdatedAt(query.value(6).toDateTime());
+        assessments.append(assessment);
+    }
+
+    Logger::instance().debug("CoreSkillsRepository",
+        QString("Found %1 core skill assessments for engineer %2").arg(assessments.size()).arg(engineerId));
     return assessments;
 }
 
@@ -227,8 +268,9 @@ bool CoreSkillsRepository::saveCategory(const CoreSkillCategory& category)
     if (query.next()) {
         // Update existing category
         QSqlQuery updateQuery(db);
-        updateQuery.prepare("UPDATE core_skill_categories SET name = ? WHERE id = ?");
+        updateQuery.prepare("UPDATE core_skill_categories SET name = ?, discipline = ? WHERE id = ?");
         updateQuery.addBindValue(category.name());
+        updateQuery.addBindValue(category.discipline());
         updateQuery.addBindValue(category.id());
 
         if (!updateQuery.exec()) {
@@ -242,10 +284,11 @@ bool CoreSkillsRepository::saveCategory(const CoreSkillCategory& category)
     } else {
         // Insert new category
         QSqlQuery insertQuery(db);
-        insertQuery.prepare("INSERT INTO core_skill_categories (id, name, created_at) "
-                           "VALUES (?, ?, GETDATE())");
+        insertQuery.prepare("INSERT INTO core_skill_categories (id, name, discipline, created_at) "
+                           "VALUES (?, ?, ?, GETDATE())");
         insertQuery.addBindValue(category.id());
         insertQuery.addBindValue(category.name());
+        insertQuery.addBindValue(category.discipline());
 
         if (!insertQuery.exec()) {
             lastError_ = insertQuery.lastError().text();

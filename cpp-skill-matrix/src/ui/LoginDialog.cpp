@@ -4,9 +4,7 @@
 #include "../core/Application.h"
 #include "../core/Constants.h"
 #include "../database/DatabaseManager.h"
-#include "../database/UserRepository.h"
-#include "../utils/Config.h"
-#include "../utils/Crypto.h"
+#include "../controllers/AuthController.h"
 #include "../utils/Logger.h"
 #include "../utils/ValidationHelper.h"
 
@@ -15,6 +13,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
+#include <QElapsedTimer>
 
 LoginDialog::LoginDialog(QWidget* parent)
     : QDialog(parent)
@@ -119,28 +118,9 @@ void LoginDialog::setupUI()
     connect(usernameEdit_, &QLineEdit::returnPressed, this, &LoginDialog::onLoginClicked);
     connect(passwordEdit_, &QLineEdit::returnPressed, this, &LoginDialog::onLoginClicked);
 
-    // Load configuration
-    Config& config = Config::instance();
-    config.load();
-
-    // Attempt auto-connect using saved credentials
     if (!DatabaseManager::instance().isConnected()) {
-        QString server = config.databaseServer();
-        QString database = config.databaseName();
-        QString user = config.databaseUser();
-        QString password = config.databasePassword();
-        int port = config.databasePort();
-
-        // Try to auto-connect if we have saved credentials
-        if (!server.isEmpty() && !database.isEmpty() && !user.isEmpty()) {
-            Logger::instance().info("LoginDialog", "Attempting auto-connect to database");
-            DatabaseManager::instance().connect(server, database, user, password, port);
-        }
-
-        // If still not connected, show the connection dialog
-        if (!DatabaseManager::instance().isConnected()) {
-            showDatabaseConnectionDialog();
-        }
+        statusLabel_->setText("Database not connected. Click Login to configure connection.");
+        statusLabel_->setStyleSheet("QLabel { color: #b45309; }");
     }
 }
 
@@ -210,6 +190,9 @@ bool LoginDialog::validateInput()
 
 bool LoginDialog::attemptLogin()
 {
+    QElapsedTimer timer;
+    timer.start();
+
     loginButton_->setEnabled(false);
     statusLabel_->setText("Logging in...");
     statusLabel_->setStyleSheet("QLabel { color: blue; }");
@@ -217,37 +200,37 @@ bool LoginDialog::attemptLogin()
     QString username = usernameEdit_->text().trimmed();
     QString password = passwordEdit_->text();
 
-    // Check database connection
     if (!DatabaseManager::instance().isConnected()) {
-        statusLabel_->setText("Database not connected. Please check connection settings.");
-        statusLabel_->setStyleSheet("QLabel { color: red; }");
-        loginButton_->setEnabled(true);
-        Logger::instance().error("LoginDialog", "Database not connected");
-        return false;
+        showDatabaseConnectionDialog();
+        if (!DatabaseManager::instance().isConnected()) {
+            statusLabel_->setText("Database not connected. Please check connection settings.");
+            statusLabel_->setStyleSheet("QLabel { color: red; }");
+            loginButton_->setEnabled(true);
+            Logger::instance().error("LoginDialog", "Database not connected");
+            Logger::instance().warning("LoginDialog", QString("Login attempt failed in %1 ms").arg(timer.elapsed()));
+            return false;
+        }
     }
 
-    // Fetch user from database
-    UserRepository userRepo;
-    User user = userRepo.findByUsername(username);
-
-    // Verify user exists and password matches using Crypto::verifyPassword
-    if (!user.isValid() || !Crypto::verifyPassword(password, user.password())) {
-        // Failure
+    AuthController authController;
+    if (!authController.login(username, password)) {
         Logger::instance().warning("LoginDialog", "Login failed for user: " + username);
-
-        statusLabel_->setText("Invalid username or password");
+        const int lockSeconds = AuthController::lockoutSecondsRemaining(username);
+        if (lockSeconds > 0) {
+            statusLabel_->setText(QString("Too many failed attempts. Try again in %1 seconds.").arg(lockSeconds));
+        } else {
+            statusLabel_->setText("Invalid username or password");
+        }
         statusLabel_->setStyleSheet("QLabel { color: red; }");
         passwordEdit_->clear();
         passwordEdit_->setFocus();
         loginButton_->setEnabled(true);
+        Logger::instance().warning("LoginDialog", QString("Login attempt failed in %1 ms").arg(timer.elapsed()));
         return false;
     }
 
-    // Success
     Logger::instance().info("LoginDialog", "Login successful for user: " + username);
-
-    // Set session with engineerId
-    Application::instance().onUserLogin(user.id(), user.username(), user.role(), user.engineerId());
+    Logger::instance().info("LoginDialog", QString("Login completed in %1 ms").arg(timer.elapsed()));
 
     statusLabel_->setText("Login successful!");
     statusLabel_->setStyleSheet("QLabel { color: green; }");

@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "Constants.h"
 #include "Session.h"
+#include "DataCache.h"
 #include "../ui/MainWindow.h"
 #include "../ui/LoginDialog.h"
 #include "../ui/StyleManager.h"
@@ -14,6 +15,8 @@
 #include <QTextStream>
 #include <QDir>
 #include <QStandardPaths>
+#include <QElapsedTimer>
+#include <QIcon>
 
 Application& Application::instance()
 {
@@ -28,7 +31,7 @@ Application::Application(QObject* parent)
     , mainWindow_(nullptr)
     , settings_(nullptr)
     , debugMode_(false)
-    , currentTheme_(Constants::THEME_DARK)
+    , currentTheme_(Constants::THEME_LIGHT)
 {
 }
 
@@ -39,21 +42,19 @@ Application::~Application()
 
 bool Application::initialize(int argc, char* argv[])
 {
+    QElapsedTimer initTimer;
+    initTimer.start();
     // Create Qt application
     qApp_ = new QApplication(argc, argv);
-
-    // Add Qt plugin paths for SQL drivers (platform-specific)
-#ifdef Q_OS_MACOS
-    // macOS: Add Homebrew Qt plugin paths when app is launched from Dock/Finder
-    QCoreApplication::addLibraryPath("/opt/homebrew/Cellar/qtbase/6.9.3_1/share/qt/plugins");
-    QCoreApplication::addLibraryPath("/opt/homebrew/opt/qtbase/share/qt/plugins");
-#endif
 
     Logger::instance().info("Application", QString("Qt plugin paths: %1").arg(
         QCoreApplication::libraryPaths().join(", ")));
 
     // Setup application metadata
     setupApplication();
+
+    // Ensure the app has a visible Dock/taskbar icon even when bundle icon assets are missing.
+    qApp_->setWindowIcon(QIcon(":/images/aptitude-icon.png"));
 
     // Create settings
     settings_ = new QSettings(
@@ -92,46 +93,39 @@ bool Application::initialize(int argc, char* argv[])
         StyleManager::Dark : StyleManager::Light;
     StyleManager::instance().applyTheme(theme);
 
-    // Initialize database
-    DatabaseManager& dbManager = DatabaseManager::instance();
-
-    // Load database configuration from config file
+    // Load configuration from config file (connection is established at login time)
     Config& config = Config::instance();
     config.load();
-
-    // Connect to database using config
-    if (config.has("database.server")) {
-        QString server = config.databaseServer();
-        QString database = config.databaseName();
-        QString user = config.databaseUser();
-        QString password = config.databasePassword();
-        int port = config.databasePort();
-
-        if (!dbManager.connect(server, database, user, password, port)) {
-            Logger::instance().warning("Application", "Failed to connect to database on startup");
-        }
-    } else {
-        Logger::instance().warning("Application", "No database configuration found");
-    }
-
-    Logger::instance().info("Application", "Initialization complete");
+    Logger::instance().info("Application", QString("Initialization complete in %1 ms").arg(initTimer.elapsed()));
     return true;
 }
 
 int Application::run()
 {
+    QElapsedTimer startupTimer;
+    startupTimer.start();
+
     // Show login dialog
+    QElapsedTimer loginDialogTimer;
+    loginDialogTimer.start();
     LoginDialog loginDialog;
     if (loginDialog.exec() != QDialog::Accepted) {
         Logger::instance().info("Application", "Login cancelled - exiting");
         return 0;
     }
+    Logger::instance().info("Application", QString("Login dialog accepted in %1 ms").arg(loginDialogTimer.elapsed()));
 
     // Create and show main window
+    QElapsedTimer mainWindowTimer;
+    mainWindowTimer.start();
     mainWindow_ = new MainWindow();
     mainWindow_->show();
+    DataCache::instance().loadAsync();
 
-    Logger::instance().info("Application", "Main window displayed");
+    Logger::instance().info("Application",
+        QString("Main window displayed in %1 ms (total startup %2 ms)")
+            .arg(mainWindowTimer.elapsed())
+            .arg(startupTimer.elapsed()));
 
     // Run event loop
     return qApp_->exec();
@@ -247,6 +241,7 @@ void Application::onUserLogout()
         // Create new main window
         mainWindow_ = new MainWindow();
         mainWindow_->show();
+        DataCache::instance().loadAsync();
     } else {
         // Exit application
         qApp_->quit();
@@ -267,8 +262,8 @@ void Application::applyTheme(const QString& theme)
 
 void Application::loadSettings()
 {
-    // Load theme - default to dark theme
-    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_DARK).toString();
+    // Load theme - default to light theme
+    currentTheme_ = settings_->value(Constants::SETTING_THEME, Constants::THEME_LIGHT).toString();
 
     // Load other settings as needed
     bool autoSave = settings_->value(Constants::SETTING_AUTO_SAVE, true).toBool();

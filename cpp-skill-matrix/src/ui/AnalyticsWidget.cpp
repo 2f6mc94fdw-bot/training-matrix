@@ -1,6 +1,7 @@
 #include "AnalyticsWidget.h"
 #include "../utils/Logger.h"
 #include "../core/DataCache.h"
+#include "EngineerDevelopmentWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -19,8 +20,57 @@
 #include <QtCharts/QCategoryAxis>
 #include <QtCharts/QScatterSeries>
 #include <QLinearGradient>
+#include <QProgressBar>
 #include <QDateTime>
+#include <QSet>
+#include <QTimer>
 #include <algorithm>
+
+namespace {
+bool containsAnyToken(const QString& text, const QStringList& tokens)
+{
+    for (const QString& token : tokens) {
+        if (text.contains(token)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+QString mapCoreSkillDiscipline(const QString& categoryId, const QString& categoryName,
+                               const QString& skillName, const QString& storedDiscipline = QString())
+{
+    if (!storedDiscipline.trimmed().isEmpty()) {
+        return storedDiscipline.trimmed();
+    }
+    const QString combined = QString("%1 %2 %3")
+        .arg(categoryId.toLower(), categoryName.toLower(), skillName.toLower());
+
+    const QStringList mechanicalTokens = {
+        "mechanical", "mech", "lathe", "mill", "pump", "pneumatic", "hydraulic",
+        "gearbox", "bearing", "shaft", "belt", "chain", "welding"
+    };
+    const QStringList electricalTokens = {
+        "electrical", "elec", "motor", "control panel", "wiring", "relay", "contactor",
+        "voltage", "current", "inverter", "vfd", "drive", "sensor"
+    };
+    const QStringList softwareTokens = {
+        "software", "plc", "hmi", "scada", "logic", "program", "automation",
+        "rockwell", "siemens", "tia", "studio 5000", "gx developer", "code", "rslinx"
+    };
+
+    if (containsAnyToken(combined, mechanicalTokens)) {
+        return "Mechanical";
+    }
+    if (containsAnyToken(combined, electricalTokens)) {
+        return "Electrical";
+    }
+    if (containsAnyToken(combined, softwareTokens)) {
+        return "Software";
+    }
+    return "Unknown";
+}
+}
 
 AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     : QWidget(parent)
@@ -32,6 +82,7 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftOverviewButton_(nullptr)
     , criticalSkillsButton_(nullptr)
     , machineReadinessButton_(nullptr)
+    , engineerDevelopmentWidget_(nullptr)
     , currentCompletionLabel_(nullptr)
     , predictedCompletionLabel_(nullptr)
     , changeLabel_(nullptr)
@@ -41,6 +92,7 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , insightsList_(nullptr)
     , riskMatrixChartView_(nullptr)
     , trainingPriorityList_(nullptr)
+    , machineReadinessAreaFilter_(nullptr)
     , machineReadinessList_(nullptr)
     , vulnerabilityList_(nullptr)
     , engineerSelector_(nullptr)
@@ -50,6 +102,9 @@ AnalyticsWidget::AnalyticsWidget(QWidget* parent)
     , shiftDataTypeCombo_(nullptr)
     , shiftRadarContainer_(nullptr)
     , isFirstShow_(true)
+    , waitingForCacheWarmup_(false)
+    , insightsLoaded_(false)
+    , coreSkillsCacheLoaded_(false)
     , engineerRadarChartHeight_(400)
     , shiftOverviewChartHeight_(500)
 {
@@ -171,15 +226,13 @@ void AnalyticsWidget::setupUI()
     trendsButton_ = createTabButton("Trends");
     shiftsButton_ = createTabButton("Shift Comparison");
     insightsButton_ = createTabButton("Insights");
-    criticalSkillsButton_ = createTabButton("Critical Skills");
     machineReadinessButton_ = createTabButton("Machine Readiness");
-    engineerRadarButton_ = createTabButton("Engineer Radar");
+    engineerRadarButton_ = createTabButton("Engineer Development");
     shiftOverviewButton_ = createTabButton("Shift Overview");
 
     tabBarLayout->addWidget(trendsButton_);
     tabBarLayout->addWidget(shiftsButton_);
     tabBarLayout->addWidget(insightsButton_);
-    tabBarLayout->addWidget(criticalSkillsButton_);
     tabBarLayout->addWidget(machineReadinessButton_);
     tabBarLayout->addWidget(engineerRadarButton_);
     tabBarLayout->addWidget(shiftOverviewButton_);
@@ -200,34 +253,29 @@ void AnalyticsWidget::setupUI()
     QWidget* trendsWidget = new QWidget();
     QWidget* shiftsWidget = new QWidget();
     QWidget* insightsWidget = new QWidget();
-    QWidget* criticalSkillsWidget = new QWidget();
     QWidget* machineReadinessWidget = new QWidget();
-    QWidget* engineerRadarWidget = new QWidget();
+    engineerDevelopmentWidget_ = new EngineerDevelopmentWidget();
     QWidget* shiftOverviewWidget = new QWidget();
 
     setupTrendsTab(trendsWidget);
     setupShiftComparisonTab(shiftsWidget);
     setupAutomatedInsightsTab(insightsWidget);
-    setupCriticalSkillsTab(criticalSkillsWidget);
     setupMachineReadinessTab(machineReadinessWidget);
-    setupEngineerRadarTab(engineerRadarWidget);
     setupShiftOverviewTab(shiftOverviewWidget);
 
     contentStack_->addWidget(trendsWidget);              // Index 0
     contentStack_->addWidget(shiftsWidget);              // Index 1
     contentStack_->addWidget(insightsWidget);            // Index 2
-    contentStack_->addWidget(criticalSkillsWidget);      // Index 3
-    contentStack_->addWidget(machineReadinessWidget);    // Index 4
-    contentStack_->addWidget(engineerRadarWidget);       // Index 5
-    contentStack_->addWidget(shiftOverviewWidget);       // Index 6
+    contentStack_->addWidget(machineReadinessWidget);    // Index 3
+    contentStack_->addWidget(engineerDevelopmentWidget_);// Index 4
+    contentStack_->addWidget(shiftOverviewWidget);       // Index 5
 
     connect(trendsButton_, &QPushButton::clicked, [this]() { onTabChanged(0); });
     connect(shiftsButton_, &QPushButton::clicked, [this]() { onTabChanged(1); });
     connect(insightsButton_, &QPushButton::clicked, [this]() { onTabChanged(2); });
-    connect(criticalSkillsButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
-    connect(machineReadinessButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
-    connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(5); });
-    connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(6); });
+    connect(machineReadinessButton_, &QPushButton::clicked, [this]() { onTabChanged(3); });
+    connect(engineerRadarButton_, &QPushButton::clicked, [this]() { onTabChanged(4); });
+    connect(shiftOverviewButton_, &QPushButton::clicked, [this]() { onTabChanged(5); });
 
     mainLayout->addWidget(contentStack_, 1);
 
@@ -355,7 +403,7 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
     layout->setSpacing(16);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    QGroupBox* insightsGroup = new QGroupBox("Automated Insights", this);
+    QGroupBox* insightsGroup = new QGroupBox("Manager Action Insights", this);
     insightsGroup->setStyleSheet(
         "QGroupBox {"
         "    background-color: white;"
@@ -368,6 +416,12 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
     );
 
     QVBoxLayout* insightsLayout = new QVBoxLayout(insightsGroup);
+    QLabel* guidance = new QLabel(
+        "Prioritised from current assessment coverage. Use Engineer Development to turn an insight into an owned action plan.",
+        insightsGroup);
+    guidance->setWordWrap(true);
+    guidance->setStyleSheet("color:#64748b;font-size:12px;font-weight:normal;");
+    insightsLayout->addWidget(guidance);
     insightsList_ = new QListWidget(this);
     insightsList_->setSpacing(12);
     insightsList_->setStyleSheet(
@@ -388,20 +442,69 @@ void AnalyticsWidget::setupAutomatedInsightsTab(QWidget* insightsWidget)
 
 void AnalyticsWidget::loadAnalytics()
 {
+    DataCache& cache = DataCache::instance();
+    if (!cache.isLoaded()) {
+        if (!cache.isLoading()) {
+            cache.loadAsync();
+        }
+
+        if (!waitingForCacheWarmup_) {
+            waitingForCacheWarmup_ = true;
+            QTimer::singleShot(150, this, [this]() {
+                waitingForCacheWarmup_ = false;
+                loadAnalytics();
+            });
+        }
+        return;
+    }
+
+    waitingForCacheWarmup_ = false;
     Logger::instance().info("AnalyticsWidget", "Loading analytics data...");
 
-    // Use global cache for instant data access (zero database queries)
-    DataCache& cache = DataCache::instance();
-
-    // Load engineers and assessments from repositories
     cachedEngineers_ = engineerRepo_.findAll();
     cachedAssessments_ = assessmentRepo_.findAll();
-
-    // Get production areas from cache (instant)
     cachedAreas_ = cache.getAreas();
-
-    // Get total competencies from cache (instant, pre-calculated)
     cachedTotalCompetencies_ = cache.getTotalCompetencies();
+
+    // Rebuild derived caches used by expensive analytics paths
+    assessmentScoreByEngineerAndCompetency_.clear();
+    competenciesByMachine_.clear();
+    machinesByArea_.clear();
+    machineAreaById_.clear();
+    machineImportanceById_.clear();
+    competencyWeightById_.clear();
+    competencyMachineById_.clear();
+    areaNameById_.clear();
+    coreSkillAssessmentsByEngineer_.clear();
+    coreSkillById_.clear();
+    coreSkillCategoryNameBySkillId_.clear();
+    coreSkillDisciplineBySkillId_.clear();
+    engineerProductionRadarCache_.clear();
+    engineerCoreSkillsRadarCache_.clear();
+    cachedCoreSkills_.clear();
+    cachedCoreSkillCategories_.clear();
+    cachedCoreSkillAssessments_.clear();
+    coreSkillsCacheLoaded_ = false;
+
+    for (const ProductionArea& area : cachedAreas_) {
+        areaNameById_[area.id()] = area.name();
+        const QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        machinesByArea_[area.id()] = areaMachines;
+        for (const Machine& machine : areaMachines) {
+            machineAreaById_[machine.id()] = area.id();
+            machineImportanceById_[machine.id()] = machine.importance();
+            const QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+            competenciesByMachine_[machine.id()] = machineCompetencies;
+            for (const Competency& comp : machineCompetencies) {
+                competencyWeightById_[comp.id()] = comp.calculatedWeight();
+                competencyMachineById_[comp.id()] = machine.id();
+            }
+        }
+    }
+
+    for (const Assessment& assessment : cachedAssessments_) {
+        assessmentScoreByEngineerAndCompetency_[assessment.engineerId()][assessment.competencyId()] = assessment.score();
+    }
 
     Logger::instance().info("AnalyticsWidget",
         QString("Data loaded from cache: %1 engineers, %2 assessments, %3 competencies")
@@ -412,7 +515,15 @@ void AnalyticsWidget::loadAnalytics()
     // Update all analytics views
     updateTrendsData();
     updateShiftComparisonData();
-    updateAutomatedInsights();
+    insightsLoaded_ = false;
+    if (insightsList_) {
+        insightsList_->clear();
+        QListWidgetItem* item = new QListWidgetItem(insightsList_);
+        item->setText("Loading insights on demand. Open the Insights tab to generate analysis.");
+        item->setBackground(QBrush(QColor("#f1f5f9")));
+        item->setForeground(QBrush(QColor("#1e293b")));
+        insightsList_->addItem(item);
+    }
 
     // Populate engineer selector dropdown
     if (engineerSelector_) {
@@ -453,6 +564,42 @@ void AnalyticsWidget::loadAnalytics()
     }
 }
 
+void AnalyticsWidget::ensureCoreSkillsCacheLoaded()
+{
+    if (coreSkillsCacheLoaded_) {
+        return;
+    }
+
+    cachedCoreSkills_ = coreSkillsRepo_.findAllSkills();
+    cachedCoreSkillCategories_ = coreSkillsRepo_.findAllCategories();
+    cachedCoreSkillAssessments_ = coreSkillsRepo_.findAllAssessments();
+    coreSkillAssessmentsByEngineer_.clear();
+    coreSkillById_.clear();
+    coreSkillCategoryNameBySkillId_.clear();
+    engineerCoreSkillsRadarCache_.clear();
+
+    QHash<QString, QString> categoryNameById;
+    QHash<QString, QString> categoryDisciplineById;
+    for (const CoreSkillCategory& category : cachedCoreSkillCategories_) {
+        categoryNameById[category.id()] = category.name();
+        categoryDisciplineById[category.id()] = category.discipline();
+    }
+    for (const CoreSkill& skill : cachedCoreSkills_) {
+        coreSkillById_[skill.id()] = skill;
+        coreSkillCategoryNameBySkillId_[skill.id()] = categoryNameById.value(skill.categoryId());
+        coreSkillDisciplineBySkillId_[skill.id()] = categoryDisciplineById.value(skill.categoryId());
+    }
+    for (const CoreSkillAssessment& assessment : cachedCoreSkillAssessments_) {
+        coreSkillAssessmentsByEngineer_[assessment.engineerId()].append(assessment);
+    }
+
+    coreSkillsCacheLoaded_ = true;
+    Logger::instance().info("AnalyticsWidget",
+        QString("Core skills cache loaded on demand: %1 skills, %2 assessments")
+            .arg(cachedCoreSkills_.size())
+            .arg(cachedCoreSkillAssessments_.size()));
+}
+
 void AnalyticsWidget::updateTrendsData()
 {
     PredictionData prediction = calculatePrediction();
@@ -484,7 +631,7 @@ void AnalyticsWidget::updateTrendsData()
     QChart* chart = new QChart();
     chart->addSeries(series);
     chart->setTitle("");
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    chart->setAnimationOptions(QChart::NoAnimation);
 
     QValueAxis* axisX = new QValueAxis();
     axisX->setTitleText("Time Period");
@@ -599,7 +746,7 @@ void AnalyticsWidget::updateShiftComparisonData()
     QChart* chart = new QChart();
     chart->addSeries(series);
     chart->setTitle("");
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    chart->setAnimationOptions(QChart::NoAnimation);
 
     QBarCategoryAxis* axisX = new QBarCategoryAxis();
     axisX->append(shiftNames);
@@ -620,7 +767,7 @@ void AnalyticsWidget::updateAutomatedInsights()
 {
     insightsList_->clear();
 
-    QList<Insight> insights = generateAutomatedInsights();
+    QList<Insight> insights = generateManagerInsights();
 
     for (const Insight& insight : insights) {
         QListWidgetItem* item = new QListWidgetItem(insightsList_);
@@ -663,6 +810,104 @@ void AnalyticsWidget::updateAutomatedInsights()
         item->setFont(itemFont);
         item->setTextAlignment(Qt::AlignCenter);
     }
+}
+
+QList<AnalyticsWidget::Insight> AnalyticsWidget::generateManagerInsights()
+{
+    QList<Insight> result;
+    QList<MachineReadiness> readiness = calculateMachineReadiness();
+    std::sort(readiness.begin(), readiness.end(), [](const MachineReadiness& a, const MachineReadiness& b) {
+        if (a.coveragePercent != b.coveragePercent) return a.coveragePercent < b.coveragePercent;
+        return a.importance > b.importance;
+    });
+
+    int priority = 1;
+    for (const MachineReadiness& machine : readiness) {
+        if (result.size() >= 4 || machine.coveragePercent >= 50.0) break;
+        Insight insight;
+        insight.type = machine.coveragePercent < 30.0 ? "alert" : "warning";
+        insight.icon = QString::number(priority++);
+        insight.title = QString("Machine coverage - %1").arg(machine.machineName);
+        insight.message = QString("Evidence: %1 of %2 engineers are proficient (score 2+), giving %3% coverage; %4 expert(s).\nAction: Select this machine in Engineer Development and assign the highest-impact gaps to named engineers.")
+            .arg(machine.proficientCount)
+            .arg(machine.totalEngineers)
+            .arg(QString::number(machine.coveragePercent, 'f', 0))
+            .arg(machine.expertCount);
+        result.append(insight);
+    }
+
+    for (const MachineReadiness& machine : readiness) {
+        if (result.size() >= 6) break;
+        if (machine.expertCount <= 1 && machine.importance >= 2) {
+            Insight insight;
+            insight.type = "alert";
+            insight.icon = QString::number(priority++);
+            insight.title = QString("Resilience risk - %1").arg(machine.machineName);
+            insight.message = QString("Evidence: only %1 engineer(s) are recorded at score 3 on this important machine.\nAction: develop two backups to score 2, then nominate one for train-the-trainer progression.")
+                .arg(machine.expertCount);
+            result.append(insight);
+        }
+    }
+
+    struct EngineerNeed { QString name; int gaps = 0; int assessed = 0; };
+    QList<EngineerNeed> needs;
+    for (const Engineer& engineer : cachedEngineers_) {
+        EngineerNeed need;
+        need.name = engineer.name();
+        for (const Assessment& assessment : cachedAssessments_) {
+            if (assessment.engineerId() != engineer.id()) continue;
+            need.assessed++;
+            if (assessment.score() < 2) need.gaps++;
+        }
+        if (need.assessed > 0 && need.gaps > 0) needs.append(need);
+    }
+    std::sort(needs.begin(), needs.end(), [](const EngineerNeed& a, const EngineerNeed& b) {
+        const double ar = a.assessed > 0 ? double(a.gaps) / a.assessed : 0.0;
+        const double br = b.assessed > 0 ? double(b.gaps) / b.assessed : 0.0;
+        return ar > br;
+    });
+    if (!needs.isEmpty() && result.size() < 7) {
+        const EngineerNeed& need = needs.first();
+        Insight insight;
+        insight.type = "warning";
+        insight.icon = QString::number(priority++);
+        insight.title = QString("Individual development - %1").arg(need.name);
+        insight.message = QString("Evidence: %1 of %2 recorded competencies are below score 2.\nAction: open Engineer Development, choose one production area, and agree a focused 90-day plan rather than assigning every gap at once.")
+            .arg(need.gaps).arg(need.assessed);
+        result.append(insight);
+    }
+
+    const QList<ShiftStats> shifts = calculateShiftComparison();
+    if (shifts.size() > 1 && result.size() < 8) {
+        const double gap = shifts.first().averageCompletion - shifts.last().averageCompletion;
+        if (gap >= 10.0) {
+            Insight insight;
+            insight.type = "warning";
+            insight.icon = QString::number(priority++);
+            insight.title = "Cross-shift capability gap";
+            insight.message = QString("Evidence: %1 is at %2% versus %3 at %4%, a %5-point gap.\nAction: pair competent mentors across shifts and compare the same machine scope before reallocating training time.")
+                .arg(shifts.first().shiftName)
+                .arg(QString::number(shifts.first().averageCompletion, 'f', 0))
+                .arg(shifts.last().shiftName)
+                .arg(QString::number(shifts.last().averageCompletion, 'f', 0))
+                .arg(QString::number(gap, 'f', 0));
+            result.append(insight);
+        }
+    }
+
+    if (result.isEmpty() && !readiness.isEmpty()) {
+        const auto best = std::max_element(readiness.begin(), readiness.end(), [](const MachineReadiness& a, const MachineReadiness& b) {
+            return a.coveragePercent < b.coveragePercent;
+        });
+        Insight insight;
+        insight.type = "positive";
+        insight.icon = "1";
+        insight.title = "Coverage is currently stable";
+        insight.message = QString("Evidence: no machine is below the action threshold. %1 leads at %2% coverage.\nAction: maintain reassessment cadence and use this machine's experts as mentors.")
+            .arg(best->machineName).arg(QString::number(best->coveragePercent, 'f', 0));
+        result.append(insight);
+    }
+    return result;
 }
 
 AnalyticsWidget::PredictionData AnalyticsWidget::calculatePrediction()
@@ -901,14 +1146,13 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
     }
 
     // 7. Unbalanced Skills - areas with high variance
-    DataCache& cache = DataCache::instance();
     QMap<QString, double> areaProficiency;
     QMap<QString, int> areaCount;
 
     for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        const QList<Machine>& areaMachines = machinesByArea_[area.id()];
         for (const Machine& machine : areaMachines) {
-            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+            const QList<Competency>& machineCompetencies = competenciesByMachine_[machine.id()];
             for (const Competency& comp : machineCompetencies) {
                 int totalScore = 0;
                 int count = 0;
@@ -960,17 +1204,11 @@ QList<AnalyticsWidget::Insight> AnalyticsWidget::generateAutomatedInsights()
     QMap<QString, int> areaTrainingNeeds;
     for (const CompetencyRiskPoint& point : riskPoints) {
         if (point.riskLevel == "critical") {
-            // Find which area this competency belongs to
-            for (const ProductionArea& area : cachedAreas_) {
-                QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
-                for (const Machine& machine : areaMachines) {
-                    QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
-                    for (const Competency& comp : machineCompetencies) {
-                        if (comp.id() == point.competencyId) {
-                            areaTrainingNeeds[area.name()]++;
-                        }
-                    }
-                }
+            const int machineId = competencyMachineById_.value(point.competencyId, -1);
+            const int areaId = machineAreaById_.value(machineId, -1);
+            const QString areaName = areaNameById_.value(areaId);
+            if (!areaName.isEmpty()) {
+                areaTrainingNeeds[areaName]++;
             }
         }
     }
@@ -1140,26 +1378,33 @@ void AnalyticsWidget::onTabChanged(int tabIndex)
     trendsButton_->setStyleSheet(tabIndex == 0 ? activeStyle : inactiveStyle);
     shiftsButton_->setStyleSheet(tabIndex == 1 ? activeStyle : inactiveStyle);
     insightsButton_->setStyleSheet(tabIndex == 2 ? activeStyle : inactiveStyle);
-    criticalSkillsButton_->setStyleSheet(tabIndex == 3 ? activeStyle : inactiveStyle);
-    machineReadinessButton_->setStyleSheet(tabIndex == 4 ? activeStyle : inactiveStyle);
-    engineerRadarButton_->setStyleSheet(tabIndex == 5 ? activeStyle : inactiveStyle);
-    shiftOverviewButton_->setStyleSheet(tabIndex == 6 ? activeStyle : inactiveStyle);
+    machineReadinessButton_->setStyleSheet(tabIndex == 3 ? activeStyle : inactiveStyle);
+    engineerRadarButton_->setStyleSheet(tabIndex == 4 ? activeStyle : inactiveStyle);
+    shiftOverviewButton_->setStyleSheet(tabIndex == 5 ? activeStyle : inactiveStyle);
 
     // Update data for newly selected tab
-    if (tabIndex == 3) {
-        updateCriticalSkillsData();
+    if (tabIndex == 2) {
+        if (!insightsLoaded_) {
+            QTimer::singleShot(0, this, [this]() {
+                updateAutomatedInsights();
+                insightsLoaded_ = true;
+            });
+        }
+    } else if (tabIndex == 3) {
+        QTimer::singleShot(0, this, [this]() { updateMachineReadinessData(); });
     } else if (tabIndex == 4) {
-        updateMachineReadinessData();
+        QTimer::singleShot(0, this, [this]() { engineerDevelopmentWidget_->refresh(); });
     } else if (tabIndex == 5) {
-        updateEngineerRadarData();
-    } else if (tabIndex == 6) {
-        updateShiftOverviewData();
+        QTimer::singleShot(0, this, [this]() { updateShiftOverviewData(); });
     }
 }
 
 void AnalyticsWidget::onRefreshClicked()
 {
     loadAnalytics();
+    if (engineerDevelopmentWidget_) {
+        engineerDevelopmentWidget_->refresh();
+    }
     Logger::instance().info("AnalyticsWidget", "Refreshed analytics data");
 }
 
@@ -1344,7 +1589,7 @@ void AnalyticsWidget::updateEngineerRadarData()
     QMap<QString, double> coreSkillsData = calculateEngineerCoreSkillsRadarData(engineerId);
     QPolarChart* coreSkillsChart = createRadarChart(
         coreSkillsData,
-        "Core Skills Performance",
+        "Core Skills by Discipline",
         QColor("#FF9800")  // Orange
     );
     engineerCoreSkillsRadarView_->setChart(coreSkillsChart);
@@ -1665,7 +1910,7 @@ QPolarChart* AnalyticsWidget::createRadarChart(const QMap<QString, double>& data
 {
     QPolarChart* chart = new QPolarChart();
     chart->setTitle(title);
-    chart->setAnimationOptions(QPolarChart::AllAnimations);
+    chart->setAnimationOptions(QPolarChart::NoAnimation);
 
     // Prepare data
     QStringList labels;
@@ -1744,7 +1989,7 @@ QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, 
 {
     QPolarChart* chart = new QPolarChart();
     chart->setTitle(title);
-    chart->setAnimationOptions(QPolarChart::AllAnimations);
+    chart->setAnimationOptions(QPolarChart::NoAnimation);
 
     if (engineerDataMap.isEmpty()) {
         chart->setTitle(title + " (No Data)");
@@ -1868,129 +2113,116 @@ QPolarChart* AnalyticsWidget::createMultiEngineerRadarChart(const QMap<QString, 
 
 QMap<QString, double> AnalyticsWidget::calculateEngineerProductionRadarData(const QString& engineerId)
 {
-    QMap<QString, double> radarData;
-
-    // Get all assessments for this engineer
-    QList<Assessment> engineerAssessments;
-    for (const Assessment& assessment : cachedAssessments_) {
-        if (assessment.engineerId() == engineerId) {
-            engineerAssessments.append(assessment);
-        }
+    const auto cachedResultIt = engineerProductionRadarCache_.constFind(engineerId);
+    if (cachedResultIt != engineerProductionRadarCache_.constEnd()) {
+        return cachedResultIt.value();
     }
 
-    if (engineerAssessments.isEmpty()) {
+    QMap<QString, double> radarData;
+
+    const auto engineerScoresIt = assessmentScoreByEngineerAndCompetency_.constFind(engineerId);
+    if (engineerScoresIt == assessmentScoreByEngineerAndCompetency_.constEnd() || engineerScoresIt->isEmpty()) {
+        engineerProductionRadarCache_.insert(engineerId, radarData);
         return radarData;
     }
 
-    // Get all competencies and machines from cache (instant, zero queries)
-    DataCache& cache = DataCache::instance();
-    QList<Competency> allCompetencies;
-    QList<Machine> allMachines;
-
-    for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
-        allMachines.append(areaMachines);
-        for (const Machine& machine : areaMachines) {
-            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
-            allCompetencies.append(machineCompetencies);
-        }
-    }
-
-    // Group by production area
     QMap<QString, double> areaWeightedSum;
     QMap<QString, double> areaTotalWeights;
 
-    for (const Assessment& assessment : engineerAssessments) {
-        // Find the competency
-        for (const Competency& comp : allCompetencies) {
-            if (comp.id() == assessment.competencyId()) {
-                // Find the machine to get the area
-                for (const Machine& machine : allMachines) {
-                    if (machine.id() == comp.machineId()) {
-                        // Find the area name
-                        for (const ProductionArea& area : cachedAreas_) {
-                            if (area.id() == machine.productionAreaId()) {
-                                QString areaName = area.name();
-                                // Combined weight: competency weight × machine production impact
-                                double competencyWeight = comp.calculatedWeight();
-                                double machineImpact = machine.importance(); // 0-3 scale
-                                double combinedWeight = competencyWeight * (machineImpact + 1); // +1 to avoid zero weight
-                                areaWeightedSum[areaName] += assessment.score() * combinedWeight;
-                                areaTotalWeights[areaName] += combinedWeight;
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-                break;
-            }
+    for (auto it = engineerScoresIt->constBegin(); it != engineerScoresIt->constEnd(); ++it) {
+        const int competencyId = it.key();
+        const int score = it.value();
+
+        const int machineId = competencyMachineById_.value(competencyId, -1);
+        if (machineId <= 0) {
+            continue;
         }
+
+        const int areaId = machineAreaById_.value(machineId, -1);
+        const QString areaName = areaNameById_.value(areaId);
+        if (areaName.isEmpty()) {
+            continue;
+        }
+
+        const double competencyWeight = competencyWeightById_.value(competencyId, 0.0);
+        const double machineImpact = static_cast<double>(machineImportanceById_.value(machineId, 0));
+        const double combinedWeight = competencyWeight * (machineImpact + 1.0);
+        if (combinedWeight <= 0.0) {
+            continue;
+        }
+
+        areaWeightedSum[areaName] += score * combinedWeight;
+        areaTotalWeights[areaName] += combinedWeight;
     }
 
-    // Calculate weighted averages
     for (auto it = areaWeightedSum.constBegin(); it != areaWeightedSum.constEnd(); ++it) {
-        QString areaName = it.key();
+        const QString areaName = it.key();
         if (areaTotalWeights[areaName] > 0) {
             radarData[areaName] = it.value() / areaTotalWeights[areaName];
         }
     }
 
+    engineerProductionRadarCache_.insert(engineerId, radarData);
     return radarData;
 }
 
 QMap<QString, double> AnalyticsWidget::calculateEngineerCoreSkillsRadarData(const QString& engineerId)
 {
-    QMap<QString, double> radarData;
+    ensureCoreSkillsCacheLoaded();
 
-    // Get all core skill assessments for this engineer
-    QList<CoreSkillAssessment> allAssessments = coreSkillsRepo_.findAllAssessments();
-    QList<CoreSkillAssessment> engineerAssessments;
-    for (const CoreSkillAssessment& assessment : allAssessments) {
-        if (assessment.engineerId() == engineerId) {
-            engineerAssessments.append(assessment);
-        }
+    const auto cachedResultIt = engineerCoreSkillsRadarCache_.constFind(engineerId);
+    if (cachedResultIt != engineerCoreSkillsRadarCache_.constEnd()) {
+        return cachedResultIt.value();
     }
 
+    QMap<QString, double> radarData;
+
+    const QList<CoreSkillAssessment> engineerAssessments = coreSkillAssessmentsByEngineer_.value(engineerId);
     if (engineerAssessments.isEmpty()) {
+        engineerCoreSkillsRadarCache_.insert(engineerId, radarData);
         return radarData;
     }
 
-    // Get all core skills and categories
-    QList<CoreSkill> allSkills = coreSkillsRepo_.findAllSkills();
-    QList<CoreSkillCategory> allCategories = coreSkillsRepo_.findAllCategories();
-
-    // Group by category
-    QMap<QString, double> categoryWeightedSum;
-    QMap<QString, double> categoryTotalWeights;
+    QMap<QString, double> disciplineWeightedSum = {
+        {"Mechanical", 0.0},
+        {"Electrical", 0.0},
+        {"Software", 0.0}
+    };
+    QMap<QString, double> disciplineTotalWeights = {
+        {"Mechanical", 0.0},
+        {"Electrical", 0.0},
+        {"Software", 0.0}
+    };
 
     for (const CoreSkillAssessment& assessment : engineerAssessments) {
-        // Find the skill
-        for (const CoreSkill& skill : allSkills) {
-            if (skill.id() == assessment.skillId()) {
-                // Find the category
-                for (const CoreSkillCategory& category : allCategories) {
-                    if (category.id() == skill.categoryId()) {
-                        QString categoryName = category.name();
-                        double weight = skill.calculatedWeight();
-                        categoryWeightedSum[categoryName] += assessment.score() * weight;
-                        categoryTotalWeights[categoryName] += weight;
-                        break;
-                    }
-                }
-                break;
-            }
+        const auto skillIt = coreSkillById_.constFind(assessment.skillId());
+        if (skillIt == coreSkillById_.constEnd()) {
+            continue;
+        }
+
+        const QString categoryName = coreSkillCategoryNameBySkillId_.value(assessment.skillId());
+        const QString discipline = mapCoreSkillDiscipline(
+            skillIt->categoryId(), categoryName, skillIt->name(),
+            coreSkillDisciplineBySkillId_.value(skillIt->id()));
+        if (discipline == "Unknown") {
+            continue;
+        }
+
+        const double weight = skillIt->calculatedWeight();
+        disciplineWeightedSum[discipline] += assessment.score() * weight;
+        disciplineTotalWeights[discipline] += weight;
+    }
+
+    const QStringList disciplines = {"Mechanical", "Electrical", "Software"};
+    for (const QString& discipline : disciplines) {
+        if (disciplineTotalWeights[discipline] > 0) {
+            radarData[discipline] = disciplineWeightedSum[discipline] / disciplineTotalWeights[discipline];
+        } else {
+            radarData[discipline] = 0.0;
         }
     }
 
-    // Calculate weighted averages
-    for (auto it = categoryWeightedSum.constBegin(); it != categoryWeightedSum.constEnd(); ++it) {
-        QString categoryName = it.key();
-        if (categoryTotalWeights[categoryName] > 0) {
-            radarData[categoryName] = it.value() / categoryTotalWeights[categoryName];
-        }
-    }
-
+    engineerCoreSkillsRadarCache_.insert(engineerId, radarData);
     return radarData;
 }
 
@@ -2246,7 +2478,7 @@ void AnalyticsWidget::updateCriticalSkillsData()
     // Create scatter plot for risk matrix
     QChart* chart = new QChart();
     chart->setTitle("");
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    chart->setAnimationOptions(QChart::NoAnimation);
 
     // Create series for each quadrant
     QScatterSeries* criticalSeries = new QScatterSeries();
@@ -2375,67 +2607,51 @@ void AnalyticsWidget::setupMachineReadinessTab(QWidget* machineReadinessWidget)
     layout->setSpacing(16);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Machine Coverage Status
-    QGroupBox* readinessGroup = new QGroupBox("Machine Coverage Status", this);
-    readinessGroup->setStyleSheet(
-        "QGroupBox {"
-        "    background-color: white;"
-        "    border: 2px solid #e2e8f0;"
-        "    border-radius: 8px;"
-        "    padding: 20px;"
-        "    font-size: 16pt;"
-        "    font-weight: bold;"
-        "}"
-    );
+    QHBoxLayout* filterLayout = new QHBoxLayout();
+    QLabel* filterLabel = new QLabel("Production area", machineReadinessWidget);
+    filterLabel->setStyleSheet("color:#475569;font-weight:600;");
+    machineReadinessAreaFilter_ = new QComboBox(machineReadinessWidget);
+    machineReadinessAreaFilter_->setMinimumWidth(240);
+    machineReadinessAreaFilter_->addItem("All production areas", 0);
+    filterLayout->addWidget(filterLabel);
+    filterLayout->addWidget(machineReadinessAreaFilter_);
+    filterLayout->addStretch();
+    layout->addLayout(filterLayout);
 
-    QVBoxLayout* readinessLayout = new QVBoxLayout(readinessGroup);
-    machineReadinessList_ = new QListWidget(this);
-    machineReadinessList_->setSpacing(12);
+    QGroupBox* chartGroup = new QGroupBox("Top 5 Machines to Focus On", machineReadinessWidget);
+    chartGroup->setStyleSheet(
+        "QGroupBox{background:white;border:1px solid #dbe4ef;border-radius:10px;"
+        "padding:16px;font-size:14pt;font-weight:700;}");
+    QVBoxLayout* chartLayout = new QVBoxLayout(chartGroup);
+    QLabel* chartHelp = new QLabel(
+        "Select a production area to rank its five lowest machine knowledge scores. Missing assessments are shown separately from the average.",
+        chartGroup);
+    chartHelp->setWordWrap(true);
+    chartHelp->setStyleSheet("color:#64748b;font-size:11px;font-weight:normal;");
+    chartLayout->addWidget(chartHelp);
+    machineReadinessList_ = new QListWidget(chartGroup);
+    machineReadinessList_->setSpacing(10);
+    machineReadinessList_->setFixedHeight(540);
+    machineReadinessList_->setSelectionMode(QAbstractItemView::NoSelection);
+    machineReadinessList_->setFocusPolicy(Qt::NoFocus);
+    machineReadinessList_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     machineReadinessList_->setStyleSheet(
         "QListWidget {"
         "    border: none;"
         "    background-color: transparent;"
         "}"
-        "QListWidget::item {"
-        "    border-radius: 8px;"
-        "    padding: 16px;"
-        "    margin-bottom: 8px;"
-        "}"
+        "QListWidget::item { border:none; padding:0; margin:0; }"
     );
-    readinessLayout->addWidget(machineReadinessList_);
+    chartLayout->addWidget(machineReadinessList_);
+    layout->addWidget(chartGroup);
 
-    layout->addWidget(readinessGroup);
-
-    // Vulnerability Alerts
-    QGroupBox* vulnerabilityGroup = new QGroupBox("Vulnerability Alerts", this);
-    vulnerabilityGroup->setStyleSheet(
-        "QGroupBox {"
-        "    background-color: white;"
-        "    border: 2px solid #e2e8f0;"
-        "    border-radius: 8px;"
-        "    padding: 20px;"
-        "    font-size: 16pt;"
-        "    font-weight: bold;"
-        "}"
-    );
-
-    QVBoxLayout* vulnerabilityLayout = new QVBoxLayout(vulnerabilityGroup);
+    // Retained off-screen for the existing risk calculation path; the simplified page
+    // deliberately presents only the top-five focus list.
     vulnerabilityList_ = new QListWidget(this);
-    vulnerabilityList_->setSpacing(12);
-    vulnerabilityList_->setStyleSheet(
-        "QListWidget {"
-        "    border: none;"
-        "    background-color: transparent;"
-        "}"
-        "QListWidget::item {"
-        "    border-radius: 8px;"
-        "    padding: 16px;"
-        "    margin-bottom: 8px;"
-        "}"
-    );
-    vulnerabilityLayout->addWidget(vulnerabilityList_);
+    vulnerabilityList_->hide();
 
-    layout->addWidget(vulnerabilityGroup);
+    connect(machineReadinessAreaFilter_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int) { updateMachineReadinessData(); });
 }
 
 void AnalyticsWidget::updateMachineReadinessData()
@@ -2445,53 +2661,119 @@ void AnalyticsWidget::updateMachineReadinessData()
 
     QList<MachineReadiness> readinessList = calculateMachineReadiness();
 
-    // Sort by coverage percentage (ascending, worst first)
+    if (machineReadinessAreaFilter_->count() <= 1) {
+        machineReadinessAreaFilter_->blockSignals(true);
+        for (const ProductionArea& area : cachedAreas_) {
+            machineReadinessAreaFilter_->addItem(area.name(), area.id());
+        }
+        machineReadinessAreaFilter_->blockSignals(false);
+    }
+
+    const int areaFilter = machineReadinessAreaFilter_->currentData().toInt();
+    if (areaFilter > 0) {
+        readinessList.erase(std::remove_if(readinessList.begin(), readinessList.end(),
+            [areaFilter](const MachineReadiness& readiness) { return readiness.areaId != areaFilter; }),
+            readinessList.end());
+    }
+
+    // Lowest knowledge first gives managers an immediate training-priority reading path.
     std::sort(readinessList.begin(), readinessList.end(),
               [](const MachineReadiness& a, const MachineReadiness& b) {
+                  if (a.averageScore != b.averageScore) return a.averageScore < b.averageScore;
                   return a.coveragePercent < b.coveragePercent;
               });
 
-    // Display machine readiness
+    // Render five compact, self-contained focus cards.
+    int displayedMachines = 0;
     for (const MachineReadiness& readiness : readinessList) {
+        if (displayedMachines >= 5) break;
         QListWidgetItem* item = new QListWidgetItem(machineReadinessList_);
 
-        QString backgroundColor, icon, riskText;
-        if (readiness.coveragePercent < 30) {
-            backgroundColor = "#fee2e2";  // Light red
-            icon = "⚠️";
-            riskText = "CRITICAL";
-        } else if (readiness.coveragePercent < 50) {
-            backgroundColor = "#fef3c7";  // Light yellow
-            icon = "⚠️";
-            riskText = "MEDIUM";
-        } else if (readiness.coveragePercent < 70) {
-            backgroundColor = "#e0f2fe";  // Light blue
-            icon = "ℹ️";
-            riskText = "LOW";
+        QString backgroundColor, accentColor, statusText, actionText;
+        if (readiness.averageScore < 1.0 || readiness.coveragePercent < 30) {
+            backgroundColor = "#fff7f7";
+            accentColor = "#ef4444";
+            statusText = "PRIORITY";
+            actionText = "Assign immediate training and nominate two backups.";
+        } else if (readiness.averageScore < 1.5 || readiness.coveragePercent < 50) {
+            backgroundColor = "#fffbeb";
+            accentColor = "#f59e0b";
+            statusText = "DEVELOPING";
+            actionText = "Increase supervised occurrences for the lowest scorers.";
+        } else if (readiness.averageScore < 2.0 || readiness.coveragePercent < 70) {
+            backgroundColor = "#f0f7ff";
+            accentColor = "#2563eb";
+            statusText = "PROGRESSING";
+            actionText = "Close remaining gaps and validate practical evidence.";
         } else {
-            backgroundColor = "#d1fae5";  // Light green
-            icon = "✅";
-            riskText = "LOW";
+            backgroundColor = "#f0fdf4";
+            accentColor = "#10b981";
+            statusText = "READY";
+            actionText = "Maintain competence and develop another trainer.";
         }
 
-        QString itemText = QString("%1 %2\n    Coverage: %3% (%4/%5 proficient)\n    Experts: %6 | Risk: %7")
-            .arg(icon)
-            .arg(readiness.machineName)
-            .arg(QString::number(readiness.coveragePercent, 'f', 0))
-            .arg(readiness.proficientCount)
-            .arg(readiness.totalEngineers)
-            .arg(readiness.expertCount)
-            .arg(riskText);
+        QWidget* card = new QWidget(machineReadinessList_);
+        card->setObjectName("machineFocusCard");
+        card->setStyleSheet(QString(
+            "QWidget#machineFocusCard{background:%1;border:1px solid #dbe4ef;"
+            "border-left:5px solid %2;border-radius:10px;}").arg(backgroundColor, accentColor));
+        QHBoxLayout* cardLayout = new QHBoxLayout(card);
+        cardLayout->setContentsMargins(16, 10, 16, 10);
+        cardLayout->setSpacing(16);
 
-        item->setText(itemText);
-        item->setBackground(QBrush(QColor(backgroundColor)));
-        item->setForeground(QBrush(QColor("#1e293b")));  // Dark text for readability
+        QLabel* rank = new QLabel(QString::number(displayedMachines + 1), card);
+        rank->setFixedSize(38, 38);
+        rank->setAlignment(Qt::AlignCenter);
+        rank->setStyleSheet(QString(
+            "background:%1;color:white;border-radius:19px;font-size:16px;font-weight:800;").arg(accentColor));
+        cardLayout->addWidget(rank);
 
-        QFont itemFont = item->font();
-        itemFont.setPointSize(13);
-        item->setFont(itemFont);
+        QVBoxLayout* identityLayout = new QVBoxLayout();
+        QLabel* machineName = new QLabel(readiness.machineName, card);
+        machineName->setStyleSheet("color:#0f172a;font-size:15px;font-weight:700;");
+        QLabel* context = new QLabel(QString("%1  |  %2").arg(readiness.areaName, statusText), card);
+        context->setStyleSheet(QString("color:%1;font-size:11px;font-weight:700;").arg(accentColor));
+        identityLayout->addWidget(machineName);
+        identityLayout->addWidget(context);
+        cardLayout->addLayout(identityLayout, 2);
 
-        machineReadinessList_->addItem(item);
+        QVBoxLayout* scoreLayout = new QVBoxLayout();
+        QLabel* scoreHeading = new QLabel("AVERAGE SCORE", card);
+        scoreHeading->setStyleSheet("color:#64748b;font-size:10px;font-weight:700;");
+        QProgressBar* scoreBar = new QProgressBar(card);
+        scoreBar->setRange(0, 300);
+        scoreBar->setValue(qRound(readiness.averageScore * 100.0));
+        scoreBar->setFormat(QString("%1 / 3").arg(readiness.averageScore, 0, 'f', 2));
+        scoreBar->setMinimumWidth(250);
+        scoreBar->setFixedHeight(24);
+        scoreBar->setStyleSheet(QString(
+            "QProgressBar{background:#e2e8f0;border:0;border-radius:6px;text-align:center;"
+            "color:#0f172a;font-weight:700;}QProgressBar::chunk{background:%1;border-radius:6px;}").arg(accentColor));
+        scoreLayout->addWidget(scoreHeading);
+        scoreLayout->addWidget(scoreBar);
+        cardLayout->addLayout(scoreLayout, 2);
+
+        QVBoxLayout* evidenceLayout = new QVBoxLayout();
+        QLabel* completion = new QLabel(QString("%1% assessed").arg(
+            QString::number(readiness.assessmentCoveragePercent, 'f', 0)), card);
+        QLabel* proficiency = new QLabel(QString("%1/%2 trained  |  %3 experts")
+            .arg(readiness.proficientCount).arg(readiness.totalEngineers).arg(readiness.expertCount), card);
+        completion->setStyleSheet("color:#334155;font-weight:600;");
+        proficiency->setStyleSheet("color:#64748b;font-size:11px;");
+        evidenceLayout->addWidget(completion);
+        evidenceLayout->addWidget(proficiency);
+        cardLayout->addLayout(evidenceLayout, 2);
+
+        QLabel* action = new QLabel(actionText, card);
+        action->setWordWrap(true);
+        action->setMinimumWidth(230);
+        action->setStyleSheet("color:#334155;font-size:11px;");
+        cardLayout->addWidget(action, 2);
+
+        item->setSizeHint(QSize(0, 92));
+        item->setData(Qt::UserRole, readiness.machineId);
+        machineReadinessList_->setItemWidget(item, card);
+        displayedMachines++;
     }
 
     // Generate vulnerability alerts
@@ -2529,29 +2811,34 @@ void AnalyticsWidget::updateMachineReadinessData()
 
     // Shift vulnerability analysis
     QMap<QString, int> shiftVulnerabilities;
+
+    QHash<QString, QSet<int>> proficientMachinesByShift;
+    for (const Engineer& engineer : cachedEngineers_) {
+        const QString shift = engineer.shift();
+        if (shift.isEmpty()) {
+            continue;
+        }
+        const auto engineerScoresIt = assessmentScoreByEngineerAndCompetency_.constFind(engineer.id());
+        if (engineerScoresIt == assessmentScoreByEngineerAndCompetency_.constEnd()) {
+            continue;
+        }
+
+        for (auto scoreIt = engineerScoresIt->constBegin(); scoreIt != engineerScoresIt->constEnd(); ++scoreIt) {
+            if (scoreIt.value() < 2) {
+                continue;
+            }
+            const int machineId = competencyMachineById_.value(scoreIt.key(), -1);
+            if (machineId > 0) {
+                proficientMachinesByShift[shift].insert(machineId);
+            }
+        }
+    }
+
     for (const MachineReadiness& readiness : readinessList) {
         if (readiness.coveragePercent < 50) {
-            // Check which shifts have low coverage for this machine
-            for (const Engineer& engineer : cachedEngineers_) {
-                QString shift = engineer.shift();
-                if (shift.isEmpty()) continue;
-
-                // Count proficient engineers in this shift for this machine
-                int shiftProficient = 0;
-                for (const Assessment& assessment : cachedAssessments_) {
-                    if (assessment.engineerId() == engineer.id() && assessment.score() >= 2) {
-                        // Check if this competency belongs to this machine
-                        DataCache& cache = DataCache::instance();
-                        Competency comp = cache.getCompetencyById(assessment.competencyId());
-                        if (comp.machineId() == readiness.machineId) {
-                            shiftProficient++;
-                            break;
-                        }
-                    }
-                }
-
-                if (shiftProficient == 0) {
-                    shiftVulnerabilities[shift]++;
+            for (auto it = proficientMachinesByShift.constBegin(); it != proficientMachinesByShift.constEnd(); ++it) {
+                if (!it.value().contains(readiness.machineId)) {
+                    shiftVulnerabilities[it.key()]++;
                 }
             }
         }
@@ -2596,36 +2883,30 @@ QList<AnalyticsWidget::CompetencyRiskPoint> AnalyticsWidget::calculateCompetency
 {
     QList<CompetencyRiskPoint> riskPoints;
 
-    DataCache& cache = DataCache::instance();
     QList<Competency> allCompetencies;
 
-    // Get all competencies from cache
     for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        const QList<Machine>& areaMachines = machinesByArea_[area.id()];
         for (const Machine& machine : areaMachines) {
-            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
-            allCompetencies.append(machineCompetencies);
+            allCompetencies.append(competenciesByMachine_[machine.id()]);
         }
     }
 
-    // Calculate risk for each competency
+    QHash<int, int> totalScoreByCompetency;
+    QHash<int, int> countByCompetency;
+    for (const Assessment& assessment : cachedAssessments_) {
+        totalScoreByCompetency[assessment.competencyId()] += assessment.score();
+        countByCompetency[assessment.competencyId()] += 1;
+    }
+
     for (const Competency& comp : allCompetencies) {
         CompetencyRiskPoint point;
         point.name = comp.name();
         point.competencyId = comp.id();
         point.importance = comp.calculatedWeight();
 
-        // Calculate team proficiency for this competency
-        int totalScore = 0;
-        int assessmentCount = 0;
-        for (const Assessment& assessment : cachedAssessments_) {
-            if (assessment.competencyId() == comp.id()) {
-                totalScore += assessment.score();
-                assessmentCount++;
-            }
-        }
-
-        // Proficiency = (average score / max score) * 100
+        const int totalScore = totalScoreByCompetency.value(comp.id(), 0);
+        const int assessmentCount = countByCompetency.value(comp.id(), 0);
         if (assessmentCount > 0) {
             double avgScore = double(totalScore) / assessmentCount;
             point.proficiency = (avgScore / 3.0) * 100.0;
@@ -2633,7 +2914,6 @@ QList<AnalyticsWidget::CompetencyRiskPoint> AnalyticsWidget::calculateCompetency
             point.proficiency = 0.0;
         }
 
-        // Determine risk level based on quadrant
         if (point.importance >= 2.5 && point.proficiency < 50) {
             point.riskLevel = "critical";
         } else if (point.importance >= 2.5 && point.proficiency >= 50) {
@@ -2654,23 +2934,24 @@ QList<AnalyticsWidget::MachineReadiness> AnalyticsWidget::calculateMachineReadin
 {
     QList<MachineReadiness> readinessList;
 
-    DataCache& cache = DataCache::instance();
-
-    // Get all machines from cache
     for (const ProductionArea& area : cachedAreas_) {
-        QList<Machine> areaMachines = cache.getMachinesByArea(area.id());
+        const QList<Machine>& areaMachines = machinesByArea_[area.id()];
 
         for (const Machine& machine : areaMachines) {
             MachineReadiness readiness;
+            readiness.areaName = area.name();
+            readiness.areaId = area.id();
             readiness.machineName = machine.name();
             readiness.machineId = machine.id();
             readiness.importance = machine.importance();
             readiness.totalEngineers = cachedEngineers_.size();
             readiness.proficientCount = 0;
             readiness.expertCount = 0;
+            readiness.averageScore = 0.0;
+            readiness.assessmentCoveragePercent = 0.0;
 
-            // Get competencies for this machine
-            QList<Competency> machineCompetencies = cache.getCompetenciesByMachine(machine.id());
+            const QList<Competency>& machineCompetencies = competenciesByMachine_[machine.id()];
+            readiness.competencyCount = machineCompetencies.size();
 
             if (machineCompetencies.isEmpty()) {
                 readiness.coveragePercent = 0;
@@ -2679,23 +2960,30 @@ QList<AnalyticsWidget::MachineReadiness> AnalyticsWidget::calculateMachineReadin
                 continue;
             }
 
-            // Calculate proficiency for each engineer on this machine
+            double weightedScoreTotal = 0.0;
+            double recordedWeightTotal = 0.0;
+            int recordedAssessmentCount = 0;
             for (const Engineer& engineer : cachedEngineers_) {
+                const auto engineerScoresIt = assessmentScoreByEngineerAndCompetency_.constFind(engineer.id());
                 int totalScore = 0;
                 int maxScore = 0;
 
                 for (const Competency& comp : machineCompetencies) {
-                    for (const Assessment& assessment : cachedAssessments_) {
-                        if (assessment.engineerId() == engineer.id() && assessment.competencyId() == comp.id()) {
-                            totalScore += assessment.score();
+                    if (engineerScoresIt != assessmentScoreByEngineerAndCompetency_.constEnd()) {
+                        const auto scoreIt = engineerScoresIt->constFind(comp.id());
+                        if (scoreIt != engineerScoresIt->constEnd()) {
+                            totalScore += scoreIt.value();
                             maxScore += 3;
-                            break;
+                            const double weight = competencyWeightById_.value(comp.id(), comp.calculatedWeight());
+                            weightedScoreTotal += scoreIt.value() * weight;
+                            recordedWeightTotal += weight;
+                            recordedAssessmentCount++;
                         }
                     }
                 }
 
                 if (maxScore > 0) {
-                    double avgScore = double(totalScore) / (maxScore / 3);
+                    const double avgScore = static_cast<double>(totalScore) / (maxScore / 3);
 
                     if (avgScore >= 2.0) {
                         readiness.proficientCount++;
@@ -2704,6 +2992,15 @@ QList<AnalyticsWidget::MachineReadiness> AnalyticsWidget::calculateMachineReadin
                         readiness.expertCount++;
                     }
                 }
+            }
+
+            if (recordedWeightTotal > 0.0) {
+                readiness.averageScore = weightedScoreTotal / recordedWeightTotal;
+            }
+            const int possibleAssessmentCount = readiness.totalEngineers * readiness.competencyCount;
+            if (possibleAssessmentCount > 0) {
+                readiness.assessmentCoveragePercent =
+                    (double(recordedAssessmentCount) / possibleAssessmentCount) * 100.0;
             }
 
             // Calculate coverage percentage

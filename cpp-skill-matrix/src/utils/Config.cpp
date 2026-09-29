@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <functional>
 
 Config& Config::instance()
 {
@@ -132,8 +133,33 @@ bool Config::has(const QString& key) const
 
 void Config::remove(const QString& key)
 {
-    // Simple implementation for top-level keys
-    config_.remove(key);
+    const QStringList keys = parseKey(key);
+    if (keys.isEmpty()) {
+        return;
+    }
+
+    std::function<bool(QVariantMap&, int)> removeNested = [&](QVariantMap& map, int idx) -> bool {
+        const QString& currentKey = keys[idx];
+        if (!map.contains(currentKey)) {
+            return false;
+        }
+        if (idx == keys.size() - 1) {
+            map.remove(currentKey);
+            return true;
+        }
+        QVariant nestedValue = map.value(currentKey);
+        if (!nestedValue.canConvert<QVariantMap>()) {
+            return false;
+        }
+        QVariantMap nestedMap = nestedValue.toMap();
+        const bool removed = removeNested(nestedMap, idx + 1);
+        if (removed) {
+            map[currentKey] = nestedMap;
+        }
+        return removed;
+    };
+
+    removeNested(config_, 0);
     emit configChanged(key);
 }
 
@@ -160,7 +186,8 @@ QString Config::databaseUser() const
 
 QString Config::databasePassword() const
 {
-    return get("database.password", "").toString();
+    // Password is intentionally not persisted in config for security.
+    return QString();
 }
 
 int Config::databasePort() const
@@ -195,7 +222,9 @@ void Config::setDatabaseUser(const QString& user)
 
 void Config::setDatabasePassword(const QString& password)
 {
-    set("database.password", password);
+    Q_UNUSED(password);
+    // Password is intentionally not persisted in config for security.
+    remove("database.password");
 }
 
 void Config::setDatabasePort(int port)

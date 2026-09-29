@@ -15,6 +15,7 @@ public:
     QList<CoreSkillCategory> findAllCategories();
     QList<CoreSkill> findAllSkills();
     QList<CoreSkillAssessment> findAllAssessments();
+    QList<CoreSkillAssessment> findAssessmentsByEngineer(const QString& engineerId);
     bool saveOrUpdateAssessment(CoreSkillAssessment& assessment);
 
     // Category management

@@ -1,4 +1,5 @@
 #include "CoreSkillsWidget.h"
+#include "../core/Application.h"
 #include "../utils/Logger.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -8,6 +9,77 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QShowEvent>
+#include <QGraphicsDropShadowEffect>
+
+namespace {
+QString scoreButtonStyle(int score, bool isSelected)
+{
+    const QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
+    const QString color = scoreColors.value(score, "#60a5fa");
+
+    if (isSelected) {
+        return QString(
+            "QPushButton {"
+            "    background-color: %1;"
+            "    color: white;"
+            "    border: 2px solid %1;"
+            "    border-radius: 14px;"
+            "    padding: 0px;"
+            "    min-width: 0px;"
+            "    min-height: 0px;"
+            "    text-align: center;"
+            "    font-weight: bold;"
+            "    font-size: 20px;"
+            "}"
+            "QPushButton:hover {"
+            "    border: 2px solid #1e293b;"
+            "    background-color: %1;"
+            "}"
+        ).arg(color);
+    }
+
+    return QString(
+        "QPushButton {"
+        "    background-color: #f8fafc;"
+        "    color: #475569;"
+        "    border: 2px solid #cbd5e1;"
+        "    border-radius: 14px;"
+        "    padding: 0px;"
+        "    min-width: 0px;"
+        "    min-height: 0px;"
+        "    text-align: center;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    border-color: %1;"
+        "    color: %1;"
+        "    background-color: #e2e8f0;"
+        "}"
+    ).arg(color);
+}
+
+QString coreSkillDiscipline(const CoreSkillCategory& category)
+{
+    if (!category.discipline().trimmed().isEmpty()) {
+        return category.discipline().trimmed();
+    }
+    const QString id = category.id().toLower();
+    const QString name = category.name().toLower();
+
+    if (name.contains("mechanical") || id.contains("mech")) {
+        return "Mechanical";
+    }
+    if (name.contains("electrical") || id.contains("elec")) {
+        return "Electrical";
+    }
+    if (name.contains("software") || id.contains("soft")) {
+        return "Software";
+    }
+
+    return "Software";
+}
+}
 
 CoreSkillsWidget::CoreSkillsWidget(QWidget* parent)
     : QWidget(parent)
@@ -123,14 +195,29 @@ void CoreSkillsWidget::loadCoreSkills()
 
     QList<CoreSkillCategory> categories = coreSkillsRepo_.findAllCategories();
     QList<CoreSkill> skills = coreSkillsRepo_.findAllSkills();
+    QMap<QString, QList<CoreSkill>> skillsByCategory;
+    for (const CoreSkill& skill : skills) {
+        skillsByCategory[skill.categoryId()].append(skill);
+    }
 
     QString engineerId = engineerCombo_->currentData().toString();
 
-    // Create a card for each category (like AssessmentWidget creates cards for each engineer)
+    QMap<QString, QList<CoreSkillCategory>> categoriesByDiscipline;
     for (const CoreSkillCategory& category : categories) {
-        // Create category card
-        QGroupBox* categoryCard = new QGroupBox(this);
-        categoryCard->setStyleSheet(
+        categoriesByDiscipline[coreSkillDiscipline(category)].append(category);
+    }
+
+    const QStringList disciplineOrder = {"Mechanical", "Electrical", "Software"};
+
+    // Create one card per discipline and render categories within each card.
+    for (const QString& discipline : disciplineOrder) {
+        const QList<CoreSkillCategory> disciplineCategories = categoriesByDiscipline.value(discipline);
+        if (disciplineCategories.isEmpty()) {
+            continue;
+        }
+
+        QGroupBox* disciplineCard = new QGroupBox(this);
+        disciplineCard->setStyleSheet(
             "QGroupBox {"
             "    border: 2px solid #e2e8f0;"
             "    border-radius: 8px;"
@@ -145,23 +232,34 @@ void CoreSkillsWidget::loadCoreSkills()
             "}"
         );
 
-        QVBoxLayout* cardLayout = new QVBoxLayout(categoryCard);
+        QVBoxLayout* cardLayout = new QVBoxLayout(disciplineCard);
         cardLayout->setSpacing(12);
 
-        // Category title
-        QLabel* categoryLabel = new QLabel(category.name(), this);
-        QFont categoryFont = categoryLabel->font();
-        categoryFont.setPointSize(14);
-        categoryFont.setBold(true);
-        categoryLabel->setFont(categoryFont);
-        cardLayout->addWidget(categoryLabel);
+        QLabel* disciplineLabel = new QLabel(QString("%1 Skills").arg(discipline), this);
+        QFont disciplineFont = disciplineLabel->font();
+        disciplineFont.setPointSize(14);
+        disciplineFont.setBold(true);
+        disciplineLabel->setFont(disciplineFont);
+        cardLayout->addWidget(disciplineLabel);
 
-        // Add skills for this category
-        bool hasSkills = false;
-        for (const CoreSkill& skill : skills) {
-            if (skill.categoryId() == category.id()) {
-                hasSkills = true;
+        bool disciplineHasSkills = false;
+        for (const CoreSkillCategory& category : disciplineCategories) {
+            const QList<CoreSkill> categorySkills = skillsByCategory.value(category.id());
+            if (categorySkills.isEmpty()) {
+                continue;
+            }
 
+            disciplineHasSkills = true;
+
+            QLabel* categoryLabel = new QLabel(category.name(), this);
+            QFont categoryFont = categoryLabel->font();
+            categoryFont.setPointSize(12);
+            categoryFont.setBold(true);
+            categoryLabel->setFont(categoryFont);
+            categoryLabel->setStyleSheet("QLabel { color: #475569; margin-top: 6px; }");
+            cardLayout->addWidget(categoryLabel);
+
+            for (const CoreSkill& skill : categorySkills) {
                 QHBoxLayout* skillLayout = new QHBoxLayout();
                 skillLayout->setSpacing(12);
                 skillLayout->setContentsMargins(0, 4, 0, 4);
@@ -176,7 +274,7 @@ void CoreSkillsWidget::loadCoreSkills()
                 skillLabel->setMaximumWidth(500);
                 skillLayout->addWidget(skillLabel, 1);
 
-                skillLayout->addStretch();
+                skillLayout->addSpacing(16);
 
                 // Create score buttons (0-3)
                 createScoreButtons(skillLayout, engineerId, category.id(), skill.id(), 0);
@@ -185,11 +283,10 @@ void CoreSkillsWidget::loadCoreSkills()
             }
         }
 
-        // Only add the card if it has skills
-        if (hasSkills) {
-            skillsLayout_->addWidget(categoryCard);
+        if (disciplineHasSkills) {
+            skillsLayout_->addWidget(disciplineCard);
         } else {
-            delete categoryCard;
+            delete disciplineCard;
         }
     }
 
@@ -207,10 +304,11 @@ void CoreSkillsWidget::loadAssessments()
         return;
     }
 
-    QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAllAssessments();
-
-    // Color scheme for score buttons
-    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};  // Red, Yellow, Blue, Green
+    const QList<CoreSkillAssessment> assessments = coreSkillsRepo_.findAssessmentsByEngineer(engineerId);
+    QMap<QString, CoreSkillAssessment> assessmentBySkill;
+    for (const CoreSkillAssessment& assessment : assessments) {
+        assessmentBySkill.insert(assessment.categoryId() + "|" + assessment.skillId(), assessment);
+    }
 
     // Update button groups with existing scores
     for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
@@ -218,17 +316,11 @@ void CoreSkillsWidget::loadAssessments()
             continue;
         }
 
-        int currentScore = 0;
-
-        // Find matching assessment
-        for (const CoreSkillAssessment& assessment : assessments) {
-            if (assessment.engineerId() == engineerId &&
-                assessment.categoryId() == buttonGroup.categoryId &&
-                assessment.skillId() == buttonGroup.skillId) {
-                currentScore = assessment.score();
-                break;
-            }
-        }
+        const QString key = buttonGroup.categoryId + "|" + buttonGroup.skillId;
+        const bool hasAssessment = assessmentBySkill.contains(key);
+        const int currentScore = hasAssessment ? assessmentBySkill.value(key).score() : 0;
+        buttonGroup.hasInitialScore = hasAssessment;
+        buttonGroup.initialScore = currentScore;
 
         // Update button styles
         for (int score = 0; score < 4; score++) {
@@ -238,39 +330,7 @@ void CoreSkillsWidget::loadAssessments()
             // Set the property for save detection
             button->setProperty("isSelected", isSelected);
 
-            QString buttonStyle;
-            if (isSelected) {
-                buttonStyle = QString(
-                    "QPushButton {"
-                    "    background-color: %1;"
-                    "    color: white;"
-                    "    border: 2px solid %1;"
-                    "    border-radius: 16px;"
-                    "    font-weight: bold;"
-                    "    font-size: 12px;"
-                    "}"
-                    "QPushButton:hover {"
-                    "    opacity: 0.9;"
-                    "}"
-                ).arg(scoreColors[score]);
-            } else {
-                buttonStyle = QString(
-                    "QPushButton {"
-                    "    background-color: transparent;"
-                    "    color: #64748b;"
-                    "    border: 2px solid #e2e8f0;"
-                    "    border-radius: 16px;"
-                    "    font-size: 12px;"
-                    "}"
-                    "QPushButton:hover {"
-                    "    border-color: %1;"
-                    "    color: %1;"
-                    "    background-color: rgba(255, 255, 255, 0.05);"
-                    "}"
-                ).arg(scoreColors[score]);
-            }
-
-            button->setStyleSheet(buttonStyle);
+            button->setStyleSheet(scoreButtonStyle(score, isSelected));
         }
     }
 
@@ -282,10 +342,10 @@ void CoreSkillsWidget::onEngineerChanged(int index)
     QString newEngineerId = engineerCombo_->currentData().toString();
 
     // Update all button groups with new engineer ID and reset to score 0
-    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
-
     for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
         buttonGroup.engineerId = newEngineerId;
+        buttonGroup.hasInitialScore = false;
+        buttonGroup.initialScore = 0;
 
         // Reset all buttons to unselected state, with button 0 selected
         for (int score = 0; score < 4; score++) {
@@ -295,38 +355,7 @@ void CoreSkillsWidget::onEngineerChanged(int index)
             bool isSelected = (score == 0);  // Default to score 0
             button->setProperty("isSelected", isSelected);  // Set property for save detection
 
-            QString buttonStyle;
-            if (isSelected) {
-                buttonStyle = QString(
-                    "QPushButton {"
-                    "    background-color: %1;"
-                    "    color: white;"
-                    "    border: 2px solid %1;"
-                    "    border-radius: 16px;"
-                    "    font-weight: bold;"
-                    "    font-size: 12px;"
-                    "}"
-                    "QPushButton:hover {"
-                    "    opacity: 0.9;"
-                    "}"
-                ).arg(scoreColors[score]);
-            } else {
-                buttonStyle = QString(
-                    "QPushButton {"
-                    "    background-color: transparent;"
-                    "    color: #64748b;"
-                    "    border: 2px solid #e2e8f0;"
-                    "    border-radius: 16px;"
-                    "    font-size: 12px;"
-                    "}"
-                    "QPushButton:hover {"
-                    "    border-color: %1;"
-                    "    color: %1;"
-                    "    background-color: rgba(255, 255, 255, 0.05);"
-                    "}"
-                ).arg(scoreColors[score]);
-            }
-            button->setStyleSheet(buttonStyle);
+            button->setStyleSheet(scoreButtonStyle(score, isSelected));
         }
     }
 
@@ -338,64 +367,80 @@ void CoreSkillsWidget::onEngineerChanged(int index)
 
 void CoreSkillsWidget::onSaveClicked()
 {
-    QString engineerId = engineerCombo_->currentData().toString();
+    const QString engineerId = engineerCombo_->currentData().toString();
 
     if (engineerId.isEmpty()) {
         QMessageBox::warning(this, "Selection Required", "Please select an engineer.");
         return;
     }
 
-    int savedCount = 0;
-    int errorCount = 0;
-
-    // Loop through all button groups and find selected score for each skill
+    QList<OfficialCoreScoreChange> changes;
     for (const ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
         if (buttonGroup.engineerId != engineerId) {
             continue;
         }
 
-        // Find which button is selected using the isSelected property
         int selectedScore = 0;
         for (int score = 0; score < 4; score++) {
-            QPushButton* button = buttonGroup.buttons[score];
+            const QPushButton* button = buttonGroup.buttons[score];
             if (button->property("isSelected").toBool()) {
                 selectedScore = score;
                 break;
             }
         }
 
-        CoreSkillAssessment assessment;
-        assessment.setEngineerId(engineerId);
-        assessment.setCategoryId(buttonGroup.categoryId);
-        assessment.setSkillId(buttonGroup.skillId);
-        assessment.setScore(selectedScore);
-
-        Logger::instance().debug("CoreSkillsWidget",
-            QString("Attempting to save: engineerId=%1, categoryId=%2, skillId=%3, score=%4")
-                .arg(engineerId)
-                .arg(buttonGroup.categoryId)
-                .arg(buttonGroup.skillId)
-                .arg(selectedScore));
-
-        if (coreSkillsRepo_.saveOrUpdateAssessment(assessment)) {
-            savedCount++;
-        } else {
-            errorCount++;
-            Logger::instance().error("CoreSkillsWidget",
-                QString("Failed to save assessment for skill %1: %2")
-                    .arg(buttonGroup.skillId)
-                    .arg(coreSkillsRepo_.lastError()));
+        if (selectedScore != buttonGroup.initialScore) {
+            OfficialCoreScoreChange change;
+            change.categoryId = buttonGroup.categoryId;
+            change.skillId = buttonGroup.skillId;
+            change.expectedHasScore = buttonGroup.hasInitialScore;
+            change.expectedScore = buttonGroup.initialScore;
+            change.newScore = selectedScore;
+            changes.append(change);
         }
     }
 
-    if (errorCount > 0) {
-        QMessageBox::warning(this, "Partial Success",
-            QString("Saved %1 assessments, but %2 failed.").arg(savedCount).arg(errorCount));
-    } else {
-        Logger::instance().info("CoreSkillsWidget", QString("Saved %1 core skill assessments").arg(savedCount));
-        QMessageBox::information(this, "Success",
-            QString("Successfully saved %1 core skill assessments.").arg(savedCount));
+    if (changes.isEmpty()) {
+        QMessageBox::information(this, "No Changes", "No core-skill scores have changed.");
+        return;
     }
+
+    Session* session = Application::instance().session();
+    if (!session || !session->isAdmin()) {
+        QMessageBox::warning(this, "Permission Denied",
+            "An authenticated manager is required to update official core-skill scores.");
+        loadAssessments();
+        return;
+    }
+    if (!assessmentWorkflowRepo_.saveOfficialCoreSkills(
+            engineerId,
+            changes,
+            session ? session->userId() : QString(),
+            session ? session->username() : QString())) {
+        Logger::instance().error("CoreSkillsWidget",
+            "Failed to save core-skill assessments: " + assessmentWorkflowRepo_.lastError());
+        QMessageBox::warning(this, "Save Failed",
+            assessmentWorkflowRepo_.lastError() + "\n\nNo core-skill changes were saved.");
+        loadAssessments();
+        return;
+    }
+
+    for (const OfficialCoreScoreChange& change : changes) {
+        for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
+            if (buttonGroup.categoryId == change.categoryId && buttonGroup.skillId == change.skillId) {
+                buttonGroup.hasInitialScore = true;
+                buttonGroup.initialScore = change.newScore;
+                break;
+            }
+        }
+    }
+
+    Logger::instance().info("CoreSkillsWidget",
+        QString("Saved %1 core-skill assessment changes").arg(changes.size()));
+    QMessageBox::information(this, "Assessments Updated",
+        QString("Saved %1 core-skill score change%2 with an audit record.")
+            .arg(changes.size())
+            .arg(changes.size() == 1 ? QString() : "s"));
 }
 
 void CoreSkillsWidget::onRefreshClicked()
@@ -428,11 +473,17 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
     buttonGroup.engineerId = engineerId;
     buttonGroup.categoryId = categoryId;
     buttonGroup.skillId = skillId;
+    buttonGroup.initialScore = currentScore;
 
     for (int score = 0; score < 4; score++) {
         QPushButton* button = new QPushButton(scoreInfos[score].label);
-        button->setFixedSize(32, 32);
+        button->setFixedSize(60, 48);
         button->setCursor(Qt::PointingHandCursor);
+        auto* shadow = new QGraphicsDropShadowEffect(button);
+        shadow->setBlurRadius(12);
+        shadow->setOffset(0, 2);
+        shadow->setColor(QColor(15, 23, 42, 40));
+        button->setGraphicsEffect(shadow);
 
         // Store metadata
         button->setProperty("engineerId", engineerId);
@@ -444,41 +495,7 @@ void CoreSkillsWidget::createScoreButtons(QHBoxLayout* layout, const QString& en
         bool isSelected = (score == currentScore);
         button->setProperty("isSelected", isSelected);  // Store for save detection
 
-        QString buttonStyle;
-        if (isSelected) {
-            // Active button: colored background, white text
-            buttonStyle = QString(
-                "QPushButton {"
-                "    background-color: %1;"
-                "    color: white;"
-                "    border: 2px solid %1;"
-                "    border-radius: 16px;"
-                "    font-weight: bold;"
-                "    font-size: 12px;"
-                "}"
-                "QPushButton:hover {"
-                "    opacity: 0.9;"
-                "}"
-            ).arg(scoreInfos[score].color);
-        } else {
-            // Inactive button: transparent background, colored border
-            buttonStyle = QString(
-                "QPushButton {"
-                "    background-color: transparent;"
-                "    color: #64748b;"
-                "    border: 2px solid #e2e8f0;"
-                "    border-radius: 16px;"
-                "    font-size: 12px;"
-                "}"
-                "QPushButton:hover {"
-                "    border-color: %1;"
-                "    color: %1;"
-                "    background-color: rgba(255, 255, 255, 0.05);"
-                "}"
-            ).arg(scoreInfos[score].color);
-        }
-
-        button->setStyleSheet(buttonStyle);
+        button->setStyleSheet(scoreButtonStyle(score, isSelected));
 
         connect(button, &QPushButton::clicked, this, &CoreSkillsWidget::onScoreButtonClicked);
 
@@ -501,9 +518,6 @@ void CoreSkillsWidget::onScoreButtonClicked()
     QString skillId = clickedButton->property("skillId").toString();
     int score = clickedButton->property("score").toInt();
 
-    // Color scheme
-    QStringList scoreColors = {"#ff6b6b", "#fbbf24", "#60a5fa", "#4ade80"};
-
     // Find the button group and update all buttons in that group
     for (ScoreButtonGroup& buttonGroup : scoreButtonGroups_) {
         if (buttonGroup.engineerId == engineerId &&
@@ -518,39 +532,7 @@ void CoreSkillsWidget::onScoreButtonClicked()
                 // Store selected state as property for reliable save detection
                 button->setProperty("isSelected", isSelected);
 
-                QString buttonStyle;
-                if (isSelected) {
-                    buttonStyle = QString(
-                        "QPushButton {"
-                        "    background-color: %1;"
-                        "    color: white;"
-                        "    border: 2px solid %1;"
-                        "    border-radius: 16px;"
-                        "    font-weight: bold;"
-                        "    font-size: 12px;"
-                        "}"
-                        "QPushButton:hover {"
-                        "    opacity: 0.9;"
-                        "}"
-                    ).arg(scoreColors[i]);
-                } else {
-                    buttonStyle = QString(
-                        "QPushButton {"
-                        "    background-color: transparent;"
-                        "    color: #64748b;"
-                        "    border: 2px solid #e2e8f0;"
-                        "    border-radius: 16px;"
-                        "    font-size: 12px;"
-                        "}"
-                        "QPushButton:hover {"
-                        "    border-color: %1;"
-                        "    color: %1;"
-                        "    background-color: rgba(255, 255, 255, 0.05);"
-                        "}"
-                    ).arg(scoreColors[i]);
-                }
-
-                button->setStyleSheet(buttonStyle);
+                button->setStyleSheet(scoreButtonStyle(i, isSelected));
             }
 
             // Log the score change
