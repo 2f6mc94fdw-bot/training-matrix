@@ -8,9 +8,6 @@
   competencies that do not already exist with the same name.
 */
 
-USE [training_matrix];
-GO
-
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 
