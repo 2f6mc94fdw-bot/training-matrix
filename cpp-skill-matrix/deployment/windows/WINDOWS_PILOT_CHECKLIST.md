@@ -8,6 +8,8 @@ Record pass/fail, tester, date, workstation, duration, and evidence for every it
 - `BUILD_INFO.txt` identifies the approved commit and says `SourceDirty=False`.
 - Package files match `SHA256SUMS.txt` after transfer to the work network.
 - `VALIDATE_DATABASE.sql` reports schema version `2026072701` and passes.
+- `VALIDATE_SITE_BASELINE.sql` reports at least 36 machines and 120 production questions.
+- The six expected production areas and Palletiser 2ABC questions are visible before pilot assessments begin.
 - IT confirms the `aptitude_app` login is not `sysadmin`, `db_owner`, `db_ddladmin`, or `db_securityadmin`.
 - A full database backup and a documented rollback owner exist before testing.
 

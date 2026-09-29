@@ -19,11 +19,11 @@ DECLARE @MachineId INT;
 
 SELECT @AreaId = [id]
 FROM [dbo].[production_areas]
-WHERE [name] = N'Viaflo Packing';
+WHERE UPPER([name]) = N'VIAFLO PACKING';
 
 IF @AreaId IS NULL
 BEGIN
-    THROW 50001, 'Production area Viaflo Packing does not exist.', 1;
+    THROW 50001, 'Production area VIAFLO PACKING does not exist. Run SEED_SITE_BASELINE.sql first.', 1;
 END;
 
 SELECT @MachineId = [id]
@@ -84,7 +84,7 @@ SELECT
 FROM [dbo].[production_areas] AS area
 JOIN [dbo].[machines] AS machine ON machine.[production_area_id] = area.[id]
 JOIN [dbo].[competencies] AS competency ON competency.[machine_id] = machine.[id]
-WHERE area.[name] = N'Viaflo Packing'
+WHERE UPPER(area.[name]) = N'VIAFLO PACKING'
   AND machine.[name] = N'Palletiser 2ABC'
 ORDER BY competency.[id];
 GO

@@ -18,6 +18,9 @@ $schemaSource = Join-Path $SourceDir "resources\database\schema.sql"
 $migrationSource = Join-Path $PSScriptRoot "PRODUCTION_SCHEMA_MIGRATION.sql"
 $setupSource = Join-Path $PSScriptRoot "PRODUCTION_SQL_SETUP.sql"
 $validationSource = Join-Path $PSScriptRoot "VALIDATE_DATABASE.sql"
+$baselineSource = Join-Path $PSScriptRoot "SEED_SITE_BASELINE.sql"
+$baselineValidationSource = Join-Path $PSScriptRoot "VALIDATE_SITE_BASELINE.sql"
+$palletiserSource = Join-Path $PSScriptRoot "..\machine-competencies\Palletiser_2ABC_Viaflo_Packing.sql"
 $readmeSource = Join-Path $PSScriptRoot "WINDOWS_DEPLOYMENT_README.md"
 $checklistSource = Join-Path $PSScriptRoot "WINDOWS_PILOT_CHECKLIST.md"
 
@@ -34,6 +37,9 @@ foreach ($requiredFile in @(
     $migrationSource,
     $setupSource,
     $validationSource,
+    $baselineSource,
+    $baselineValidationSource,
+    $palletiserSource,
     $readmeSource,
     $checklistSource
 )) {
@@ -134,6 +140,9 @@ Copy-Item $schemaSource (Join-Path $sqlDir "schema.sql")
 Copy-Item $migrationSource $sqlDir
 Copy-Item $setupSource $sqlDir
 Copy-Item $validationSource $sqlDir
+Copy-Item $baselineSource $sqlDir
+Copy-Item $baselineValidationSource $sqlDir
+Copy-Item $palletiserSource (Join-Path $sqlDir "Palletiser_2ABC_Viaflo_Packing.sql")
 Copy-Item $readmeSource $packageDir
 Copy-Item $checklistSource $packageDir
 

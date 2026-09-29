@@ -46,19 +46,25 @@ Take a full backup before changing an existing Aptitude database. Run SQL script
 1. Create an empty database named `training_matrix`.
 2. Select `training_matrix` in SSMS and run `database\schema.sql`.
 3. Keep `training_matrix` selected and run `database\PRODUCTION_SCHEMA_MIGRATION.sql`.
-4. Keep `training_matrix` selected and run `database\VALIDATE_DATABASE.sql`.
-5. Confirm validation reports schema version `2026072701` and prints `Aptitude database validation passed.`
-6. Edit both placeholder passwords in `database\PRODUCTION_SQL_SETUP.sql`.
-7. Run `PRODUCTION_SQL_SETUP.sql` as a server administrator.
-8. Store the generated `aptitude_app` password in the approved password vault.
+4. Keep `training_matrix` selected and run `database\SEED_SITE_BASELINE.sql`.
+5. Run `database\Palletiser_2ABC_Viaflo_Packing.sql`.
+6. Run `database\VALIDATE_DATABASE.sql`, then `database\VALIDATE_SITE_BASELINE.sql`.
+7. Confirm validation reports schema version `2026072701`, at least 36 machines, at least 120 production questions, and both validation success messages.
+8. Edit both placeholder passwords in `database\PRODUCTION_SQL_SETUP.sql`.
+9. Run `PRODUCTION_SQL_SETUP.sql` as a server administrator.
+10. Store the generated `aptitude_app` password in the approved password vault.
 
 ### Existing Database
 
 1. Stop Aptitude clients and take a full SQL backup.
 2. Run `PRODUCTION_SCHEMA_MIGRATION.sql` against the existing Aptitude database.
 3. Run `VALIDATE_DATABASE.sql` against that database.
-4. If migration reports orphan user links, repair the affected user-to-engineer assignments before rerunning it. Do not bypass this check.
-5. Run `PRODUCTION_SQL_SETUP.sql` if the least-privilege logins have not already been created.
+4. Run `SEED_SITE_BASELINE.sql` and `Palletiser_2ABC_Viaflo_Packing.sql`; both are safe to rerun and add only missing production areas, machines, and questions.
+5. Run `VALIDATE_SITE_BASELINE.sql` to confirm the matrix has been loaded.
+6. If migration reports orphan user links, repair the affected user-to-engineer assignments before rerunning it. Do not bypass this check.
+7. Run `PRODUCTION_SQL_SETUP.sql` if the least-privilege logins have not already been created.
+
+`SEED_SITE_BASELINE.sql` contains the agreed 6 production areas, 35 machines, and 100 assessment questions. `Palletiser_2ABC_Viaflo_Packing.sql` adds the 20 approved Palletiser 2ABC questions. Neither script contains engineer accounts, assessment scores, certificates, or other work records.
 
 The migration is transactional, versioned, idempotent, and refuses to run against a system database. Application accounts receive object-level data permissions rather than database-owner access.
 

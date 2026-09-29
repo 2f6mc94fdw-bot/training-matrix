@@ -98,6 +98,9 @@ jobs:
           docker cp cpp-skill-matrix/resources/database/schema.sql "$container:/tmp/aptitude-schema.sql"
           docker cp cpp-skill-matrix/deployment/windows/PRODUCTION_SCHEMA_MIGRATION.sql "$container:/tmp/aptitude-migration.sql"
           docker cp cpp-skill-matrix/deployment/windows/VALIDATE_DATABASE.sql "$container:/tmp/aptitude-validation.sql"
+          docker cp cpp-skill-matrix/deployment/windows/SEED_SITE_BASELINE.sql "$container:/tmp/aptitude-site-baseline.sql"
+          docker cp cpp-skill-matrix/deployment/windows/VALIDATE_SITE_BASELINE.sql "$container:/tmp/aptitude-site-baseline-validation.sql"
+          docker cp cpp-skill-matrix/deployment/machine-competencies/Palletiser_2ABC_Viaflo_Packing.sql "$container:/tmp/aptitude-palletiser-2abc.sql"
 
           "${sqlcmd[@]}" -Q "CREATE DATABASE [$TEST_DATABASE];"
 
@@ -105,5 +108,8 @@ jobs:
             echo "Database contract pass $pass"
             "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-schema.sql
             "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-migration.sql
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-site-baseline.sql
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-palletiser-2abc.sql
             "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-validation.sql
+            "${sqlcmd[@]}" -d "$TEST_DATABASE" -i /tmp/aptitude-site-baseline-validation.sql
           done
